@@ -13,7 +13,9 @@ export function LoginPage() {
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const from = (location.state as { from?: { pathname: string } })?.from?.pathname ?? '/profile';
+  const locationState = location.state as { from?: { pathname: string }; registerSuccess?: boolean } | undefined;
+  const from = locationState?.from?.pathname ?? '/profile';
+  const registerSuccess = locationState?.registerSuccess === true;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -28,24 +30,29 @@ export function LoginPage() {
       localStorage.setItem('role', role);
       await refreshUser();
       navigate(from, { replace: true });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed');
+    } catch {
+      setError('Correo o contraseña incorrectos');
     } finally {
       setIsSubmitting(false);
     }
   }
 
   return (
-    <PageLayout title="Log in" maxWidth="sm">
+    <PageLayout title="Iniciar sesión" maxWidth="sm">
       <Card>
         <form onSubmit={handleSubmit} className="space-y-4">
+          {registerSuccess && (
+            <p className="text-sm text-green-700 bg-green-50 p-2 rounded" role="status">
+              Registro exitoso. Ahora inicia sesión.
+            </p>
+          )}
           {error && (
             <p className="text-sm text-red-600 bg-red-50 p-2 rounded" role="alert">
               {error}
             </p>
           )}
           <Input
-            label="Email"
+            label="Correo electrónico"
             type="email"
             autoComplete="email"
             value={email}
@@ -53,19 +60,20 @@ export function LoginPage() {
             required
           />
           <Input
-            label="Password"
+            label="Contraseña"
             type="password"
             autoComplete="current-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            showPasswordToggle
             required
           />
           <Button type="submit" fullWidth disabled={isSubmitting}>
-            {isSubmitting ? 'Signing in...' : 'Sign in'}
+            {isSubmitting ? 'Iniciando sesión...' : 'Iniciar sesión'}
           </Button>
         </form>
         <p className="mt-4 text-sm text-neutral-600 text-center">
-          Don&apos;t have an account? <Link to="/register" className="font-medium text-neutral-900 underline">Register</Link>
+          ¿No tienes cuenta? <Link to="/register" className="font-medium text-neutral-900 underline">Registrarse</Link>
         </p>
       </Card>
     </PageLayout>

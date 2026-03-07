@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
-import { ProtectedRoute } from './components';
+import { ProtectedRoute, PublicOnlyRoute } from './components';
 import { LoginPage, RegisterPage, ProfilePage, EditProfilePage } from './pages';
 
 export function App() {
@@ -9,8 +9,22 @@ export function App() {
       <AuthProvider>
         <Routes>
           <Route path="/" element={<Navigate to="/profile" replace />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
+          <Route
+            path="/login"
+            element={
+              <PublicOnlyRoute>
+                <LoginPage />
+              </PublicOnlyRoute>
+            }
+          />
+          <Route
+            path="/register"
+            element={
+              <PublicOnlyRoute>
+                <RegisterPage />
+              </PublicOnlyRoute>
+            }
+          />
           <Route
             path="/profile"
             element={

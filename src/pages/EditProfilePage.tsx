@@ -46,15 +46,15 @@ export function EditProfilePage() {
       await refreshUser();
       navigate('/profile', { replace: true });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Update failed');
+      setError(err instanceof Error ? err.message : 'No se pudo guardar. Inténtalo de nuevo.');
     } finally {
       setIsSubmitting(false);
     }
   }
 
   return (
-    <PageLayout title="Edit profile" maxWidth="md">
-      <Card title="Edit your profile">
+    <PageLayout title="Editar perfil" maxWidth="md">
+      <Card title="Edita tu perfil">
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
             <p className="text-sm text-red-600 bg-red-50 p-2 rounded" role="alert">
@@ -71,7 +71,7 @@ export function EditProfilePage() {
             </div>
           )}
           <div>
-            <label className="block text-sm font-medium text-neutral-700 mb-1">Avatar (optional)</label>
+            <label className="block text-sm font-medium text-neutral-700 mb-1">Avatar (opcional)</label>
             <input
               type="file"
               accept="image/*"
@@ -80,7 +80,7 @@ export function EditProfilePage() {
             />
           </div>
           <Input
-            label="Display name"
+            label="Nombre"
             type="text"
             autoComplete="name"
             value={displayName}
@@ -88,10 +88,10 @@ export function EditProfilePage() {
           />
           <div className="flex gap-2 pt-2">
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Saving...' : 'Save'}
+              {isSubmitting ? 'Guardando...' : 'Guardar'}
             </Button>
             <Button type="button" variant="secondary" onClick={() => navigate('/profile')}>
-              Cancel
+              Cancelar
             </Button>
           </div>
         </form>
