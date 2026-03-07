@@ -1,15 +1,48 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthPage } from './pages/AuthPage';
-import { HomePage } from './pages/HomePage';
+import { AuthProvider } from './contexts/AuthContext';
+import { ProtectedRoute, PublicOnlyRoute } from './components';
+import { LoginPage, RegisterPage, ProfilePage, EditProfilePage } from './pages';
 
 export function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Navigate to="/home" replace />} />
-        <Route path="/auth" element={<AuthPage />} />
-        <Route path="/home" element={<HomePage />} />
-      </Routes>
+      <AuthProvider>
+        <Routes>
+          <Route path="/" element={<Navigate to="/profile" replace />} />
+          <Route
+            path="/login"
+            element={
+              <PublicOnlyRoute>
+                <LoginPage />
+              </PublicOnlyRoute>
+            }
+          />
+          <Route
+            path="/register"
+            element={
+              <PublicOnlyRoute>
+                <RegisterPage />
+              </PublicOnlyRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <ProfilePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile/edit"
+            element={
+              <ProtectedRoute>
+                <EditProfilePage />
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </AuthProvider>
     </BrowserRouter>
   );
 }
