@@ -31,6 +31,7 @@ export function RegisterPage() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
+  const [isSubmitted, setIsSubmitted] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -45,12 +46,13 @@ export function RegisterPage() {
     !confirmPasswordError &&
     !displayNameError;
 
-  const isRegisterDisabled = isSubmitting || !isFormValid;
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitError('');
+    setIsSubmitted(true);
+
     if (!isFormValid) return;
+
     setIsSubmitting(true);
     try {
       await register({
@@ -83,7 +85,7 @@ export function RegisterPage() {
             autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            error={emailError}
+            error={isSubmitted ? emailError : undefined}
             required
           />
           <Input
@@ -92,7 +94,7 @@ export function RegisterPage() {
             autoComplete="new-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            error={passwordError}
+            error={isSubmitted ? passwordError : undefined}
             showPasswordToggle
             required
           />
@@ -112,10 +114,10 @@ export function RegisterPage() {
             autoComplete="name"
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
-            error={displayNameError}
+            error={isSubmitted ? displayNameError : undefined}
             required
           />
-          <Button type="submit" fullWidth disabled={isRegisterDisabled}>
+          <Button type="submit" fullWidth disabled={isSubmitting}>
             {isSubmitting ? 'Creando cuenta...' : 'Registrarse'}
           </Button>
         </form>
