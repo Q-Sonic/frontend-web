@@ -5,6 +5,13 @@ import { register } from '../services/authService';
 
 const trim = (s: string) => s.trim();
 const MIN_PASSWORD_LENGTH = 8;
+const DUPLICATE_EMAIL_SPANISH = 'Este correo ya pertenece a una cuenta existente';
+
+function getRegisterErrorMessage(err: unknown): string {
+  const message = err instanceof Error ? err.message : '';
+  if (/already in use/i.test(message)) return DUPLICATE_EMAIL_SPANISH;
+  return message || 'No se pudo completar el registro. Inténtalo nuevamente.';
+}
 
 function getEmailError(value: string): string | undefined {
   return trim(value) ? undefined : 'Este campo es obligatorio';
@@ -31,6 +38,7 @@ export function RegisterPage() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
+  const [isSubmitted, setIsSubmitted] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -45,12 +53,13 @@ export function RegisterPage() {
     !confirmPasswordError &&
     !displayNameError;
 
-  const isRegisterDisabled = isSubmitting || !isFormValid;
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitError('');
+    setIsSubmitted(true);
+
     if (!isFormValid) return;
+
     setIsSubmitting(true);
     try {
       await register({
@@ -61,8 +70,7 @@ export function RegisterPage() {
       });
       navigate('/login', { state: { registerSuccess: true }, replace: true });
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'No se pudo completar el registro. Inténtalo nuevamente.';
-      setSubmitError(message);
+      setSubmitError(getRegisterErrorMessage(err));
     } finally {
       setIsSubmitting(false);
     }
@@ -83,7 +91,7 @@ export function RegisterPage() {
             autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            error={emailError}
+            error={isSubmitted ? emailError : undefined}
             required
           />
           <Input
@@ -92,7 +100,7 @@ export function RegisterPage() {
             autoComplete="new-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            error={passwordError}
+            error={isSubmitted ? passwordError : undefined}
             showPasswordToggle
             required
           />
@@ -112,10 +120,10 @@ export function RegisterPage() {
             autoComplete="name"
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
-            error={displayNameError}
+            error={isSubmitted ? displayNameError : undefined}
             required
           />
-          <Button type="submit" fullWidth disabled={isRegisterDisabled}>
+          <Button type="submit" fullWidth disabled={isSubmitting}>
             {isSubmitting ? 'Creando cuenta...' : 'Registrarse'}
           </Button>
         </form>

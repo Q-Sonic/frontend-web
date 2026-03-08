@@ -15,10 +15,17 @@ export function LoginPage() {
 
   const locationState = location.state as { from?: { pathname: string }; registerSuccess?: boolean } | undefined;
   const from = locationState?.from?.pathname ?? '/profile';
-  const registerSuccess = locationState?.registerSuccess === true;
+  const [showRegisterSuccess, setShowRegisterSuccess] = useState(
+    () => locationState?.registerSuccess === true
+  );
+
+  function clearRegisterSuccess() {
+    setShowRegisterSuccess(false);
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    clearRegisterSuccess();
     setError('');
     setIsSubmitting(true);
     try {
@@ -31,6 +38,7 @@ export function LoginPage() {
       await refreshUser();
       navigate(from, { replace: true });
     } catch {
+      clearRegisterSuccess();
       setError('Correo o contraseña incorrectos');
     } finally {
       setIsSubmitting(false);
@@ -41,7 +49,7 @@ export function LoginPage() {
     <PageLayout title="Iniciar sesión" maxWidth="sm">
       <Card>
         <form onSubmit={handleSubmit} className="space-y-4">
-          {registerSuccess && (
+          {showRegisterSuccess && (
             <p className="text-sm text-green-700 bg-green-50 p-2 rounded" role="status">
               Registro exitoso. Ahora inicia sesión.
             </p>
@@ -56,7 +64,10 @@ export function LoginPage() {
             type="email"
             autoComplete="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => {
+              clearRegisterSuccess();
+              setEmail(e.target.value);
+            }}
             required
           />
           <Input
@@ -64,7 +75,10 @@ export function LoginPage() {
             type="password"
             autoComplete="current-password"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => {
+              clearRegisterSuccess();
+              setPassword(e.target.value);
+            }}
             showPasswordToggle
             required
           />
