@@ -5,6 +5,13 @@ import { register } from '../services/authService';
 
 const trim = (s: string) => s.trim();
 const MIN_PASSWORD_LENGTH = 8;
+const DUPLICATE_EMAIL_SPANISH = 'Este correo ya pertenece a una cuenta existente';
+
+function getRegisterErrorMessage(err: unknown): string {
+  const message = err instanceof Error ? err.message : '';
+  if (/already in use/i.test(message)) return DUPLICATE_EMAIL_SPANISH;
+  return message || 'No se pudo completar el registro. Inténtalo nuevamente.';
+}
 
 function getEmailError(value: string): string | undefined {
   return trim(value) ? undefined : 'Este campo es obligatorio';
@@ -63,8 +70,7 @@ export function RegisterPage() {
       });
       navigate('/login', { state: { registerSuccess: true }, replace: true });
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'No se pudo completar el registro. Inténtalo nuevamente.';
-      setSubmitError(message);
+      setSubmitError(getRegisterErrorMessage(err));
     } finally {
       setIsSubmitting(false);
     }
