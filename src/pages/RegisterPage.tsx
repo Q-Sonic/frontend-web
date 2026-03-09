@@ -8,7 +8,7 @@ const MIN_PASSWORD_LENGTH = 8;
 const DUPLICATE_EMAIL_SPANISH = 'Este correo ya pertenece a una cuenta existente';
 
 function getRegisterErrorMessage(err: unknown): string {
-  const message = err instanceof Error ? err.message : '';
+  const message = err instanceof Error ? err.message : String(err ?? '');
   if (/already in use/i.test(message)) return DUPLICATE_EMAIL_SPANISH;
   return message || 'No se pudo completar el registro. Inténtalo nuevamente.';
 }
@@ -66,7 +66,7 @@ export function RegisterPage() {
         email: trim(email),
         password,
         displayName: trim(displayName),
-        role: 'client',
+        role: 'cliente',
       });
       navigate('/login', { state: { registerSuccess: true }, replace: true });
     } catch (err) {
