@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useState, type React
 import type { UserRecord } from '../types';
 import { getIdToken } from '../utils';
 import { getMe } from '../services/authService';
+import { normalizeRole } from '../utils/role';
 
 const AUTH_KEYS = ['idToken', 'refreshToken', 'uid', 'role'] as const;
 
@@ -38,7 +39,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     try {
       const res = await getMe();
-      setUserState(res.data);
+      const userData = res.data;
+      setUserState({
+        ...userData,
+        role: userData.role ? normalizeRole(userData.role) : userData.role,
+      });
     } catch {
       clearAuthStorage();
       setUserState(null);

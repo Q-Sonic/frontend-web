@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Button, Input, Card, PageLayout } from '../components';
 import { useAuth } from '../contexts/AuthContext';
 import { login } from '../services/authService';
+import { normalizeRole } from '../utils/role';
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -14,7 +15,7 @@ export function LoginPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const locationState = location.state as { from?: { pathname: string }; registerSuccess?: boolean } | undefined;
-  const from = locationState?.from?.pathname ?? '/profile';
+  const from = locationState?.from?.pathname ?? '/home';
   const [showRegisterSuccess, setShowRegisterSuccess] = useState(
     () => locationState?.registerSuccess === true
   );
@@ -34,7 +35,7 @@ export function LoginPage() {
       localStorage.setItem('idToken', idToken);
       localStorage.setItem('refreshToken', refreshToken);
       localStorage.setItem('uid', uid);
-      localStorage.setItem('role', role);
+      localStorage.setItem('role', normalizeRole(role));
       await refreshUser();
       navigate(from, { replace: true });
     } catch {
