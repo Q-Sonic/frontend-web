@@ -77,8 +77,8 @@ export function RegisterPage() {
   }
 
   return (
-    <PageLayout title="Crear cuenta" maxWidth="sm">
-      <Card>
+    <PageLayout title="Crear cuenta" maxWidth="sm" variant="dark">
+      <Card variant="dark">
         <form onSubmit={handleSubmit} className="space-y-4">
           {submitError && (
             <p className="text-sm text-red-600 bg-red-50 p-2 rounded" role="alert">

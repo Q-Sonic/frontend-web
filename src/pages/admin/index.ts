@@ -1,0 +1,1 @@
+export { CreateArtistPage } from './CreateArtistPage';

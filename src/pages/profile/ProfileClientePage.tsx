@@ -49,8 +49,8 @@ export function ProfileClientePage() {
 
   if (!isCliente) {
     return (
-      <PageLayout title="Perfil" maxWidth="md" topContent={<BackButton />}>
-        <Card title="Perfil de cliente">
+      <PageLayout title="Perfil" maxWidth="md" variant="dark" topContent={<BackButton className="text-neutral-400 hover:text-white" />}>
+        <Card variant="dark" title="Perfil de cliente">
           <p className="text-neutral-600 mb-4">
             Tu cuenta no tiene perfil de cliente. Puedes ver tu perfil básico.
           </p>
@@ -64,16 +64,16 @@ export function ProfileClientePage() {
 
   if (isLoading) {
     return (
-      <PageLayout title="Perfil" maxWidth="md" topContent={<BackButton />}>
-        <p className="text-neutral-500">Cargando...</p>
+<PageLayout title="Perfil" maxWidth="md" variant="dark" topContent={<BackButton className="text-neutral-400 hover:text-white" />}>
+      <p className="text-neutral-500">Cargando...</p>
       </PageLayout>
     );
   }
 
   if (error) {
     return (
-      <PageLayout title="Perfil" maxWidth="md" topContent={<BackButton />}>
-        <Card title="Perfil">
+      <PageLayout title="Perfil" maxWidth="md" variant="dark" topContent={<BackButton className="text-neutral-400 hover:text-white" />}>
+        <Card variant="dark" title="Perfil">
           <p className="text-red-600 mb-4">{error}</p>
           <Link to="/profile/edit">
             <Button variant="secondary">Editar perfil</Button>
@@ -89,8 +89,8 @@ export function ProfileClientePage() {
   const photo = profile?.photo ?? user.photoURL;
 
   return (
-    <PageLayout title="Perfil" maxWidth="md" topContent={<BackButton />}>
-      <Card title="Tu perfil (cliente)">
+    <PageLayout title="Perfil" maxWidth="md" variant="dark" topContent={<BackButton className="text-neutral-400 hover:text-white" />}>
+      <Card variant="dark" title="Tu perfil (cliente)">
         <div className="space-y-4">
           {notFound && (
             <p className="text-sm text-blue-700 bg-blue-50 p-2 rounded">

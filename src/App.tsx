@@ -1,7 +1,8 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
-import { ProtectedRoute, PublicOnlyRoute } from './components';
+import { ProtectedRoute, PublicOnlyRoute, AdminOnlyRoute } from './components';
 import {
+  LandingPage,
   LoginPage,
   RegisterPage,
   EditProfilePage,
@@ -12,10 +13,16 @@ import {
   HomeClientePage,
   HomeArtistaPage,
   HomeBasicoPage,
+  HomeAdminPage,
+  HomeOrganizacionPage,
   ProfileRedirectPage,
   ProfileClientePage,
   ProfileArtistaPage,
   ProfileBasicoPage,
+  ArtistServicesPage,
+  ArtistMediaPage,
+  ArtistViewPage,
+  CreateArtistPage,
 } from './pages';
 
 export function App() {
@@ -23,7 +30,7 @@ export function App() {
     <BrowserRouter>
       <AuthProvider>
         <Routes>
-          <Route path="/" element={<Navigate to="/home" replace />} />
+          <Route path="/" element={<LandingPage />} />
           <Route
             path="/login"
             element={
@@ -65,10 +72,60 @@ export function App() {
             }
           />
           <Route
+            path="/artist/services"
+            element={
+              <ProtectedRoute>
+                <ArtistServicesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/artist/media"
+            element={
+              <ProtectedRoute>
+                <ArtistMediaPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/artist/:id"
+            element={
+              <ProtectedRoute>
+                <ArtistViewPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/create-artist"
+            element={
+              <ProtectedRoute>
+                <AdminOnlyRoute>
+                  <CreateArtistPage />
+                </AdminOnlyRoute>
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/home/basico"
             element={
               <ProtectedRoute>
                 <HomeBasicoPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/home/admin"
+            element={
+              <ProtectedRoute>
+                <HomeAdminPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/home/organizacion"
+            element={
+              <ProtectedRoute>
+                <HomeOrganizacionPage />
               </ProtectedRoute>
             }
           />
@@ -98,6 +155,14 @@ export function App() {
           />
           <Route
             path="/profile/basico"
+            element={
+              <ProtectedRoute>
+                <ProfileBasicoPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile/organizacion"
             element={
               <ProtectedRoute>
                 <ProfileBasicoPage />

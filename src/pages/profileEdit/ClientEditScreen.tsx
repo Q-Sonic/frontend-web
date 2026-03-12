@@ -182,7 +182,7 @@ export function ClientEditScreen() {
 
   if (isLoading) {
     return (
-      <PageLayout title="Editar perfil" maxWidth="md">
+      <PageLayout title="Editar perfil" maxWidth="md" variant="dark">
         <p className="text-neutral-500">Cargando...</p>
       </PageLayout>
     );
@@ -190,8 +190,8 @@ export function ClientEditScreen() {
 
   if (roleBlocked) {
     return (
-      <PageLayout title="Editar perfil" maxWidth="md">
-        <Card title="Perfil de cliente">
+      <PageLayout title="Editar perfil" maxWidth="md" variant="dark">
+        <Card variant="dark" title="Perfil de cliente">
           <p className="text-neutral-600 mb-4">
             Tu cuenta no tiene perfil de cliente. Usa la edición básica para actualizar tu nombre y foto.
           </p>
@@ -204,8 +204,8 @@ export function ClientEditScreen() {
   }
 
   return (
-    <PageLayout title="Editar perfil" maxWidth="md">
-      <Card title="Edita tu perfil (cliente)">
+    <PageLayout title="Editar perfil" maxWidth="md" variant="dark">
+      <Card variant="dark" title="Edita tu perfil (cliente)">
         <form onSubmit={handleSubmit} className="space-y-4">
           {infoMessage && (
             <p className="text-sm text-blue-700 bg-blue-50 p-2 rounded" role="status">
