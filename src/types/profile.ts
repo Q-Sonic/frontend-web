@@ -22,11 +22,27 @@ export interface ArtistSocialNetworks {
   tiktok?: string;
 }
 
+/** Single media item (audio, video, image) URL from Firebase Storage. */
+export interface ArtistMediaItem {
+  url: string;
+  type: 'image' | 'audio' | 'video';
+  /** Optional original filename. */
+  name?: string;
+}
+
 export interface ArtistProfile {
   biography?: string;
   city?: string;
   socialNetworks?: ArtistSocialNetworks;
   photo?: string;
+  /** Media gallery URLs (stored client-side until backend supports it). */
+  media?: ArtistMediaItem[];
+}
+
+/** Artist profile as returned by list endpoint (with displayName). */
+export interface ArtistProfileListItem extends ArtistProfile {
+  uid: string;
+  displayName: string;
 }
 
 export interface ArtistProfileUpdate {
@@ -34,6 +50,7 @@ export interface ArtistProfileUpdate {
   city?: string;
   socialNetworks?: ArtistSocialNetworks;
   photo?: string;
+  media?: ArtistMediaItem[];
 }
 
 export type ClientProfileResponse = ApiResponse<ClientProfile>;

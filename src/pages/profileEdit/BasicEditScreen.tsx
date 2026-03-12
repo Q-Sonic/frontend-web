@@ -60,8 +60,8 @@ export function BasicEditScreen() {
   }
 
   return (
-    <PageLayout title="Editar perfil" maxWidth="md">
-      <Card title="Edita tu perfil">
+    <PageLayout title="Editar perfil" maxWidth="md" variant="dark">
+      <Card variant="dark" title="Edita tu perfil">
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
             <p className="text-sm text-red-600 bg-red-50 p-2 rounded" role="alert">

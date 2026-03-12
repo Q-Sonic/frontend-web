@@ -1,13 +1,16 @@
-import { Topbar, UserMenu } from '../../components';
+import { HomeLayout } from '../../components';
+
+const actions = [
+  { label: 'Mi perfil', to: '/profile/basico', variant: 'primary' as const },
+];
 
 export function HomeBasicoPage() {
   return (
-    <div className="min-h-screen bg-neutral-50">
-      <Topbar appName="App" right={<UserMenu />} />
-      <main className="p-4">
-        <h1 className="text-xl font-semibold text-neutral-900">Inicio</h1>
-        <p className="mt-2 text-neutral-600">Bienvenido.</p>
-      </main>
-    </div>
+    <HomeLayout
+      role="basico"
+      title="Inicio"
+      subtitle="Bienvenido a tu espacio."
+      actions={actions}
+    />
   );
 }

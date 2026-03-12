@@ -5,5 +5,7 @@ export { Card } from './Card';
 export { PageLayout } from './PageLayout';
 export { ProtectedRoute } from './ProtectedRoute';
 export { PublicOnlyRoute } from './PublicOnlyRoute';
+export { AdminOnlyRoute } from './AdminOnlyRoute';
 export { Topbar } from './Topbar';
 export { UserMenu } from './UserMenu';
+export { HomeLayout } from './HomeLayout';

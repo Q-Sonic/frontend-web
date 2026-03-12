@@ -1,5 +1,13 @@
 export { login, register, getMe } from './authService';
-export { getUser, updateUser } from './userService';
+export { getAllUsers, getUser, updateUser } from './userService';
 export { getClientProfile, updateClientProfile } from './clientProfileService';
-export { getArtistProfile, updateArtistProfile } from './artistProfileService';
+export { listArtistProfiles, getArtistProfile, getArtistProfileById, updateArtistProfile } from './artistProfileService';
+export {
+  getMyArtistServices,
+  getArtistServicesByArtistId,
+  getArtistServiceById,
+  createArtistService,
+  updateArtistService,
+  deleteArtistService,
+} from './artistServiceService';
 export { uploadFile } from './storageService';

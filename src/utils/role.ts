@@ -58,3 +58,8 @@ export function isBackendRoleCliente(role: string | undefined): boolean {
 export function isBackendRoleArtista(role: string | undefined): boolean {
   return getProfileEditRoute(role) === 'artista';
 }
+
+/** True when the user has admin role (for admin-only features). */
+export function isBackendRoleAdmin(role: string | undefined): boolean {
+  return normalizeRoleLower(role) === 'admin';
+}

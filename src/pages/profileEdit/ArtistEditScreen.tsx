@@ -2,8 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button, Input, Card, PageLayout } from '../../components';
 import { useAuth } from '../../contexts/AuthContext';
-import { getArtistProfile, updateArtistProfile } from '../../services/artistProfileService';
-import { uploadFile } from '../../services/storageService';
+import { getArtistProfile, updateArtistProfile, updateArtistProfileWithFormData } from '../../services/artistProfileService';
 import type { ArtistSocialNetworks } from '../../types';
 import { ApiError } from '../../utils';
 import { isBackendRoleArtista } from '../../utils/role';
@@ -122,12 +121,6 @@ export function ArtistEditScreen() {
 
     setIsSubmitting(true);
     try {
-      let photoUrl = photo;
-      if (photoFile) {
-        const { url } = await uploadFile(photoFile);
-        photoUrl = url;
-      }
-      const cleanPhoto = sanitizeOptionalString(photoUrl ?? '');
       const cleanBio = sanitizeOptionalString(biography);
       const cleanCity = sanitizeOptionalString(city);
       const cleanSocial: ArtistSocialNetworks = {};
@@ -135,12 +128,23 @@ export function ArtistEditScreen() {
         const v = sanitizeOptionalString(socialNetworks[key]);
         if (v) cleanSocial[key] = v;
       }
-      await updateArtistProfile({
-        biography: cleanBio || undefined,
-        city: cleanCity || undefined,
-        socialNetworks: Object.keys(cleanSocial).length > 0 ? cleanSocial : undefined,
-        photo: cleanPhoto || undefined,
-      });
+
+      if (photoFile) {
+        const formData = new FormData();
+        formData.append('photo', photoFile);
+        formData.append('biography', cleanBio);
+        formData.append('city', cleanCity);
+        formData.append('socialNetworks', JSON.stringify(cleanSocial));
+        await updateArtistProfileWithFormData(formData);
+      } else {
+        const cleanPhoto = sanitizeOptionalString(photo ?? '');
+        await updateArtistProfile({
+          biography: cleanBio || undefined,
+          city: cleanCity || undefined,
+          socialNetworks: Object.keys(cleanSocial).length > 0 ? cleanSocial : undefined,
+          photo: cleanPhoto || undefined,
+        });
+      }
       await refreshUser();
       navigate('/profile', { replace: true });
     } catch (err) {
@@ -152,7 +156,7 @@ export function ArtistEditScreen() {
 
   if (isLoading) {
     return (
-      <PageLayout title="Editar perfil" maxWidth="md">
+      <PageLayout title="Editar perfil" maxWidth="md" variant="dark">
         <p className="text-neutral-500">Cargando...</p>
       </PageLayout>
     );
@@ -160,8 +164,8 @@ export function ArtistEditScreen() {
 
   if (roleBlocked) {
     return (
-      <PageLayout title="Editar perfil" maxWidth="md">
-        <Card title="Perfil de artista">
+      <PageLayout title="Editar perfil" maxWidth="md" variant="dark">
+        <Card variant="dark" title="Perfil de artista">
           <p className="text-neutral-600 mb-4">
             Tu cuenta no tiene perfil de artista. Usa la edición básica para actualizar tu nombre y foto.
           </p>
@@ -174,8 +178,8 @@ export function ArtistEditScreen() {
   }
 
   return (
-    <PageLayout title="Editar perfil" maxWidth="md">
-      <Card title="Edita tu perfil (artista)">
+    <PageLayout title="Editar perfil" maxWidth="md" variant="dark">
+      <Card variant="dark" title="Edita tu perfil (artista)">
         <form onSubmit={handleSubmit} className="space-y-4">
           {infoMessage && (
             <p className="text-sm text-blue-700 bg-blue-50 p-2 rounded" role="status">

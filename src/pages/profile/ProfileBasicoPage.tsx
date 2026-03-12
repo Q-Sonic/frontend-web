@@ -8,8 +8,8 @@ export function ProfileBasicoPage() {
   if (!user) return null;
 
   return (
-    <PageLayout title="Perfil" maxWidth="md">
-      <Card title="Tu perfil">
+    <PageLayout title="Perfil" maxWidth="md" variant="dark">
+      <Card variant="dark" title="Tu perfil">
         <div className="space-y-4">
           {user.photoURL && (
             <div className="flex justify-center">

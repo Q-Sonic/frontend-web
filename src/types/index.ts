@@ -5,7 +5,9 @@ export type {
   ClientProfileUpdate,
   ArtistProfile,
   ArtistProfileUpdate,
+  ArtistProfileListItem,
   ArtistSocialNetworks,
+  ArtistMediaItem,
 } from './profile';
 export type {
   LoginPayload,
@@ -13,3 +15,10 @@ export type {
   LoginResponseData,
   LoginResponse,
 } from './auth';
+export type {
+  ArtistServiceRecord,
+  CreateArtistServiceBody,
+  UpdateArtistServiceBody,
+  ArtistServiceResponse,
+  ArtistServiceListResponse,
+} from './artistService';

@@ -47,8 +47,8 @@ export function LoginPage() {
   }
 
   return (
-    <PageLayout title="Iniciar sesión" maxWidth="sm">
-      <Card>
+    <PageLayout title="Iniciar sesión" maxWidth="sm" variant="dark">
+      <Card variant="dark">
         <form onSubmit={handleSubmit} className="space-y-4">
           {showRegisterSuccess && (
             <p className="text-sm text-green-700 bg-green-50 p-2 rounded" role="status">
