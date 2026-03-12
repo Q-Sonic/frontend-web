@@ -33,7 +33,6 @@ export function ProfileArtistaPage() {
   } | null>(null);
   const [mediaList, setMediaList] = useState<ArtistMediaItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
   const [error, setError] = useState('');
 
   const isArtista = isBackendRoleArtista(user?.role);
@@ -49,14 +48,12 @@ export function ProfileArtistaPage() {
       .then((data) => {
         if (!cancelled) {
           setProfile(data);
-          setNotFound(false);
           setMediaList(Array.isArray(data.media) ? data.media : []);
         }
       })
       .catch((err) => {
         if (cancelled) return;
         if (err instanceof ApiError && err.status === 404) {
-          setNotFound(true);
           setProfile(null);
           setMediaList([]);
         } else {

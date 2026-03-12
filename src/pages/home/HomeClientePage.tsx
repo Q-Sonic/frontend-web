@@ -38,7 +38,6 @@ function ArtistCard({ artist }: { artist: ArtistProfileListItem }) {
 }
 
 export function HomeClientePage() {
-  const { user } = useAuth();
   const [artists, setArtists] = useState<ArtistProfileListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');

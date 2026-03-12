@@ -22,7 +22,7 @@ interface HomeLayoutProps {
 
 const gradientBtn = 'bg-gradient-to-r from-violet-500 to-blue-600 text-white hover:opacity-90 border-0';
 
-export function HomeLayout({ title, subtitle, actions, role = 'basico' }: HomeLayoutProps) {
+export function HomeLayout({ title, subtitle, actions }: HomeLayoutProps) {
 
   return (
     <div className="min-h-screen bg-neutral-950 text-neutral-100">
