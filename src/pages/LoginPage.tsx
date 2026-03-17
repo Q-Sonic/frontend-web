@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Button, Input, Card, PageLayout } from '../components';
+import { Button, Input, Card } from '../components';
+import { PageLayout } from '../layouts';
 import { useAuth } from '../contexts/AuthContext';
-import { login } from '../services/authService';
-import { normalizeRole } from '../utils/role';
+import { login } from '../api/authService';
+import { normalizeRole } from '../helpers/role';
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -15,7 +16,7 @@ export function LoginPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const locationState = location.state as { from?: { pathname: string }; registerSuccess?: boolean } | undefined;
-  const from = locationState?.from?.pathname ?? '/home';
+  const from = locationState?.from?.pathname ?? '/dashboard';
   const [showRegisterSuccess, setShowRegisterSuccess] = useState(
     () => locationState?.registerSuccess === true
   );

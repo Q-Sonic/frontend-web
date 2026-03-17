@@ -1,8 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 import type { UserRecord } from '../types';
-import { getIdToken } from '../utils';
-import { getMe } from '../services/authService';
-import { normalizeRole } from '../utils/role';
+import { getIdToken } from '../api';
+import { getMe } from '../api/authService';
+import { normalizeRole } from '../helpers/role';
 
 const AUTH_KEYS = ['idToken', 'refreshToken', 'uid', 'role'] as const;
 
