@@ -1,8 +1,12 @@
 export { LandingPage } from './landing';
 export { LoginPage } from './LoginPage';
 export { RegisterPage } from './RegisterPage';
+export { ForgotPasswordPage } from './ForgotPasswordPage';
 export { EditProfilePage, HomeRedirectPage, ProfileRedirectPage } from './redirects';
 export { HomeArtistaPage, ProfileArtistaPage, ArtistEditScreen, ArtistServicesPage, ArtistMediaPage, ArtistViewPage } from './artist';
 export { HomeClientePage, ProfileClientePage, ClientEditScreen } from './client';
 export { HomeAdminPage, CreateArtistPage } from './admin';
 export { HomeOrganizacionPage } from './organization';
+export { BasicEditScreen } from './profileEdit';
+export { HomeBasicoPage } from './home';
+export { ProfileBasicoPage } from './profile';
