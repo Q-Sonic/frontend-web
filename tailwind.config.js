@@ -11,6 +11,7 @@ export default {
         accent: '#00CCCB',
         danger: '#FF3D3D',
         warning: '#FFD910',
+        'muted-card': '#ECEDEF',
       },
     },
   },

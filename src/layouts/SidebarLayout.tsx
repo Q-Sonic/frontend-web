@@ -29,7 +29,7 @@ export function SidebarLayout({ sidebar, children }: SidebarLayoutProps) {
         <header className="h-14 shrink-0 flex items-center justify-end px-4 border-b border-white/10">
           <UserMenu />
         </header>
-        <main className="flex-1 flex gap-6 p-6 overflow-auto">
+        <main className="p-6 overflow-auto mx-auto">
           {children}
         </main>
       </div>
