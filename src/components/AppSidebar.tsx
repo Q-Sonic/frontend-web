@@ -33,15 +33,15 @@ export function AppSidebar({ menuItems, sectionTitle, footer }: AppSidebarProps)
 
   return (
     <aside
-      className="w-56 shrink-0 flex flex-col min-h-screen"
+      className="w-64 shrink-0 flex flex-col min-h-screen p-4"
       style={{
         background: 'linear-gradient(180deg, var(--color-sidebar) 0%, rgba(10,10,10,0) 100%)',
       }}
     >
       <Logo />
-      <nav className="flex-1 px-3 pb-4">
+      <nav className="flex-1 px-3 pb-4 mt-20">
         {sectionTitle && (
-          <p className="text-muted text-xs font-semibold uppercase tracking-wider px-3 pt-2 pb-2">
+          <p className="text-muted font-bold tracking-wider px-3 pt-2 pb-2">
             {sectionTitle}
           </p>
         )}
