@@ -7,6 +7,4 @@ export { HomeArtistaPage, ProfileArtistaPage, ArtistEditScreen, ArtistServicesPa
 export { HomeClientePage, ProfileClientePage, ClientEditScreen } from './client';
 export { HomeAdminPage, CreateArtistPage } from './admin';
 export { HomeOrganizacionPage } from './organization';
-export { BasicEditScreen } from './profileEdit';
-export { HomeBasicoPage } from './home';
-export { ProfileBasicoPage } from './profile';
+export { AccountDashboardPage, AccountProfilePage, AccountProfileEditPage } from './account';
