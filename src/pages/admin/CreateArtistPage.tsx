@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { BackButton, Button, Input, Card, PageLayout } from '../../components';
+import { BackButton, Button, Input, Card } from '../../components';
+import { PageLayout } from '../../layouts';
 import { useAuth } from '../../contexts/AuthContext';
-import { register } from '../../services/authService';
-import { isBackendRoleAdmin } from '../../utils/role';
-import { getRequiredError } from '../../utils/validation';
+import { register } from '../../api/authService';
+import { isBackendRoleAdmin } from '../../helpers/role';
+import { getRequiredError } from '../../helpers/validation';
 
 const MIN_PASSWORD_LENGTH = 8;
 
@@ -65,7 +66,7 @@ export function CreateArtistPage() {
       <PageLayout title="Crear artista" maxWidth="md" variant="dark" topContent={<BackButton className="text-neutral-400 hover:text-white" />}>
         <Card variant="dark" title="Acceso denegado">
           <p className="text-neutral-600 mb-4">Solo los administradores pueden crear artistas.</p>
-          <Link to="/home">
+          <Link to="/dashboard">
             <Button variant="primary">Volver al inicio</Button>
           </Link>
         </Card>
@@ -123,7 +124,7 @@ export function CreateArtistPage() {
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting ? 'Creando...' : 'Crear artista'}
             </Button>
-            <Link to="/home">
+            <Link to="/dashboard">
               <Button type="button" variant="secondary">
                 Volver
               </Button>

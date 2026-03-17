@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { BackButton, Button, Card, PageLayout } from '../../components';
+import { BackButton, Button, Card } from '../../components';
+import { PageLayout } from '../../layouts';
 import { useAuth } from '../../contexts/AuthContext';
-import { uploadFile, getArtistProfile, updateArtistProfile } from '../../services';
+import { uploadFile, getArtistProfile, updateArtistProfile } from '../../api';
 import type { ArtistMediaItem } from '../../types';
-import { isBackendRoleArtista } from '../../utils/role';
-import { MEDIA_TYPE_OPTIONS, type MediaTypeOption } from '../../utils/mediaLimits';
+import { isBackendRoleArtista } from '../../helpers/role';
+import { MEDIA_TYPE_OPTIONS, type MediaTypeOption } from '../../helpers/mediaLimits';
 
 function getMediaType(mime: string): ArtistMediaItem['type'] {
   if (mime.startsWith('image/')) return 'image';
@@ -127,7 +128,7 @@ export function ArtistMediaPage() {
       <PageLayout title="Contenido multimedia" maxWidth="md" variant="dark" topContent={<BackButton className={backBtnClass} />}>
         <Card variant="dark" title="Multimedia">
           <p className="text-neutral-400 mb-4">Solo los artistas pueden subir contenido.</p>
-          <Link to="/home">
+          <Link to="/artist">
             <Button variant="primary" className={gradientBtn}>Volver al inicio</Button>
           </Link>
         </Card>

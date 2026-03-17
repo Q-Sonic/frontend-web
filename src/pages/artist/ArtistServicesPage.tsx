@@ -1,17 +1,18 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { BackButton, Button, Card, PageLayout } from '../../components';
+import { BackButton, Button, Card } from '../../components';
+import { PageLayout } from '../../layouts';
 import { useAuth } from '../../contexts/AuthContext';
 import {
   getMyArtistServices,
   createArtistService,
   updateArtistService,
   deleteArtistService,
-} from '../../services';
+} from '../../api';
 import type { ArtistServiceRecord, CreateArtistServiceBody } from '../../types';
-import { ApiError } from '../../utils';
-import { isBackendRoleArtista } from '../../utils/role';
-import { getRequiredError } from '../../utils/validation';
+import { ApiError } from '../../api';
+import { isBackendRoleArtista } from '../../helpers/role';
+import { getRequiredError } from '../../helpers/validation';
 
 const SERVICE_NAME_SUGGESTIONS = ['Concierto', 'Acústico', 'Evento privado'];
 
@@ -141,7 +142,7 @@ export function ArtistServicesPage() {
           <p className="text-neutral-600 mb-4">
             Solo los artistas pueden configurar servicios y precios.
           </p>
-          <Link to="/home">
+          <Link to="/artist">
             <Button variant="primary">Volver al inicio</Button>
           </Link>
         </Card>

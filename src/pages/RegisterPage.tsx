@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Button, Input, Card, PageLayout } from '../components';
-import { register } from '../services/authService';
+import { Button, Input, Card } from '../components';
+import { PageLayout } from '../layouts';
+import { register } from '../api/authService';
 
 const trim = (s: string) => s.trim();
 const MIN_PASSWORD_LENGTH = 8;

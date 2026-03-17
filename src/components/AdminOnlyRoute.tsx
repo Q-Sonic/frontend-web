@@ -1,6 +1,6 @@
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { isBackendRoleAdmin } from '../utils/role';
+import { isBackendRoleAdmin } from '../helpers/role';
 
 interface AdminOnlyRouteProps {
   children: React.ReactNode;
@@ -22,7 +22,7 @@ export function AdminOnlyRoute({ children }: AdminOnlyRouteProps) {
   }
 
   if (!isBackendRoleAdmin(user.role)) {
-    return <Navigate to="/home" replace />;
+    return <Navigate to="/dashboard" replace />;
   }
 
   return <>{children}</>;

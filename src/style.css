@@ -1,1 +1,13 @@
 @import "tailwindcss";
+@config "../tailwind.config.js";
+
+@theme {
+  /* Standard palette – use with var() in SVG/inline or Tailwind classes (bg-surface, text-muted, etc.) */
+  --color-sidebar: #0A0A0A;
+  --color-surface: #121212;
+  --color-card: #1E1E1E;
+  --color-muted: #DADADA;
+  --color-accent: #00CCCB;
+  --color-danger: #FF3D3D;
+  --color-warning: #FFD910;
+}

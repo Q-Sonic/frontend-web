@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { getProfileEditRoute } from '../utils/role';
+import { getProfilePath } from '../config';
 
 export function UserMenu() {
   const { user, logout } = useAuth();
@@ -50,7 +50,7 @@ export function UserMenu() {
       {open && (
         <div className="absolute right-0 mt-2 w-48 py-1 bg-white rounded-lg shadow-lg border border-neutral-200">
           <Link
-            to={`/profile/${getProfileEditRoute(user.role)}`}
+            to={getProfilePath(user.role)}
             onClick={() => setOpen(false)}
             className="block px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-100"
           >

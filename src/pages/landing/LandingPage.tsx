@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Topbar, Button, UserMenu } from '../../components';
 import { useAuth } from '../../contexts/AuthContext';
-import { config } from '../../utils/config';
+import { config } from '../../config';
 
 const gradientBtn = 'bg-gradient-to-r from-violet-500 to-blue-600 text-white hover:opacity-90';
 const cardClass =
@@ -17,7 +17,7 @@ export function LandingPage() {
         right={
           user ? (
             <div className="flex items-center gap-3">
-              <Link to="/home">
+              <Link to="/dashboard">
                 <Button variant="primary" className={gradientBtn}>
                   Ir al inicio
                 </Button>

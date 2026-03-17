@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { BackButton, Card } from '../../components';
-import { getArtistProfileById, getArtistServicesByArtistId } from '../../services';
+import { getArtistProfileById, getArtistServicesByArtistId } from '../../api';
 import type { ArtistProfile, ArtistMediaItem, ArtistServiceRecord } from '../../types';
 
 export function ArtistViewPage() {
