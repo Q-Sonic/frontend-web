@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom';
 import WorldIcon from '../../../public/icons/world';
-import { IoIosArrowForward } from 'react-icons/io';
 import { useEffect, useState } from 'react';
 import { formatMoney } from '../../helpers/money';
 
@@ -144,7 +143,7 @@ function BalanceCard() {
       <h3 className="font-medium opacity-90">My balance</h3>
       <p className="text-3xl font-bold">$ {balance}</p>
       <button type="button" className="mt-3 px-4 py-2 rounded-full flex items-center gap-2 font-medium bg-white/20 hover:bg-white/30 cursor-pointer">
-        Retirar <IoIosArrowForward className="w-4 h-4" />
+        Retirar <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="m9 18 6-6-6-6"/></svg>
       </button>  
     </div>
   );

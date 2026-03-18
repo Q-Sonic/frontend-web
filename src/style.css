@@ -10,4 +10,17 @@
   --color-accent: #00CCCB;
   --color-danger: #FF3D3D;
   --color-warning: #FFD910;
+
+  /* ── Custom animations ── */
+  @keyframes fadeSlideIn {
+    from {
+      opacity: 0;
+      transform: translateY(-4px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
 }

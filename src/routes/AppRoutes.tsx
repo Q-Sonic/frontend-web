@@ -6,6 +6,7 @@ import {
   LandingPage,
   LoginPage,
   RegisterPage,
+  ForgotPasswordPage,
   EditProfilePage,
   ClientEditScreen,
   ArtistEditScreen,
@@ -45,6 +46,14 @@ export function AppRoutes() {
         element={
           <PublicOnlyRoute>
             <RegisterPage />
+          </PublicOnlyRoute>
+        }
+      />
+      <Route
+        path="/forgot-password"
+        element={
+          <PublicOnlyRoute>
+            <ForgotPasswordPage />
           </PublicOnlyRoute>
         }
       />

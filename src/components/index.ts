@@ -1,3 +1,4 @@
+export { AuthLayout } from './AuthLayout';
 export { BackButton } from './BackButton';
 export { Button } from './Button';
 export { Input } from './Input';
