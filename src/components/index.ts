@@ -9,3 +9,4 @@ export { AdminOnlyRoute } from './AdminOnlyRoute';
 export { Topbar } from './Topbar';
 export { UserMenu } from './UserMenu';
 export { AppSidebar } from './AppSidebar';
+export { Skeleton, SkeletonText, SkeletonHeading } from './Skeleton';
