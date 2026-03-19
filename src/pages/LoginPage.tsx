@@ -127,8 +127,10 @@ export function LoginPage() {
     <AuthLayout>
       {/* Header */}
       <div className="mb-8">
-        <h2 className="text-3xl font-bold text-white tracking-tight">Welcome Back</h2>
-        <p className="mt-1 text-white/45 text-sm">Sign in to your account</p>
+        <h2 className="text-3xl font-bold text-white tracking-tight" style={{ height: 39 }}>
+          Bienvenido de nuevo
+        </h2>
+        <p className="mt-1 text-muted text-sm">Inicia sesión en tu cuenta</p>
       </div>
 
       {/* Success banner */}
@@ -152,7 +154,7 @@ export function LoginPage() {
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-5" noValidate>
         <Input
-          label="Email"
+          label="Correo electrónico"
           type="email"
           autoComplete="email"
           placeholder="domat@example.com"
@@ -166,10 +168,10 @@ export function LoginPage() {
         />
 
         <Input
-          label="Password"
+          label="Contraseña"
           type="password"
           autoComplete="current-password"
-          placeholder="Enter your password"
+          placeholder="Ingresa tu contraseña"
           icon={<LockIcon />}
           showPasswordToggle
           value={password}
@@ -180,7 +182,7 @@ export function LoginPage() {
           required
         />
 
-        {/* Remember me + Forgot password */}
+        {/* Recordarme y recuperar contraseña */}
         <div className="flex items-center justify-between">
           <label className="flex items-center gap-2 cursor-pointer select-none group">
             <div className="relative">
@@ -202,26 +204,26 @@ export function LoginPage() {
                 )}
               </div>
             </div>
-            <span className="text-sm text-white/55 group-hover:text-white/75 transition-colors">Remember me</span>
+            <span className="text-sm text-white/55 group-hover:text-white/75 transition-colors">Recordarme</span>
           </label>
 
           <Link
             to="/forgot-password"
             className="text-sm text-[#00d4c8] hover:text-[#00ece0] transition-colors font-medium"
           >
-            Forgot Password
+            ¿Olvidaste tu contraseña?
           </Link>
         </div>
 
         {/* Submit */}
         <Button type="submit" variant="primary" fullWidth loading={isSubmitting}>
-          {isSubmitting ? 'Signing in…' : 'Sign in'}
+          {isSubmitting ? 'Iniciando sesión…' : 'Iniciar sesión'}
         </Button>
 
         {/* Divider */}
         <div className="flex items-center gap-3">
           <hr className="flex-1 border-white/10" />
-          <span className="text-white/30 text-xs">or</span>
+          <span className="text-white/30 text-xs">o</span>
           <hr className="flex-1 border-white/10" />
         </div>
 
@@ -235,15 +237,15 @@ export function LoginPage() {
           onClick={handleGoogleLogin}
           disabled={isSubmitting}
         >
-          {isGoogleLoading ? 'Connecting...' : 'Sign in with Google'}
+          {isGoogleLoading ? 'Conectando...' : 'Iniciar sesión con Google'}
         </Button>
       </form>
 
       {/* Footer link */}
       <p className="mt-8 text-center text-sm text-white/40">
-        Don&apos;t have an account?{' '}
+        ¿No tienes una cuenta?{' '}
         <Link to="/register" className="text-[#00d4c8] hover:text-[#00ece0] font-medium transition-colors">
-          Sign up
+          Regístrate
         </Link>
       </p>
     </AuthLayout>

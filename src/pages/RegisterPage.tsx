@@ -174,8 +174,10 @@ export function RegisterPage() {
     <AuthLayout>
       {/* Header */}
       <div className="mb-8">
-        <h2 className="text-3xl font-bold text-white tracking-tight">Get Started Now</h2>
-        <p className="mt-1 text-white/45 text-sm">Let&apos;s create your account</p>
+        <h2 className="text-3xl font-bold text-white tracking-tight" style={{ height: 39 }}>
+          Comienza ahora
+        </h2>
+        <p className="mt-1 text-muted text-sm">Crea tu cuenta</p>
       </div>
 
       {/* Error banner */}
@@ -189,10 +191,10 @@ export function RegisterPage() {
       <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
         {/* Full Name */}
         <Input
-          label="Full Name"
+          label="Nombre completo"
           type="text"
           autoComplete="name"
-          placeholder="Dominic Matthew"
+          placeholder="Juan Pérez"
           icon={<UserIcon />}
           value={displayName}
           onChange={(e) => setDisplayName(e.target.value)}
@@ -204,7 +206,7 @@ export function RegisterPage() {
 
         {/* Email */}
         <Input
-          label="Email"
+          label="Correo electrónico"
           type="email"
           autoComplete="email"
           placeholder="domat@example.com"
@@ -219,10 +221,10 @@ export function RegisterPage() {
 
         {/* Password */}
         <Input
-          label="Password"
+          label="Contraseña"
           type="password"
           autoComplete="new-password"
-          placeholder="Set your password"
+          placeholder="Crea tu contraseña"
           icon={<LockIcon />}
           showPasswordToggle
           value={password}
@@ -236,10 +238,10 @@ export function RegisterPage() {
 
         {/* Confirm Password */}
         <Input
-          label="Confirm Password"
+          label="Confirmar contraseña"
           type="password"
           autoComplete="new-password"
-          placeholder="Confirm your password"
+          placeholder="Confirma tu contraseña"
           icon={<LockIcon />}
           showPasswordToggle
           value={confirmPassword}
@@ -274,9 +276,9 @@ export function RegisterPage() {
             </div>
           </div>
           <span className="text-sm text-white/55 group-hover:text-white/75 transition-colors leading-5">
-            I agree to the{' '}
+            Acepto los{' '}
             <Link to="/terms" className="text-[#00d4c8] hover:text-[#00ece0] font-medium transition-colors">
-              Term &amp; Condition
+              términos y condiciones
             </Link>
           </span>
         </label>
@@ -286,13 +288,13 @@ export function RegisterPage() {
 
         {/* Submit */}
         <Button type="submit" variant="primary" fullWidth loading={isSubmitting} className="mt-1">
-          {isSubmitting ? 'Creating account…' : 'Sign up'}
+          {isSubmitting ? 'Creando tu cuenta…' : 'Registrarse'}
         </Button>
 
         {/* Divider */}
         <div className="flex items-center gap-3">
           <hr className="flex-1 border-white/10" />
-          <span className="text-white/30 text-xs">or</span>
+          <span className="text-white/30 text-xs">o</span>
           <hr className="flex-1 border-white/10" />
         </div>
 
@@ -306,15 +308,15 @@ export function RegisterPage() {
           loading={isGoogleLoading}
           disabled={isSubmitting}
         >
-          {isGoogleLoading ? 'Connecting...' : 'Sign up with Google'}
+          {isGoogleLoading ? 'Conectando...' : 'Registrarse con Google'}
         </Button>
       </form>
 
       {/* Footer link */}
       <p className="mt-8 text-center text-sm text-white/40">
-        Already have an account?{' '}
+        ¿Ya tienes una cuenta?{' '}
         <Link to="/login" className="text-[#00d4c8] hover:text-[#00ece0] font-medium transition-colors">
-          Sign In
+          Inicia sesión
         </Link>
       </p>
     </AuthLayout>

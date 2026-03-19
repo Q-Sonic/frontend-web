@@ -8,8 +8,13 @@ export function AuthLayout({ children }: AuthLayoutProps) {
   return (
     <div className="min-h-screen flex bg-[#111318]">
       {/* Left panel — branded */}
-      <div className="hidden lg:flex lg:w-[45%] relative overflow-hidden flex-col justify-between p-10"
-           style={{ background: 'linear-gradient(145deg, #0d5c4e 0%, #0e7a68 30%, #1a6b8a 60%, #1a3a6e 100%)' }}>
+      <div
+        className="hidden lg:flex lg:w-[45%] relative overflow-hidden flex-col justify-between p-10 mt-6 mb-6 ml-6 rounded-3xl border-none"
+        style={{
+          background:
+            'linear-gradient(145deg, rgba(26, 58, 110, 1) 0%, rgba(26, 107, 138, 1) 51%, rgba(14, 122, 104, 1) 78%, rgba(13, 92, 78, 1) 100%)',
+        }}
+      >
 
         {/* Decorative circles */}
         <div className="absolute bottom-0 left-0 w-[550px] h-[550px] rounded-full opacity-20"
@@ -46,7 +51,7 @@ export function AuthLayout({ children }: AuthLayoutProps) {
               <path d="M9 8h6M9 12h4M9 16h6" stroke="white" strokeWidth="2" strokeLinecap="round"/>
             </svg>
           </div>
-          <p className="text-white/70 text-sm leading-snug">
+          <p className="text-white/90 text-sm leading-snug">
             Shows en vivo, acústicos y<br />
             entretenimiento profesional en minutos.
           </p>
@@ -54,7 +59,7 @@ export function AuthLayout({ children }: AuthLayoutProps) {
       </div>
 
       {/* Right panel — form */}
-      <div className="flex-1 flex items-center justify-center p-6 sm:p-10">
+      <div className="flex-1 flex items-center justify-center p-6 sm:p-10 mt-6 mr-6 mb-6 ml-5 rounded-3xl bg-card/80 text-muted">
         <div className="w-full max-w-[420px]">
           {children}
         </div>

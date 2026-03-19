@@ -49,9 +49,14 @@ export function ForgotPasswordPage() {
         </div>
 
         <div>
-          <h2 className="text-3xl font-bold text-white tracking-tight">Forgot Password?</h2>
+          <h2
+            className="text-3xl font-bold text-white tracking-tight"
+            style={{ height: 39 }}
+          >
+            ¿Olvidaste tu contraseña?
+          </h2>
           <p className="mt-1.5 text-white/45 text-sm max-w-[320px] leading-relaxed">
-            Enter your email address and we&apos;ll send you a link to reset your password.
+            Ingresa tu correo electrónico y te enviaremos un enlace para restablecer tu contraseña.
           </p>
         </div>
       </div>
@@ -90,10 +95,10 @@ export function ForgotPasswordPage() {
       ) : (
         <form onSubmit={handleSubmit} className="flex flex-col gap-5" noValidate>
           <Input
-            label="Email"
+            label="Correo electrónico"
             type="email"
             autoComplete="email"
-            placeholder="domat@example.com"
+            placeholder="correo@ejemplo.com"
             icon={<MailIcon />}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -101,12 +106,12 @@ export function ForgotPasswordPage() {
           />
 
           <Button type="submit" variant="primary" fullWidth>
-            Send Reset Link
+            Enviar enlace de recuperación
           </Button>
         </form>
       )}
 
-      {/* Back to login */}
+      {/* Volver al inicio de sesión */}
       <div className="mt-8 flex justify-center">
         <Link
           to="/login"
@@ -114,7 +119,7 @@ export function ForgotPasswordPage() {
                      hover:text-white/70 transition-colors duration-150"
         >
           <ArrowLeftIcon />
-          Back to Sign In
+          Volver a iniciar sesión
         </Link>
       </div>
     </AuthLayout>
