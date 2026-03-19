@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { BackButton, Button, Card } from '../../components';
+import { BackButton, Button, Card, Skeleton, SkeletonText } from '../../components';
 import { PageLayout } from '../../layouts';
 import { useAuth } from '../../contexts/AuthContext';
 import { uploadFile, getArtistProfile, updateArtistProfile } from '../../api';
 import type { ArtistMediaItem } from '../../types';
 import { isBackendRoleArtista } from '../../helpers/role';
 import { MEDIA_TYPE_OPTIONS, type MediaTypeOption } from '../../helpers/mediaLimits';
+import { withMinimumDelay } from '../../helpers/withMinimumDelay';
 
 function getMediaType(mime: string): ArtistMediaItem['type'] {
   if (mime.startsWith('image/')) return 'image';
@@ -37,19 +38,27 @@ export function ArtistMediaPage() {
       setIsLoading(false);
       return;
     }
+
+    setRoleBlocked(false);
+    setIsLoading(true);
+
     let cancelled = false;
-    getArtistProfile()
-      .then((profile) => {
+    async function load() {
+      try {
+        const profile = await withMinimumDelay(1000, () => getArtistProfile());
         if (cancelled) return;
         setMediaList(Array.isArray(profile.media) ? profile.media : []);
-      })
-      .catch(() => {
+      } catch {
         if (!cancelled) setMediaList([]);
-      })
-      .finally(() => {
+      } finally {
         if (!cancelled) setIsLoading(false);
-      });
-    return () => { cancelled = true; };
+      }
+    }
+
+    load();
+    return () => {
+      cancelled = true;
+    };
   }, [user?.uid, isArtista]);
 
   function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
@@ -117,7 +126,25 @@ export function ArtistMediaPage() {
     return (
       <PageLayout title="Subir contenido multimedia" maxWidth="md" variant="dark" topContent={<BackButton className={backBtnClass} />}>
         <Card variant="dark" title="Mi contenido">
-          <p className="text-neutral-500 text-sm">Cargando...</p>
+          <div className="space-y-4">
+            <SkeletonText lines={2} />
+            <div className="space-y-3">
+              <div className="flex items-center justify-between gap-3 p-3 border border-neutral-700 rounded-lg">
+                <Skeleton className="h-4 w-44 rounded" />
+                <Skeleton className="h-4 w-24 rounded" />
+              </div>
+              <div className="flex items-center justify-between gap-3 p-3 border border-neutral-700 rounded-lg">
+                <Skeleton className="h-4 w-36 rounded" />
+                <Skeleton className="h-4 w-20 rounded" />
+              </div>
+              <div className="rounded-lg border border-neutral-700 bg-neutral-900/40 p-4">
+                <Skeleton className="h-6 w-28 rounded" />
+                <div className="mt-3">
+                  <Skeleton className="h-24 w-full rounded" />
+                </div>
+              </div>
+            </div>
+          </div>
         </Card>
       </PageLayout>
     );

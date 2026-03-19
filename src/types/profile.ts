@@ -35,6 +35,17 @@ export interface ArtistProfile {
   city?: string;
   socialNetworks?: ArtistSocialNetworks;
   photo?: string;
+  /** Featured song for the profile player (if provided by backend). */
+  featuredSong?: {
+    title: string;
+    artistName: string;
+    streamUrl: string;
+    coverUrl?: string;
+  };
+  /** Link to technical rider (PDF) */
+  technicalRiderUrl?: string;
+  /** Manual blocked dates (YYYY-MM-DD). */
+  blockedDates?: string[];
   /** Media gallery URLs (stored client-side until backend supports it). */
   media?: ArtistMediaItem[];
 }

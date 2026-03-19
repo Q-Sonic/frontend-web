@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { BackButton, Button, Card } from '../../components';
+import { BackButton, Button, Card, Skeleton, SkeletonText } from '../../components';
 import { PageLayout } from '../../layouts';
 import { useAuth } from '../../contexts/AuthContext';
 import {
@@ -13,6 +13,7 @@ import type { ArtistServiceRecord, CreateArtistServiceBody } from '../../types';
 import { ApiError } from '../../api';
 import { isBackendRoleArtista } from '../../helpers/role';
 import { getRequiredError } from '../../helpers/validation';
+import { withMinimumDelay } from '../../helpers/withMinimumDelay';
 
 const SERVICE_NAME_SUGGESTIONS = ['Concierto', 'Acústico', 'Evento privado'];
 
@@ -34,25 +35,53 @@ export function ArtistServicesPage() {
 
   const isArtista = isBackendRoleArtista(user?.role);
 
-  function loadServices() {
+  async function reloadServices({ withSkeleton = false }: { withSkeleton?: boolean } = {}) {
     if (!user?.uid || !isArtista) return;
+
+    if (withSkeleton) setIsLoading(true);
     setError('');
-    getMyArtistServices()
-      .then(setServices)
-      .catch((err) => {
-        setError(err instanceof Error ? err.message : 'No se pudieron cargar los servicios.');
-      })
-      .finally(() => setIsLoading(false));
+
+    try {
+      const list = withSkeleton
+        ? await withMinimumDelay(1000, () => getMyArtistServices())
+        : await getMyArtistServices();
+      setServices(list);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudieron cargar los servicios.');
+    } finally {
+      if (withSkeleton) setIsLoading(false);
+    }
   }
 
   useEffect(() => {
     if (!user) return;
+
     if (!isArtista) {
       setRoleBlocked(true);
       setIsLoading(false);
       return;
     }
-    loadServices();
+
+    setRoleBlocked(false);
+    setIsLoading(true);
+    setError('');
+
+    let cancelled = false;
+    async function load() {
+      try {
+        const list = await withMinimumDelay(1000, () => getMyArtistServices());
+        if (!cancelled) setServices(list);
+      } catch (err) {
+        if (!cancelled) setError(err instanceof Error ? err.message : 'No se pudieron cargar los servicios.');
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    }
+
+    load();
+    return () => {
+      cancelled = true;
+    };
   }, [user?.uid, isArtista]);
 
   const nameError = getRequiredError(name);
@@ -112,7 +141,7 @@ export function ArtistServicesPage() {
         await createArtistService(body);
       }
       closeForm();
-      loadServices();
+      await reloadServices();
     } catch (err) {
       setSubmitError(
         err instanceof ApiError ? err.message : 'No se pudo guardar. Inténtalo de nuevo.'
@@ -126,7 +155,7 @@ export function ArtistServicesPage() {
     if (!window.confirm('¿Eliminar este servicio?')) return;
     try {
       await deleteArtistService(id);
-      loadServices();
+      await reloadServices();
       if (editingId === id) closeForm();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo eliminar.');
@@ -153,7 +182,19 @@ export function ArtistServicesPage() {
   if (isLoading) {
     return (
       <PageLayout title="Servicios" maxWidth="md" variant="dark">
-        <p className="text-neutral-500">Cargando...</p>
+        <Card variant="dark" title="Mis servicios">
+          <div className="space-y-4">
+            <SkeletonText lines={3} />
+            <div className="space-y-3">
+              {Array.from({ length: 4 }).map((_, idx) => (
+                <div key={idx} className="flex items-center justify-between gap-3 p-3 border border-neutral-700 rounded-lg">
+                  <Skeleton className="h-4 w-36 rounded" />
+                  <Skeleton className="h-4 w-16 rounded" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </Card>
       </PageLayout>
     );
   }

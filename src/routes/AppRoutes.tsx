@@ -1,7 +1,9 @@
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { ProtectedRoute, PublicOnlyRoute, AdminOnlyRoute } from '../components';
 import { AppLayout, SidebarLayout } from '../layouts';
 import { artistSidebarMenus } from '../constants/menus';
+import { useAuth } from '../contexts/AuthContext';
+import { isBackendRoleArtista } from '../helpers/role';
 import {
   LandingPage,
   LoginPage,
@@ -17,10 +19,10 @@ import {
   HomeOrganizacionPage,
   ProfileRedirectPage,
   ProfileClientePage,
-  ProfileArtistaPage,
   ArtistServicesPage,
   ArtistMediaPage,
   ArtistViewPage,
+  ArtistCalendarPage,
   CreateArtistPage,
 } from '../pages';
 
@@ -28,6 +30,13 @@ const artistSidebar = {
   sectionTitle: 'Información',
   menuItems: artistSidebarMenus,
 };
+
+function ArtistProfileAliasPage() {
+  const { user } = useAuth();
+  if (!user?.uid) return <Navigate to="/login" replace />;
+  if (!isBackendRoleArtista(user.role)) return <Navigate to="/profile" replace />;
+  return <ArtistViewPage idOverride={user.uid} />;
+}
 
 export function AppRoutes() {
   return (
@@ -88,6 +97,16 @@ export function AppRoutes() {
         }
       />
       <Route
+        path="/artist/calendario"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <ArtistCalendarPage />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/artist/services"
         element={
           <ProtectedRoute>
@@ -111,9 +130,7 @@ export function AppRoutes() {
         path="/artist/profile"
         element={
           <ProtectedRoute>
-            <SidebarLayout sidebar={artistSidebar}>
-              <ProfileArtistaPage />
-            </SidebarLayout>
+            <ArtistProfileAliasPage />
           </ProtectedRoute>
         }
       />
@@ -131,9 +148,7 @@ export function AppRoutes() {
         path="/artist/:id"
         element={
           <ProtectedRoute>
-            <AppLayout>
-              <ArtistViewPage />
-            </AppLayout>
+            <ArtistViewPage />
           </ProtectedRoute>
         }
       />

@@ -3,7 +3,7 @@ export { LoginPage } from './LoginPage';
 export { RegisterPage } from './RegisterPage';
 export { ForgotPasswordPage } from './ForgotPasswordPage';
 export { EditProfilePage, HomeRedirectPage, ProfileRedirectPage } from './redirects';
-export { HomeArtistaPage, ProfileArtistaPage, ArtistEditScreen, ArtistServicesPage, ArtistMediaPage, ArtistViewPage } from './artist';
+export { HomeArtistaPage, ArtistEditScreen, ArtistServicesPage, ArtistMediaPage, ArtistViewPage, ArtistCalendarPage } from './artist';
 export { HomeClientePage, ProfileClientePage, ClientEditScreen } from './client';
 export { HomeAdminPage, CreateArtistPage } from './admin';
 export { HomeOrganizacionPage } from './organization';
