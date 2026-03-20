@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { BackButton, Button, Card } from '../../components';
+import { BackButton, Button, Card, Skeleton, SkeletonText } from '../../components';
 import { PageLayout } from '../../layouts';
 import { useAuth } from '../../contexts/AuthContext';
 import { getClientProfile } from '../../api/clientProfileService';
 import { ApiError } from '../../api';
 import { isBackendRoleCliente } from '../../helpers/role';
+import { withMinimumDelay } from '../../helpers/withMinimumDelay';
 
 export function ProfileClientePage() {
   const { user, logout } = useAuth();
@@ -25,24 +26,26 @@ export function ProfileClientePage() {
     }
 
     let cancelled = false;
-    getClientProfile()
-      .then((data) => {
-        if (!cancelled) {
-          setProfile(data);
-          setNotFound(false);
-        }
-      })
-      .catch((err) => {
+
+    async function load() {
+      try {
+        const data = await withMinimumDelay(1000, () => getClientProfile());
+        if (cancelled) return;
+        setProfile(data);
+        setNotFound(false);
+      } catch (err) {
         if (cancelled) return;
         if (err instanceof ApiError && err.status === 404) {
           setNotFound(true);
         } else {
           setError(err instanceof Error ? err.message : 'No se pudo cargar el perfil.');
         }
-      })
-      .finally(() => {
+      } finally {
         if (!cancelled) setIsLoading(false);
-      });
+      }
+    }
+
+    load();
     return () => { cancelled = true; };
   }, [user?.uid, isCliente]);
 
@@ -66,7 +69,14 @@ export function ProfileClientePage() {
   if (isLoading) {
     return (
       <PageLayout title="Perfil" maxWidth="md" variant="dark" topContent={<BackButton className="text-neutral-400 hover:text-white" />}>
-        <p className="text-neutral-500">Cargando...</p>
+        <Card variant="dark" title="Tu perfil (cliente)">
+          <div className="space-y-4">
+            <div className="flex justify-center">
+              <Skeleton className="h-24 w-24 rounded-full opacity-70" />
+            </div>
+            <SkeletonText lines={7} />
+          </div>
+        </Card>
       </PageLayout>
     );
   }

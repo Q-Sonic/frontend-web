@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Button, Input, Card } from '../../components';
+import { Button, Input, Card, Skeleton, SkeletonText } from '../../components';
 import { PageLayout } from '../../layouts';
 import { useAuth } from '../../contexts/AuthContext';
 import { getClientProfile, updateClientProfile } from '../../api/clientProfileService';
@@ -13,6 +13,7 @@ import {
   getPhoneDigitsError,
   getCountryCodeRequiredError,
 } from '../../helpers/validation';
+import { withMinimumDelay } from '../../helpers/withMinimumDelay';
 
 const COUNTRY_CODES = [
   { value: '', label: 'Seleccionar' },
@@ -77,8 +78,9 @@ export function ClientEditScreen() {
     setInfoMessage('');
     setError('');
 
-    getClientProfile()
-      .then((data) => {
+    async function load() {
+      try {
+        const data = await withMinimumDelay(1000, () => getClientProfile());
         if (cancelled) return;
         setName(data.name ?? user?.displayName ?? '');
         const { countryCode: cc, digits } = parsePhone(data.phone);
@@ -87,8 +89,7 @@ export function ClientEditScreen() {
         setLocation(data.location ?? '');
         setPhoto(data.photo ?? null);
         setPhotoPreview(data.photo ?? null);
-      })
-      .catch((err) => {
+      } catch (err) {
         if (cancelled) return;
         setName(user?.displayName ?? '');
         if (err instanceof ApiError) {
@@ -102,10 +103,12 @@ export function ClientEditScreen() {
         } else {
           setError(err instanceof Error ? err.message : 'No se pudo cargar el perfil.');
         }
-      })
-      .finally(() => {
+      } finally {
         if (!cancelled) setIsLoading(false);
-      });
+      }
+    }
+
+    load();
     return () => { cancelled = true; };
   }, [user?.uid, user?.displayName, isCliente]);
 
@@ -185,7 +188,18 @@ export function ClientEditScreen() {
   if (isLoading) {
     return (
       <PageLayout title="Editar perfil" maxWidth="md" variant="dark">
-        <p className="text-neutral-500">Cargando...</p>
+        <Card variant="dark" title="Edita tu perfil (cliente)">
+          <div className="space-y-4">
+            <div className="flex justify-center">
+              <Skeleton className="h-24 w-24 rounded-full opacity-70" />
+            </div>
+            <SkeletonText lines={7} />
+            <div className="flex gap-2 pt-2">
+              <Skeleton className="h-10 w-28 rounded opacity-70" />
+              <Skeleton className="h-10 w-36 rounded opacity-50" />
+            </div>
+          </div>
+        </Card>
       </PageLayout>
     );
   }

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Button, Input, Card } from '../../components';
+import { Button, Input, Card, Skeleton, SkeletonText } from '../../components';
 import { PageLayout } from '../../layouts';
 import { useAuth } from '../../contexts/AuthContext';
 import { getArtistProfile, updateArtistProfile, updateArtistProfileWithFormData } from '../../api/artistProfileService';
@@ -9,6 +9,7 @@ import { ApiError } from '../../api';
 import { getProfilePath } from '../../config';
 import { isBackendRoleArtista } from '../../helpers/role';
 import { getUrlError, sanitizeOptionalString } from '../../helpers/validation';
+import { withMinimumDelay } from '../../helpers/withMinimumDelay';
 
 const SOCIAL_KEYS: (keyof ArtistSocialNetworks)[] = [
   'instagram',
@@ -57,9 +58,11 @@ export function ArtistEditScreen() {
     setInfoMessage('');
     setError('');
 
-    getArtistProfile()
-      .then((data) => {
+    async function load() {
+      try {
+        const data = await withMinimumDelay(1000, () => getArtistProfile());
         if (cancelled) return;
+
         setBiography(sanitizeOptionalString(data.biography));
         setCity(sanitizeOptionalString(data.city));
         const raw = data.socialNetworks ?? {};
@@ -72,8 +75,7 @@ export function ArtistEditScreen() {
         const photoVal = sanitizeOptionalString(data.photo);
         setPhoto(photoVal ? data.photo ?? null : null);
         setPhotoPreview(photoVal ? data.photo ?? null : null);
-      })
-      .catch((err) => {
+      } catch (err) {
         if (cancelled) return;
         if (err instanceof ApiError) {
           if (err.status === 404) {
@@ -86,10 +88,12 @@ export function ArtistEditScreen() {
         } else {
           setError(err instanceof Error ? err.message : 'No se pudo cargar el perfil.');
         }
-      })
-      .finally(() => {
+      } finally {
         if (!cancelled) setIsLoading(false);
-      });
+      }
+    }
+
+    load();
     return () => { cancelled = true; };
   }, [user?.uid, isArtista]);
 
@@ -159,7 +163,18 @@ export function ArtistEditScreen() {
   if (isLoading) {
     return (
       <PageLayout title="Editar perfil" maxWidth="md" variant="dark">
-        <p className="text-neutral-500">Cargando...</p>
+        <Card variant="dark" title="Edita tu perfil (artista)">
+          <div className="space-y-4">
+            <div className="flex justify-center">
+              <Skeleton className="h-24 w-24 rounded-full opacity-70" />
+            </div>
+            <SkeletonText lines={6} />
+            <div className="flex gap-2 pt-2">
+              <Skeleton className="h-10 w-28 rounded opacity-70" />
+              <Skeleton className="h-10 w-36 rounded opacity-50" />
+            </div>
+          </div>
+        </Card>
       </PageLayout>
     );
   }
