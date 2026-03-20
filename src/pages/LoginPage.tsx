@@ -157,7 +157,7 @@ export function LoginPage() {
           label="Correo electrónico"
           type="email"
           autoComplete="email"
-          placeholder="domat@example.com"
+          placeholder="correo@ejemplo.com"
           icon={<MailIcon />}
           value={email}
           onChange={(e) => {

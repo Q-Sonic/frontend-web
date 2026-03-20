@@ -1,4 +1,6 @@
 import type { ReactNode } from 'react';
+import leftBackgroundLogoUrl from '../assets/icons/Logo para fondo Izq -Login.svg';
+import loginSmallLogoUrl from '../assets/icons/Logo small - Login.svg';
 
 interface AuthLayoutProps {
   children: ReactNode;
@@ -9,52 +11,57 @@ export function AuthLayout({ children }: AuthLayoutProps) {
     <div className="min-h-screen flex bg-[#111318]">
       {/* Left panel — branded */}
       <div
-        className="hidden lg:flex lg:w-[45%] relative overflow-hidden flex-col justify-between p-10 mt-6 mb-6 ml-6 rounded-3xl border-none"
+        className="hidden lg:flex lg:w-[45%] relative overflow-hidden flex-col justify-between mt-6 mb-6 ml-6 rounded-3xl border-none"
         style={{
           background:
-            'linear-gradient(145deg, rgba(26, 58, 110, 1) 0%, rgba(26, 107, 138, 1) 51%, rgba(14, 122, 104, 1) 78%, rgba(13, 92, 78, 1) 100%)',
+            'linear-gradient(145deg, rgba(26, 58, 110, 1) 0%, rgba(26, 107, 138, 1) 51%, rgb(20, 110, 95) 78%, rgba(13, 92, 78, 1) 100%)',
         }}
       >
+        {/* Left background SVG */}
+        <img
+          src={leftBackgroundLogoUrl}
+          alt=""
+          aria-hidden
+          className="absolute left-0 right-0 bottom-0 w-full h-auto opacity-100 pointer-events-none select-none"
+        />
 
-        {/* Decorative circles */}
-        <div className="absolute bottom-0 left-0 w-[550px] h-[550px] rounded-full opacity-20"
-             style={{ background: 'radial-gradient(circle, #0ff0b3 0%, transparent 70%)', transform: 'translate(-30%, 30%)' }} />
-        <div className="absolute top-1/2 right-0 w-[350px] h-[350px] rounded-full opacity-15"
-             style={{ background: 'radial-gradient(circle, #00c4ff 0%, transparent 70%)', transform: 'translate(30%, -50%)' }} />
-
-        {/* Top logo */}
-        <div className="relative z-10 flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="12" cy="12" r="10" stroke="white" strokeWidth="2"/>
-              <path d="M9 8h6M9 12h4M9 16h6" stroke="white" strokeWidth="2" strokeLinecap="round"/>
-            </svg>
+        <div className="relative z-10 flex flex-col justify-between w-full h-full p-10">
+          {/* Top logo */}
+          <div className="flex items-center gap-2">            
+            <img
+              src={loginSmallLogoUrl}
+              alt=""
+              aria-hidden
+              className="w-8 h-8 flex-shrink-0 object-contain"
+            />          
+            <span className="text-white font-semibold text-lg tracking-wide">Q-Sonic</span>
           </div>
-          <span className="text-white font-semibold text-lg tracking-wide">Q-Sonic</span>
-        </div>
 
-        {/* Main headline */}
-        <div className="relative z-10">
-          <h1 className="text-5xl font-extrabold text-white leading-tight mb-4">
-            Encuentra el<br />
-            artista ideal<br />
-            <span className="text-white/80">para tu</span><br />
-            evento
-          </h1>
-        </div>
-
-        {/* Bottom tagline */}
-        <div className="relative z-10 flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="12" cy="12" r="10" stroke="white" strokeWidth="2"/>
-              <path d="M9 8h6M9 12h4M9 16h6" stroke="white" strokeWidth="2" strokeLinecap="round"/>
-            </svg>
+          {/* Main headline */}
+          <div>
+            <h1 className="text-5xl font-extrabold text-white leading-tight mb-4">
+              Encuentra el<br />
+              artista ideal<br />
+              <span className="text-white/80">para tu</span>
+              <br />
+              evento
+            </h1>
           </div>
-          <p className="text-white/90 text-sm leading-snug">
-            Shows en vivo, acústicos y<br />
-            entretenimiento profesional en minutos.
-          </p>
+
+          {/* Bottom tagline */}
+          <div className="flex items-center gap-3">
+            <img
+              src={loginSmallLogoUrl}
+              alt=""
+              aria-hidden
+              className="w-8 h-8 flex-shrink-0 object-contain"
+            />
+            <p className="text-white/90 text-sm leading-snug">
+              Shows en vivo, acústicos y
+              <br />
+              entretenimiento profesional en minutos.
+            </p>
+          </div>
         </div>
       </div>
 
