@@ -96,7 +96,7 @@ export function Input({
         <label
           htmlFor={inputId}
           className={`text-sm font-medium transition-colors duration-150 ${
-            isFocused ? 'text-[#00d4c8]' : error ? 'text-red-400' : 'text-white/60'
+            isFocused ? 'text-[#00d4c8]' : error ? 'text-red-400' : 'text-muted'
           }`}
         >
           {label}
