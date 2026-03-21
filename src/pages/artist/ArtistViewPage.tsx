@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { BackButton, Button, Skeleton } from '../../components';
+import { ArtistServiceCard, BackButton, Button, Skeleton } from '../../components';
 import { getArtistProfileById, getArtistServicesByArtistId, getUser } from '../../api';
-import type { ArtistProfile, ArtistMediaItem, ArtistServiceRecord } from '../../types';
+import type { ArtistProfile, ArtistMediaItem, ArtistServiceRecord, ArtistSocialNetworks } from '../../types';
 import { withMinimumDelay } from '../../helpers/withMinimumDelay';
 import { useAuth } from '../../contexts/AuthContext';
 import { isBackendRoleArtista } from '../../helpers/role';
@@ -14,10 +14,11 @@ import {
   FiCalendar,
   FiSkipBack,
   FiSkipForward,
-  FiArrowRight,
 } from 'react-icons/fi';
-import { SiFacebook, SiInstagram, SiYoutube, SiTiktok } from 'react-icons/si';
-
+import Tiktok from '../../../public/icons/Tiktok';
+import Youtube from '../../../public/icons/Youtube';
+import Instagram from '../../../public/icons/Instagram';
+import Facebook from '../../../public/icons/Facebook';
 const ACCENT = '#00d4c8';
 
 function localDateKey(d: Date): string {
@@ -27,29 +28,7 @@ function localDateKey(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
-function headlineFromBio(biography: string | undefined, fallback: string): string {
-  const t = biography?.trim();
-  if (!t) return fallback;
-  const line = t.split('\n')[0]?.trim() ?? t;
-  if (line.length <= 56) return line;
-  return `${line.slice(0, 53)}…`;
-}
 
-function serviceFeatureLines(description: string): string[] {
-  const trimmed = description.trim();
-  if (!trimmed) return [];
-  if (trimmed.includes('\n')) {
-    return trimmed
-      .split('\n')
-      .map((l) => l.replace(/^[•\-\u2022]\s*/, '').trim())
-      .filter(Boolean)
-      .slice(0, 5);
-  }
-  const parts = trimmed.split(/\s*[•\u2022]\s+/).filter(Boolean);
-  if (parts.length > 1) return parts.slice(0, 5);
-  const sentences = trimmed.split(/(?<=[.!?])\s+/).filter((s) => s.length > 8);
-  return sentences.slice(0, 4);
-}
 
 function SectionEditLink({ show, to }: { show: boolean; to: string }) {
   if (!show) return null;
@@ -275,228 +254,150 @@ export function ArtistViewPage({ idOverride }: { idOverride?: string }) {
         }
       : undefined);
 
-  const coverPhoto = profile.photo;
+  // const coverPhoto =profile.photo;
+  const coverPhoto = 'https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?q=80&w=869&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D';
   const social = profile.socialNetworks ?? {};
-  const heroTitle = headlineFromBio(profile.biography, 'Tu escenario');
   const heroSubtitle = profile.city?.trim() || 'Música en vivo';
 
   const editHref = '/artist/profile/edit';
 
   const mainContent = (
-    <div className="w-full max-w-6xl mx-auto space-y-10 pb-12">
-      {!isSelfArtist && (
-        <div className="flex items-center justify-between">
-          <BackButton className="text-neutral-400 hover:text-white" />
-        </div>
-      )}
-
+    <div className="w-full mx-auto space-y-10 pb-12 p-6">
       {/* Hero */}
-      <section className="relative overflow-hidden rounded-3xl border border-white/[0.08] bg-neutral-950">
-        <div className="grid lg:grid-cols-[1fr_min(42%,420px)] gap-0 items-stretch min-h-[320px]">
-          <div className="relative z-10 p-8 lg:p-10 flex flex-col justify-center">
-            <div className="flex items-start justify-between gap-4">
-              <div className="min-w-0 space-y-1">
-                <p className="text-sm font-medium text-neutral-400 tracking-wide">{artistDisplayName}</p>
-                <h1 className="text-4xl sm:text-5xl font-bold text-white leading-[1.05] tracking-tight">
-                  {heroTitle}
-                </h1>
-                <p className="text-neutral-500 text-sm sm:text-base pt-1">{heroSubtitle}</p>
-              </div>
-              {isSelfArtist && <SectionEditLink show to={editHref} />}
-            </div>
-
-            <div className="flex flex-wrap items-center gap-3 mt-8">
-              {social.tiktok && (
-                <a
-                  href={social.tiktok}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-white/80 hover:text-white transition p-2 rounded-xl hover:bg-white/5"
-                  aria-label="TikTok"
-                >
-                  <SiTiktok size={22} />
-                </a>
-              )}
-              {social.youtube && (
-                <a
-                  href={social.youtube}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-white/80 hover:text-white transition p-2 rounded-xl hover:bg-white/5"
-                  aria-label="YouTube"
-                >
-                  <SiYoutube size={22} />
-                </a>
-              )}
-              {social.instagram && (
-                <a
-                  href={social.instagram}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-white/80 hover:text-white transition p-2 rounded-xl hover:bg-white/5"
-                  aria-label="Instagram"
-                >
-                  <SiInstagram size={22} />
-                </a>
-              )}
-              {social.facebook && (
-                <a
-                  href={social.facebook}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-white/80 hover:text-white transition p-2 rounded-xl hover:bg-white/5"
-                  aria-label="Facebook"
-                >
-                  <SiFacebook size={22} />
-                </a>
-              )}
-            </div>
-
-            <div className="mt-8">
-              {isSelfArtist ? (
-                <Link to="/artist/calendario">
-                  <Button variant="primary" className="rounded-2xl px-8 py-3.5 text-base shadow-lg shadow-[#00d4c8]/25">
-                    Reservar Fecha
-                  </Button>
-                </Link>
-              ) : (
-                <Button variant="primary" className="rounded-2xl px-8 py-3.5 text-base shadow-lg shadow-[#00d4c8]/25">
-                  Reservar Fecha
-                </Button>
-              )}
-            </div>
-          </div>
-
-          <div className="relative min-h-[240px] lg:min-h-0">
-            {coverPhoto ? (
-              <>
-                <img
-                  src={coverPhoto}
-                  alt=""
-                  className="absolute inset-0 w-full h-full object-cover object-top lg:object-center"
-                />
-                <div
-                  className="absolute inset-0 bg-gradient-to-r from-neutral-950 via-neutral-950/85 to-transparent lg:from-neutral-950 lg:via-neutral-950/70 lg:to-transparent"
-                  aria-hidden
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 via-transparent to-neutral-950/30 lg:hidden" aria-hidden />
-              </>
-            ) : (
-              <div className="absolute inset-0 bg-gradient-to-br from-neutral-800/50 to-neutral-950" />
-            )}
-          </div>
-        </div>
-      </section>
-
       <section
-        id="description"
-        className="rounded-2xl border border-white/8 bg-neutral-900/40 p-6 scroll-mt-24"
+        className="relative -m-6 overflow-hidden bg-neutral-950 min-h-[320px] pt-16 -mb-[250px] "
+        style={{
+          backgroundImage: `url(${coverPhoto})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center'
+        }}
       >
-        <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0 flex-1">
-            <h2 className="text-xs font-bold text-neutral-500 tracking-wider uppercase mb-3">Sobre el artista</h2>
-            <p className="text-neutral-300 whitespace-pre-wrap leading-relaxed text-sm sm:text-base">
-              {profile.biography?.trim() || 'Sin biografía.'}
-            </p>
+        <div className="absolute inset-0 bg-linear-to-r from-neutral-950/20" />
+
+        <div className="relative p-8 lg:p-10 flex flex-col min-h-[720px]">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0 space-y-1">
+              <p className="text-sm font-medium text-white/80 tracking-wide">{artistDisplayName}</p>
+              <h1 className="text-4xl sm:text-5xl font-bold text-white leading-[1.05] tracking-tight">
+                {artistDisplayName}
+              </h1>
+              <p className="text-white/80 text-sm sm:text-base pt-1">{heroSubtitle}</p>
+            </div>
+            {isSelfArtist && <SectionEditLink show to={editHref} />}
           </div>
-          {isSelfArtist && (
-            <Link to={editHref}>
-              <Button variant="secondary" className="shrink-0 border-white/10 text-neutral-200 whitespace-nowrap">
-                <FiEdit3 size={16} /> Editar
-              </Button>
-            </Link>
-          )}
+
+          <div className="flex flex-wrap items-center gap-3 mt-8">
+            <SocialNetworks social="tiktok" href={social.tiktok} />
+            <SocialNetworks social="youtube" href={social.youtube} />
+            <SocialNetworks social="instagram" href={social.instagram} />
+            <SocialNetworks social="facebook" href={social.facebook} />
+          </div>
+
+          <div className="mt-8">
+            <Button
+              variant="primary"
+              className="rounded-3xl px-8 py-3.5 text-xl font-bold"
+              disabled={isSelfArtist}
+            >
+              Reservar Fecha
+            </Button>
+          </div>
         </div>
       </section>
 
       {/* Disponibilidad + Música + Destacada */}
-      <div className="grid lg:grid-cols-3 gap-4 lg:gap-5">
-        {/* Disponibilidad */}
-        <div
-          id="availability"
-          className="rounded-2xl border border-white/[0.08] bg-neutral-900/50 p-5 flex flex-col min-h-[200px]"
-        >
-          <div className="flex items-center justify-between gap-2 mb-4">
-            <h2 className="text-sm font-bold text-white tracking-wide">Disponibilidad</h2>
-            <SectionEditLink show={isSelfArtist} to={editHref} />
-          </div>
-          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-thin [scrollbar-color:rgba(255,255,255,0.15)_transparent]">
-            {availabilityDays.map((d) => {
-              const key = localDateKey(d);
-              const blocked = blockedSet.has(key);
-              const dayShort = d.toLocaleDateString('es-ES', { weekday: 'short' });
-              const num = d.getDate();
-              return (
-                <div
-                  key={key}
-                  className={`shrink-0 w-[52px] rounded-xl border px-2 py-2.5 text-center transition ${
-                    blocked
-                      ? 'border-red-500/40 bg-red-500/10'
-                      : 'border-white/10 bg-white/[0.04]'
-                  }`}
-                >
-                  <div className="text-[10px] uppercase text-neutral-500 leading-tight">{dayShort}</div>
+      <div className="relative grid lg:grid-cols-3 gap-4 lg:gap-5">
+        <div className="flex flex-col gap-4 col-span-2">
+          {/* Disponibilidad */}
+          <div
+            id="availability"
+            className="rounded-4xl bg-card/86 p-8 flex flex-col min-h-[200px]"
+          >
+            <div className="flex items-center justify-between gap-2 mb-4">
+              <h2 className="text-sm font-bold text-white tracking-wide">Disponibilidad</h2>
+              <Link
+                className="text-sm text-neutral-500 hover:text-white transition"
+                to="/artist/calendario"
+              >Mirar todos</Link>
+            </div>
+            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-thin [scrollbar-color:rgba(255,255,255,0.15)_transparent]">
+              {availabilityDays.map((d) => {
+                const key = localDateKey(d);
+                const blocked = blockedSet.has(key);
+                const dayShort = d.toLocaleDateString('es-ES', { weekday: 'short' });
+                const num = d.getDate();
+                return (
                   <div
-                    className={`text-sm font-semibold mt-0.5 ${
-                      blocked ? 'text-red-200' : 'text-white'
+                    key={key}
+                    className={`shrink-0 w-[52px] rounded-xl border px-2 py-2.5 text-center transition ${
+                      blocked
+                        ? 'border-red-500/40 bg-red-500/10'
+                        : 'border-white/10 bg-white/4'
                     }`}
                   >
-                    {num}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          <div className="mt-auto pt-4 flex flex-wrap gap-3 text-[11px] text-neutral-500">
-            <span className="inline-flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-white/40" /> Libre
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-red-400" /> No disponible
-            </span>
-          </div>
-        </div>
-
-        {/* Música */}
-        <div className="rounded-2xl border border-white/[0.08] bg-neutral-900/50 p-5 flex flex-col min-h-[200px]">
-          <div className="flex items-center justify-between gap-2 mb-4">
-            <h2 className="text-sm font-bold text-white tracking-wide">Música</h2>
-            <SectionEditLink show={isSelfArtist} to="/artist/media" />
-          </div>
-          {audioMedia.length === 0 ? (
-            <p className="text-neutral-500 text-sm mt-auto">Sin canciones.</p>
-          ) : (
-            <div className="flex gap-4 overflow-x-auto pb-2 flex-1 items-end">
-              {audioMedia.slice(0, 8).map((track: ArtistMediaItem) => (
-                <a
-                  key={track.url}
-                  href={track.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="shrink-0 flex flex-col items-center gap-2 group w-[72px]"
-                >
-                  <div className="relative w-[72px] h-[72px] rounded-full overflow-hidden border border-white/10 bg-neutral-800 shadow-lg">
-                    {coverPhoto ? (
-                      <img src={coverPhoto} alt="" className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-neutral-500 text-xl">♪</div>
-                    )}
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition">
-                      <FiPlay className="text-white" size={22} />
+                    <div className="text-[10px] uppercase text-neutral-500 leading-tight">{dayShort}</div>
+                    <div
+                      className={`text-sm font-semibold mt-0.5 ${
+                        blocked ? 'text-red-200' : 'text-white'
+                      }`}
+                    >
+                      {num}
                     </div>
                   </div>
-                  <div className="text-center w-full">
-                    <p className="text-[11px] text-neutral-400 truncate w-full">{artistDisplayName}</p>
-                    <p className="text-xs font-medium text-white truncate w-full">{track.name || 'Canción'}</p>
-                  </div>
-                </a>
-              ))}
+                );
+              })}
             </div>
-          )}
+            <div className="mt-auto pt-4 flex flex-wrap gap-3 text-[11px] text-neutral-500">
+              <span className="inline-flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-full bg-white/40" /> Libre
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-full bg-red-400" /> No disponible
+              </span>
+            </div>
+          </div>
+
+          {/* Música */}
+          <div className="rounded-4xl bg-card/86 p-8 flex flex-col min-h-[200px]">
+            <div className="flex items-center justify-between gap-2 mb-4">
+              <h2 className="text-sm font-bold text-white tracking-wide">Música</h2>
+              <SectionEditLink show={isSelfArtist} to="/artist/media" />
+            </div>
+            {audioMedia.length === 0 ? (
+              <p className="text-neutral-500 text-sm mt-auto">Sin canciones.</p>
+            ) : (
+              <div className="flex gap-4 overflow-x-auto pb-2 flex-1 items-end">
+                {audioMedia.slice(0, 8).map((track: ArtistMediaItem) => (
+                  <a
+                    key={track.url}
+                    href={track.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="shrink-0 flex flex-col items-center gap-2 group w-[72px]"
+                  >
+                    <div className="relative w-[72px] h-[72px] rounded-full overflow-hidden border border-white/10 bg-neutral-800 shadow-lg">
+                      {coverPhoto ? (
+                        <img src={coverPhoto} alt="" className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-neutral-500 text-xl">♪</div>
+                      )}
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition">
+                        <FiPlay className="text-white" size={22} />
+                      </div>
+                    </div>
+                    <div className="text-center w-full">
+                      <p className="text-[11px] text-neutral-400 truncate w-full">{artistDisplayName}</p>
+                      <p className="text-xs font-medium text-white truncate w-full">{track.name || 'Canción'}</p>
+                    </div>
+                  </a>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Canción destacada */}
-        <div className="rounded-2xl border border-white/[0.08] bg-neutral-900/50 p-5 flex flex-col">
+        <div className="rounded-4xl bg-card/86 p-8 flex flex-col">
           <div className="flex items-center justify-between gap-2 mb-4">
             <h2 className="text-sm font-bold text-white tracking-wide">Canción destacada</h2>
             <SectionEditLink show={isSelfArtist} to={editHref} />
@@ -595,121 +496,109 @@ export function ArtistViewPage({ idOverride }: { idOverride?: string }) {
 
       {/* Servicios */}
       <section className="space-y-5">
-        <h2 className="text-2xl font-bold text-white tracking-tight">Servicios</h2>
+        <TitleSection title="Servicios" />
         {services.length === 0 ? (
           <p className="text-neutral-500 text-sm">Sin servicios.</p>
         ) : (
           <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-5">
             {services.slice(0, 8).map((s, idx) => {
-              const features = serviceFeatureLines(s.description || '');
-              const highlighted = idx === 0;
+              const features = [
+                'Duración: 60-90 minutos',
+                'Equipo de sonido incluido',
+                'Producción de luces profesional',
+                'Músicos de apoyo',
+              ];
               return (
-                <article
+                <ArtistServiceCard
                   key={s.id}
-                  className={`rounded-2xl border overflow-hidden flex flex-col bg-neutral-900/50 ${
-                    highlighted ? 'border-[#00d4c8]/50 ring-1 ring-[#00d4c8]/20' : 'border-white/[0.08]'
-                  }`}
-                >
-                  <div className="h-36 bg-neutral-800 relative overflow-hidden shrink-0">
-                    {coverPhoto ? (
-                      <img src={coverPhoto} alt="" className="w-full h-full object-cover opacity-80" />
-                    ) : (
-                      <div
-                        className="w-full h-full opacity-90"
-                        style={{
-                          background: `linear-gradient(135deg, ${ACCENT}33 0%, transparent 60%), linear-gradient(225deg, #27272a 0%, #0a0a0a 100%)`,
-                        }}
-                      />
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-neutral-900 to-transparent" />
-                  </div>
-                  <div className="p-5 flex flex-col flex-1">
-                    <div className="flex items-start justify-between gap-2">
-                      <h3 className="text-white font-semibold leading-snug">{s.name}</h3>
-                      <span className="text-[#00d4c8] font-bold text-sm whitespace-nowrap">${s.price}</span>
-                    </div>
-                    <p className="text-neutral-400 text-sm mt-3 leading-relaxed line-clamp-3">
-                      {s.description || '—'}
-                    </p>
-                    {features.length > 0 && (
-                      <ul className="mt-4 space-y-2 text-sm text-neutral-300">
-                        {features.map((line) => (
-                          <li key={line} className="flex gap-2">
-                            <span className="text-[#00d4c8] shrink-0 mt-0.5">✓</span>
-                            <span className="leading-snug">{line}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                    <div className="mt-6">
-                      {isSelfArtist ? (
-                        <Link
-                          to="/artist/services"
-                          className="w-full rounded-xl border border-white/10 bg-neutral-950/80 py-3 px-4 text-sm font-medium text-white flex items-center justify-center gap-2 hover:bg-neutral-800/80 transition"
-                        >
-                          Contratar ahora
-                          <FiArrowRight className="text-[#00d4c8]" size={18} />
-                        </Link>
-                      ) : (
-                        <button
-                          type="button"
-                          className="w-full rounded-xl border border-white/10 bg-neutral-950/80 py-3 px-4 text-sm font-medium text-white flex items-center justify-center gap-2 hover:bg-neutral-800/80 transition"
-                        >
-                          Contratar ahora
-                          <FiArrowRight className="text-[#00d4c8]" size={18} />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </article>
+                  service={s}
+                  coverPhotoUrl={coverPhoto}
+                  highlighted={idx === 0}
+                  features={features}
+                  isSelfArtist={isSelfArtist}
+                />
               );
             })}
           </div>
         )}
       </section>
 
-      {/* Galería */}
+      {/* Galería — hasta 7 fotos; filas incompletas centradas (p. ej. 4+3) */}
       <section id="gallery" className="space-y-5 scroll-mt-24">
-        <h2 className="text-2xl font-bold text-white tracking-tight">Galería</h2>
+        <TitleSection title="Galería" />
         {imageMedia.length === 0 ? (
           <p className="text-neutral-500 text-sm">Sin imágenes.</p>
         ) : (
-          <div className="columns-2 sm:columns-3 gap-3 space-y-3">
-            {imageMedia.map((img) => (
-              <div
-                key={img.url}
-                className="break-inside-avoid mb-3 rounded-2xl overflow-hidden border border-white/8 bg-neutral-900/40 relative"
-              >
-                <img
-                  src={img.url}
-                  alt={img.name ?? 'Imagen'}
-                  className="w-full h-auto object-cover"
-                  loading="lazy"
-                />
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* Documentos (ancla sidebar) */}
-      <section id="documents" className="space-y-3 scroll-mt-24 pt-4 border-t border-white/[0.06]">
-        <h2 className="text-xs font-bold text-neutral-500 tracking-wider uppercase">Documentos</h2>
-        {profile.technicalRiderUrl ? (
-          <a
-            href={profile.technicalRiderUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 text-[#00d4c8] hover:underline text-sm font-medium"
-          >
-            Descargar rider (PDF)
-          </a>
-        ) : (
-          <p className="text-neutral-500 text-sm">Sin documentos.</p>
+          <GalleryGrid images={imageMedia.slice(0, 7)} />
         )}
       </section>
     </div>
   );
 
   return <SidebarLayout sidebar={isSelfArtist ? selfSidebar : publicSidebar}>{mainContent}</SidebarLayout>;
+}
+
+
+
+const defaultGalleryYear = new Date().getFullYear();
+
+function GalleryGrid({ images }: { images: ArtistMediaItem[] }) {
+  const count = images.length;
+  const itemWidthClass =
+    count === 1
+      ? 'w-full max-w-3xl'
+      : 'w-[calc(50%-0.5rem)] md:w-[calc((100%-2rem)/3)] lg:w-[calc((100%-3rem)/4)]';
+
+  return (
+    <div className="flex flex-wrap justify-center gap-4">
+      {images.map((img) => (
+        <div
+          key={img.url}
+          className={`relative aspect-3/2 shrink-0 overflow-hidden rounded-2xl border border-white/8 bg-neutral-900 ${itemWidthClass}`}
+        >
+          <img
+            src={img.url}
+            alt={img.name ?? 'Imagen'}
+            className="absolute inset-0 h-full w-full object-cover"
+            loading="lazy"
+          />
+          <div
+            className="pointer-events-none absolute inset-0 bg-linear-to-b from-black/55 via-black/20 to-transparent"
+            aria-hidden
+          />
+          <span className="absolute left-4 top-4 z-10 text-sm font-medium text-white drop-shadow-sm">
+            {defaultGalleryYear}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+const SocialNetworks = ({ social, href }: { social: 'tiktok' | 'youtube' | 'instagram' | 'facebook', href?: string | undefined }) => {
+  
+  if (!href || !social) return null;
+
+  return (
+    <>
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-white/80 hover:text-white transition p-2 rounded-xl hover:bg-white/5"
+        aria-label="TikTok"
+      >
+        {social == 'tiktok' && <Tiktok />}
+        {social == 'youtube' && <Youtube />}
+        {social == 'instagram' && <Instagram />}
+        {social == 'facebook' && <Facebook />}
+      </a>
+    </>
+  );
+}
+
+const TitleSection = ({ title }: { title: string }) => {
+  return (
+    <h2 className="text-3xl font-bold text-white tracking-tight">{title}</h2>
+  );
 }
