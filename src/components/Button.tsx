@@ -20,7 +20,7 @@ export function Button({
 }: ButtonProps) {
   const base = [
     'inline-flex items-center justify-center gap-2',
-    'px-5 py-3 rounded-lg font-semibold text-sm',
+    'px-5 py-3 font-semibold text-sm',
     'transition-all duration-200',
     'focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#00d4c8]',
     'disabled:opacity-50 disabled:cursor-not-allowed',
@@ -28,7 +28,7 @@ export function Button({
   ].join(' ');
 
   const variants: Record<string, string> = {
-    primary: 'bg-[#00d4c8] text-[#0d1117] hover:bg-[#00ece0] shadow-lg shadow-[#00d4c8]/20',
+    primary: 'bg-[#00CCCB] text-[#ffffff] shadow-lg shadow-[#00CCCB]/20',
     secondary: 'bg-white/10 text-white hover:bg-white/15 border border-white/10',
     ghost: 'text-white/70 hover:text-white hover:bg-white/10',
     outline: 'bg-transparent text-white border border-white/20 hover:border-white/40 hover:bg-white/5',

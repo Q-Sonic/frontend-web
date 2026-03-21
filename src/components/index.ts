@@ -9,4 +9,5 @@ export { AdminOnlyRoute } from './AdminOnlyRoute';
 export { Topbar } from './Topbar';
 export { UserMenu } from './UserMenu';
 export { AppSidebar } from './AppSidebar';
+export { ArtistServiceCard } from './ArtistServiceCard';
 export { Skeleton, SkeletonText, SkeletonHeading } from './Skeleton';
