@@ -1,5 +1,9 @@
 import type { ClientArtistCard } from './types';
 
+/** Short royalty-free samples for UI preview (replace with CDN tracks when available). */
+export const MOCK_AUDIO_PREVIEW_URL =
+  'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
+
 /** Mock artists for the client home / discovery grid (Stage Go mockup). */
 export const mockClientArtistCards: ClientArtistCard[] = [
   {
@@ -8,6 +12,8 @@ export const mockClientArtistCards: ClientArtistCard[] = [
     genre: 'Pop/Acustico',
     priceUsd: 130,
     availableToday: true,
+    previewAudioUrl: MOCK_AUDIO_PREVIEW_URL,
+    previewTrackTitle: 'Vista previa',
     imageUrl:
       'https://images.unsplash.com/photo-1516280440614-37939bbacd81?w=600&h=400&fit=crop&q=80',
   },
@@ -17,6 +23,8 @@ export const mockClientArtistCards: ClientArtistCard[] = [
     genre: 'Salsa',
     priceUsd: 150,
     availableToday: true,
+    previewAudioUrl: MOCK_AUDIO_PREVIEW_URL,
+    previewTrackTitle: 'Vista previa',
     imageUrl:
       'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=600&h=400&fit=crop&q=80',
   },
@@ -27,6 +35,8 @@ export const mockClientArtistCards: ClientArtistCard[] = [
     priceUsd: 250,
     availableToday: false,
     availableDateLabel: 'Disponible 24 de Junio',
+    previewAudioUrl: MOCK_AUDIO_PREVIEW_URL,
+    previewTrackTitle: 'Vista previa',
     imageUrl:
       'https://images.unsplash.com/photo-1571266028243-e4733b0f0bb0?w=600&h=400&fit=crop&q=80',
   },
@@ -37,6 +47,8 @@ export const mockClientArtistCards: ClientArtistCard[] = [
     priceUsd: 300,
     availableToday: false,
     availableDateLabel: 'Disponible 7 de Abril',
+    previewAudioUrl: MOCK_AUDIO_PREVIEW_URL,
+    previewTrackTitle: 'Vista previa',
     imageUrl:
       'https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?w=600&h=400&fit=crop&q=80',
   },
@@ -46,6 +58,8 @@ export const mockClientArtistCards: ClientArtistCard[] = [
     genre: 'Rock/Alternativo',
     priceUsd: 240,
     availableToday: true,
+    previewAudioUrl: MOCK_AUDIO_PREVIEW_URL,
+    previewTrackTitle: 'Vista previa',
     imageUrl:
       'https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=600&h=400&fit=crop&q=80',
   },
@@ -55,6 +69,8 @@ export const mockClientArtistCards: ClientArtistCard[] = [
     genre: 'Rock/Alternativo',
     priceUsd: 240,
     availableToday: true,
+    previewAudioUrl: MOCK_AUDIO_PREVIEW_URL,
+    previewTrackTitle: 'Vista previa',
     imageUrl:
       'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=600&h=400&fit=crop&q=80',
   },

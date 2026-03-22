@@ -8,6 +8,9 @@ export type ClientArtistCard = {
   /** When true, show green dot "Disponible hoy" */
   availableToday: boolean;
   imageUrl: string;
+  /** Short public audio URL for the discovery card preview (optional). */
+  previewAudioUrl?: string;
+  previewTrackTitle?: string;
 };
 
 export type ClientCalendarEventKind = 'teal' | 'brown';

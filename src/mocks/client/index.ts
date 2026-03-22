@@ -11,3 +11,4 @@ export {
   mockClientCalendarYear,
   mockClientUpcomingEvents,
 } from './clientEvents';
+export { DEMO_BLOCKED_DATES_MAY_2026 } from './viewArtistCalendarDemo';
