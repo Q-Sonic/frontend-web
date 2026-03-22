@@ -3,12 +3,19 @@ import { ProtectedRoute, PublicOnlyRoute, AdminOnlyRoute } from '../components';
 import { AppLayout, SidebarLayout } from '../layouts';
 import { artistSidebarMenus } from '../constants/menus';
 import { EditProfilePage, HomeRedirectPage, ProfileRedirectPage } from '../pages/redirects';
-import { ClientEditScreen, HomeClientePage, ProfileClientePage } from '../pages/client';
+import {
+  ClientEditScreen,
+  ProfileClientePage,
+  DashboardPage,
+  ClientEventsPage,
+  ClientContractsPage,
+} from '../pages/client';
 import {
   ArtistCalendarPage,
   ArtistMediaPage,
   ArtistProfileDocumentsPage,
   ArtistProfileGalleryPage,
+  ArtistProfileCalendarPage,
   ArtistProfileIdRedirect,
   ArtistProfileLayout,
   ArtistProfileMainPage,
@@ -21,10 +28,16 @@ import { RegisterPage } from '../pages/RegisterPage';
 import { ForgotPasswordPage } from '../pages/ForgotPasswordPage';
 import { CreateArtistPage, HomeAdminPage } from '../pages/admin';
 import { HomeOrganizacionPage } from '../pages/organization';
+import { clientSidebarMenus } from '../constants/menus/clientMenus';
 
 const artistSidebar = {
   sectionTitle: 'Información',
   menuItems: artistSidebarMenus,
+};
+
+const clientSidebar = {
+  sectionTitle: 'Información',
+  menuItems: clientSidebarMenus,
 };
 
 export function AppRoutes() {
@@ -69,12 +82,33 @@ export function AppRoutes() {
         path="/client"
         element={
           <ProtectedRoute>
-            <AppLayout>
-              <HomeClientePage />
-            </AppLayout>
+            <SidebarLayout sidebar={clientSidebar}>
+              <DashboardPage />
+            </SidebarLayout>
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/client/events"
+        element={
+          <ProtectedRoute>
+            <SidebarLayout sidebar={clientSidebar}>
+              <ClientEventsPage />
+            </SidebarLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/client/contracts"
+        element={
+          <ProtectedRoute>
+            <SidebarLayout sidebar={clientSidebar}>
+              <ClientContractsPage />
+            </SidebarLayout>
+          </ProtectedRoute>
+        }
+      />
+
       <Route
         path="/artist"
         element={
@@ -134,6 +168,7 @@ export function AppRoutes() {
         <Route index element={<ArtistProfileMainPage />} />
         <Route path="gallery" element={<ArtistProfileGalleryPage />} />
         <Route path="documents" element={<ArtistProfileDocumentsPage />} />
+        <Route path="calendar" element={<ArtistProfileCalendarPage />} />
       </Route>
       <Route
         path="/client/profile"

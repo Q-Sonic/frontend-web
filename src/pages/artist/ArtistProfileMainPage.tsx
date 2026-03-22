@@ -30,6 +30,7 @@ export function ArtistProfileMainPage() {
   const effectiveId = id;
   const isSelfArtist =
     !!user?.uid && isBackendRoleArtista(user.role) && user?.uid === effectiveId;
+  const calendarMoreHref = isSelfArtist ? '/artist/calendario' : `/artist/${effectiveId}/calendar`;
 
   const { profile, services, artistDisplayName, loading, error } = useArtistProfileById(effectiveId);
 
@@ -234,7 +235,7 @@ export function ArtistProfileMainPage() {
               <h2 className="text-base font-bold text-white tracking-wide">Disponibilidad</h2>
               <Link
                 className="text-sm font-normal text-white/90 hover:text-white transition"
-                to="/artist/calendario"
+                to={calendarMoreHref}
               >
                 Ver todo
               </Link>

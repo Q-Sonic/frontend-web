@@ -6,4 +6,5 @@ export { ArtistProfileLayout } from './ArtistProfileLayout';
 export { ArtistProfileMainPage } from './ArtistProfileMainPage';
 export { ArtistProfileGalleryPage } from './ArtistProfileGalleryPage';
 export { ArtistProfileDocumentsPage } from './ArtistProfileDocumentsPage';
+export { ArtistProfileCalendarPage } from './ArtistProfileCalendarPage';
 export { ArtistCalendarPage } from './ArtistCalendarPage';

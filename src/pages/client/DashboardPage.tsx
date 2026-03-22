@@ -1,151 +1,179 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Topbar, UserMenu, Card } from '../../components';
-import { useAuth } from '../../contexts/AuthContext';
-import { listArtistProfiles } from '../../api';
-import type { ArtistProfileListItem } from '../../types';
+import { FiChevronDown, FiClock, FiPause, FiPlay } from 'react-icons/fi';
+import { ClientAreaHeader } from '../../components/client/ClientAreaHeader';
+import { ClientFloatingChatButton } from '../../components/client/ClientFloatingChatButton';
+import { mockClientArtistCards, type ClientArtistCard } from '../../mocks/client';
 
-const gradientBtn = 'bg-gradient-to-r from-violet-500 to-blue-600 text-white hover:opacity-90 rounded-lg px-4 py-2 text-sm font-medium';
+const filterPills = [
+  { id: 'genre', label: 'Genero' },
+  { id: 'location', label: 'Ubicacion' },
+  { id: 'price', label: 'Precio' },
+  { id: 'rating', label: 'Rating' },
+  { id: 'available', label: 'Disponible' },
+] as const;
 
-function ArtistCard({ artist }: { artist: ArtistProfileListItem }) {
-  const name = artist.displayName || 'Artista';
-  const photo = artist.photo;
-  const city = artist.city || '—';
+export function DashboardPage() {
+  const [playingCardKey, setPlayingCardKey] = useState<string | null>(null);
 
   return (
-    <Card variant="dark" className="overflow-hidden">
-      <div className="p-0">
-        <div className="aspect-[4/3] bg-neutral-800 flex items-center justify-center">
-          {photo ? (
-            <img src={photo} alt="" className="w-full h-full object-cover" />
-          ) : (
-            <span className="text-4xl text-neutral-600">🎤</span>
-          )}
-        </div>
-        <div className="p-4 space-y-2">
-          <h3 className="font-semibold text-white">{name}</h3>
-          <p className="text-sm text-neutral-400">{city}</p>
-          <div className="flex items-center justify-between pt-2">
-            <span className="text-xs text-neutral-500">Consultar precio</span>
-            <Link to={`/artist/${artist.uid}`} className={gradientBtn}>
-              Ver perfil
-            </Link>
+    <div className="relative min-h-full bg-surface text-neutral-100">
+      <div className="p-4 md:p-6 pb-28">
+        <div>
+          <ClientAreaHeader />
+
+          <section className="pt-2 pb-6">
+            <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">
+              Encuentra artistas para tu evento
+            </h1>
+            <p className="mt-2 text-sm md:text-base text-neutral-500">
+              Explora cantantes disponibles cerca de ti
+            </p>
+          </section>
+
+          <div className="flex flex-wrap gap-2 pb-8">
+            {filterPills.map((pill) => (
+              <div key={pill.id} className="relative">
+                <label className="sr-only">{pill.label}</label>
+                <select
+                  className="appearance-none pl-3.5 pr-9 py-2 rounded-full bg-neutral-900/90 border border-white/10 text-sm text-white font-medium cursor-pointer hover:border-white/20 focus:outline-none focus:ring-2 focus:ring-accent/30"
+                  defaultValue=""
+                >
+                  <option value="" disabled>
+                    {pill.label}
+                  </option>
+                  <option value="all">Todos</option>
+                </select>
+                <FiChevronDown
+                  className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400"
+                  size={16}
+                  aria-hidden
+                />
+              </div>
+            ))}
           </div>
+
+          <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6 3xl:grid-cols-7 gap-5 md:gap-6">
+            {mockClientArtistCards.map((artist, index) => {
+              const cardKey = `${artist.id}-${artist.name}-${index}`;
+              return (
+                <li key={cardKey}>
+                  <ArtistCard
+                    artist={artist}
+                    cardKey={cardKey}
+                    isPlaying={playingCardKey === cardKey}
+                    onPlayRequest={() => setPlayingCardKey(cardKey)}
+                    onStopRequest={() => setPlayingCardKey((k) => (k === cardKey ? null : k))}
+                  />
+                </li>
+              );
+            })}
+          </ul>
         </div>
       </div>
-    </Card>
+      <ClientFloatingChatButton />
+    </div>
   );
 }
 
-export function HomeClientePage() {
-  useAuth();
-  const [artists, setArtists] = useState<ArtistProfileListItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [filterCity, setFilterCity] = useState('');
+type ArtistCardProps = {
+  artist: ClientArtistCard;
+  cardKey: string;
+  isPlaying: boolean;
+  onPlayRequest: () => void;
+  onStopRequest: () => void;
+};
+
+function ArtistCard({ artist, cardKey, isPlaying, onPlayRequest, onStopRequest }: ArtistCardProps) {
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    let cancelled = false;
-    listArtistProfiles()
-      .then((list) => {
-        if (!cancelled) setArtists(list);
-      })
-      .catch(() => {
-        if (!cancelled) setArtists([]);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => { cancelled = true; };
-  }, []);
+    const el = audioRef.current;
+    if (!el || !artist.previewAudioUrl) return;
+    if (isPlaying) {
+      void el.play().catch(() => onStopRequest());
+    } else {
+      el.pause();
+      el.currentTime = 0;
+    }
+  }, [isPlaying, artist.previewAudioUrl, onStopRequest]);
 
-  const filtered = artists.filter((a) => {
-    const matchSearch = !search.trim() || (a.displayName?.toLowerCase().includes(search.toLowerCase()) || (a.city?.toLowerCase().includes(search.toLowerCase())));
-    const matchCity = !filterCity || a.city === filterCity;
-    return matchSearch && matchCity;
-  });
-  const cities = [...new Set(artists.map((a) => a.city).filter(Boolean))] as string[];
+  const togglePreview = useCallback(() => {
+    if (!artist.previewAudioUrl) return;
+    if (isPlaying) {
+      onStopRequest();
+    } else {
+      onPlayRequest();
+    }
+  }, [artist.previewAudioUrl, isPlaying, onPlayRequest, onStopRequest]);
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-neutral-100 flex">
-      {/* Left sidebar */}
-      <aside className="w-56 shrink-0 border-r border-neutral-800 flex flex-col bg-neutral-900">
-        <Link to="/" className="p-4 flex items-baseline gap-1.5">
-          <span className="text-xl font-bold bg-gradient-to-r from-violet-500 to-blue-600 bg-clip-text text-transparent">Q</span>
-          <span className="text-white font-semibold">-Sonic</span>
-          <span className="text-xs text-neutral-400 ml-0.5">Prime</span>
-        </Link>
-        <nav className="p-2 flex-1">
-          <Link to="/client" className="flex items-center gap-2 px-3 py-2 rounded-lg bg-violet-500/20 text-violet-300">
-            Inicio
-          </Link>
-          <Link to="/client/profile" className="flex items-center gap-2 px-3 py-2 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-800">
-            Mi perfil
-          </Link>
-        </nav>
-      </aside>
-
-      <div className="flex-1 flex flex-col min-w-0">
-        <Topbar
-          variant="dark"
-          right={
-            <div className="flex items-center gap-2 w-full max-w-md">
-              <input
-                type="search"
-                placeholder="Buscar artista, género o ciudad"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="flex-1 rounded-lg bg-neutral-800 border border-neutral-700 px-3 py-2 text-sm text-white placeholder-neutral-500 focus:outline-none focus:ring-1 focus:ring-violet-500"
-              />
-              <UserMenu />
-            </div>
-          }
+    <article
+      className="group rounded-2xl overflow-hidden border border-accent/20 bg-card/40 shadow-[0_0_16px_rgba(0,204,203,0.1)] flex flex-col"
+      style={{ boxShadow: '0 0 20px rgba(0, 204, 203, 0.12)' }}
+    >
+      {artist.previewAudioUrl ? (
+        <audio
+          ref={audioRef}
+          src={artist.previewAudioUrl}
+          preload="none"
+          data-card={cardKey}
+          onEnded={() => onStopRequest()}
         />
-
-        <main className="flex-1 flex gap-6 p-6 overflow-auto">
-          <div className="flex-1 min-w-0">
-            <h1 className="text-2xl font-bold text-white mb-1">Encuentra artistas para tu evento</h1>
-            <p className="text-neutral-400 mb-6">Explora talentos disponibles cerca de ti.</p>
-
-            <div className="flex flex-wrap gap-3 mb-6">
-              <select
-                value={filterCity}
-                onChange={(e) => setFilterCity(e.target.value)}
-                className="rounded-lg bg-neutral-800 border border-neutral-700 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-violet-500"
-              >
-                <option value="">Ubicación</option>
-                {cities.map((c) => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </select>
-            </div>
-
-            {loading ? (
-              <p className="text-neutral-500">Cargando artistas...</p>
-            ) : filtered.length === 0 ? (
-              <p className="text-neutral-500">No hay artistas que coincidan.</p>
+      ) : null}
+      <div className="aspect-4/3 overflow-hidden bg-black/40 relative">
+        <img
+          src={artist.imageUrl}
+          alt=""
+          className="w-full h-full object-cover grayscale-[0.35] contrast-[0.95] group-hover:grayscale-0 transition-all duration-300"
+        />
+        {artist.previewAudioUrl ? (
+          <button
+            type="button"
+            onClick={togglePreview}
+            className="absolute bottom-3 left-3 inline-flex items-center gap-2 rounded-full bg-black/55 border border-white/15 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-sm hover:bg-black/70 transition-colors"
+            aria-label={isPlaying ? 'Pausar vista previa' : 'Escuchar vista previa'}
+          >
+            {isPlaying ? <FiPause size={14} /> : <FiPlay size={14} className="translate-x-px" />}
+            Escuchar
+          </button>
+        ) : null}
+      </div>
+      <div className="p-4 flex flex-col gap-3 flex-1">
+        <div className="flex gap-3 justify-between items-start">
+          <div className="min-w-0">
+            <h2 className="font-semibold text-white truncate">{artist.name}</h2>
+            <p className="text-sm text-neutral-500 truncate">{artist.genre}</p>
+          </div>
+          <div className="text-right shrink-0">
+            <p className="text-[10px] uppercase tracking-wide text-neutral-500">Tarifa desde</p>
+            <p className="text-lg font-semibold text-white tabular-nums">
+              ${artist.priceUsd} USD
+            </p>
+          </div>
+        </div>
+        <div className="mt-auto flex items-end justify-between gap-3 pt-1 flex-wrap">
+          <div className="min-w-0 text-xs text-neutral-400 flex items-center gap-1.5">
+            {artist.availableToday ? (
+              <>
+                <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                <span>Disponible hoy</span>
+              </>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filtered.map((artist) => (
-                  <ArtistCard key={artist.uid} artist={artist} />
-                ))}
-              </div>
+              <>
+                <FiClock className="text-accent shrink-0" size={14} aria-hidden />
+                <span className="truncate">{artist.availableDateLabel}</span>
+              </>
             )}
           </div>
-
-          {/* Right sidebar */}
-          <aside className="w-72 shrink-0 space-y-4 hidden xl:block">
-            <Card variant="dark" title="Mi Billetera">
-              <p className="text-2xl font-semibold text-white mb-2">$0.00 USD</p>
-              <button type="button" className={gradientBtn}>+ Recargar</button>
-            </Card>
-            <Card variant="dark" title="Próximo show">
-              <p className="text-neutral-400 text-sm mb-2">Sin shows programados</p>
-              <button type="button" className="text-sm text-violet-400 hover:underline">Ver detalles</button>
-            </Card>
-          </aside>
-        </main>
+          <Link
+            to={`/artist/${artist.id}`}
+            className="shrink-0 inline-flex items-center justify-center rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-white hover:bg-accent/90 transition-colors"
+          >
+            Ver Perfil
+          </Link>
+        </div>
       </div>
-    </div>
+    </article>
   );
 }
