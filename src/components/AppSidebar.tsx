@@ -139,9 +139,9 @@ export function AppSidebar({
               <>
                 {profileIntro ? (
                   <p className="text-xs text-neutral-400 leading-relaxed pb-3">{profileIntro}</p>
-                ) : (
+                ) : profileIntroLoading ? (
                   <p className="text-xs text-neutral-500 pb-3 italic">Sin descripción.</p>
-                )}
+                ) : null}
               </>
             )}
           </div>
