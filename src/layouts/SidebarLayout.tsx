@@ -40,9 +40,6 @@ export function SidebarLayout({ sidebar, children }: SidebarLayoutProps) {
         onProfileIntroEdit={sidebar.onProfileIntroEdit}
       />
       <div className="flex-1 flex flex-col min-w-0 min-h-0">
-        <header className="h-14 shrink-0 flex items-center justify-end px-4 border-b border-white/10">
-          <UserMenu />
-        </header>
         <main className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">{children}</main>
       </div>
     </div>

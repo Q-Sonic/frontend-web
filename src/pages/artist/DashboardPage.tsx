@@ -130,7 +130,7 @@ export function HomeArtistaPage() {
   }
 
   return (
-    <div className="w-full max-w-[1600px] mx-auto flex gap-6">
+    <div className="w-full max-w-[1600px] mx-auto flex gap-6 p-6">
       <div className="flex-1 min-w-0 space-y-6 bg-card h-fit rounded-2xl p-6">
         {/* Resumen */}
         <SummaryCard stats={stats} loading={statsLoading} error={statsError} />

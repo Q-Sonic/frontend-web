@@ -1,7 +1,8 @@
 import type { CSSProperties, ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { FiArrowLeft } from 'react-icons/fi';
+import { FiArrowLeft, FiLogOut } from 'react-icons/fi';
 import StageGoLogo from '../../public/icons/StageGoLogo';
+import { useAuth } from '../contexts/AuthContext';
 
 export interface SidebarMenuItem {
   to: string;
@@ -105,6 +106,7 @@ export function AppSidebar({
   onProfileIntroEdit,
 }: AppSidebarProps) {
   const location = useLocation();
+  const { user, logout } = useAuth();
 
   return (
     <aside
@@ -176,6 +178,20 @@ export function AppSidebar({
         </div>
         {footer && <div className="shrink-0 pt-2 border-t border-white/10 px-3 pb-1">{footer}</div>}
       </nav>
+      {user && (
+        <div className="shrink-0 border-t border-white/10 px-3 pt-3 pb-2">
+          <button
+            type="button"
+            onClick={() => logout()}
+            className="flex w-full items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-muted hover:bg-white/5 hover:text-white transition-colors"
+          >
+            <span className="shrink-0 w-5 flex items-center justify-center [&>svg]:size-[18px]">
+              <FiLogOut aria-hidden />
+            </span>
+            <span>Cerrar sesión</span>
+          </button>
+        </div>
+      )}
     </aside>
   );
 }
