@@ -29,6 +29,6 @@ function CalendarIcon() {
 
 export const artistSidebarMenus: SidebarMenuItem[] = [
   { to: '/artist/profile', label: 'Perfil', icon: <HomeIcon /> },
-  { to: '/artist', label: 'Dashboard', icon: <DashboardIcon /> },
+  { to: '/artist', label: 'Dashboard', icon: <DashboardIcon />, exactPath: true },
   { to: '/artist/calendario', label: 'Calendario', icon: <CalendarIcon /> },
 ];
