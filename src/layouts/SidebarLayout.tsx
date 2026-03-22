@@ -7,6 +7,15 @@ export interface SidebarLayoutSidebar {
   menuItems: SidebarMenuItem[];
   sectionTitle?: string;
   footer?: ReactNode;
+  /** When set, active menu items use this color (text + tinted background). */
+  activeNavColor?: string;
+  /** Sidebar header: link target for back control (e.g. artist dashboard). */
+  backHref?: string;
+  /** Short text shown above the section title (e.g. profile biography). */
+  profileIntro?: string;
+  profileIntroLoading?: boolean;
+  /** When set, shows an "Editar" control beside the Descripción label (e.g. `/artist/profile/edit`). */
+  onProfileIntroEdit?: () => void;
 }
 
 interface SidebarLayoutProps {
@@ -19,19 +28,22 @@ interface SidebarLayoutProps {
  */
 export function SidebarLayout({ sidebar, children }: SidebarLayoutProps) {
   return (
-    <div className="min-h-screen flex bg-surface">
+    <div className="h-screen max-h-screen flex overflow-hidden bg-surface">
       <AppSidebar
         menuItems={sidebar.menuItems}
         sectionTitle={sidebar.sectionTitle}
         footer={sidebar.footer}
+        activeNavColor={sidebar.activeNavColor}
+        backHref={sidebar.backHref}
+        profileIntro={sidebar.profileIntro}
+        profileIntroLoading={sidebar.profileIntroLoading}
+        onProfileIntroEdit={sidebar.onProfileIntroEdit}
       />
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 min-h-0">
         <header className="h-14 shrink-0 flex items-center justify-end px-4 border-b border-white/10">
           <UserMenu />
         </header>
-        <main className="overflow-auto mx-auto">
-          {children}
-        </main>
+        <main className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">{children}</main>
       </div>
     </div>
   );

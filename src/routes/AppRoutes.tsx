@@ -1,42 +1,32 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 import { ProtectedRoute, PublicOnlyRoute, AdminOnlyRoute } from '../components';
 import { AppLayout, SidebarLayout } from '../layouts';
 import { artistSidebarMenus } from '../constants/menus';
-import { useAuth } from '../contexts/AuthContext';
-import { isBackendRoleArtista } from '../helpers/role';
+import { EditProfilePage, HomeRedirectPage, ProfileRedirectPage } from '../pages/redirects';
+import { ClientEditScreen, HomeClientePage, ProfileClientePage } from '../pages/client';
 import {
-  LandingPage,
-  LoginPage,
-  RegisterPage,
-  ForgotPasswordPage,
-  EditProfilePage,
-  ClientEditScreen,
-  ArtistEditScreen,
-  HomeRedirectPage,
-  HomeClientePage,
-  HomeArtistaPage,
-  HomeAdminPage,
-  HomeOrganizacionPage,
-  ProfileRedirectPage,
-  ProfileClientePage,
-  ArtistServicesPage,
-  ArtistMediaPage,
-  ArtistViewPage,
   ArtistCalendarPage,
-  CreateArtistPage,
-} from '../pages';
+  ArtistEditScreen,
+  ArtistMediaPage,
+  ArtistProfileDocumentsPage,
+  ArtistProfileGalleryPage,
+  ArtistProfileIdRedirect,
+  ArtistProfileLayout,
+  ArtistProfileMainPage,
+  ArtistServicesPage,
+  HomeArtistaPage,
+} from '../pages/artist';
+import { LandingPage } from '../pages/landing';
+import { LoginPage } from '../pages/LoginPage';
+import { RegisterPage } from '../pages/RegisterPage';
+import { ForgotPasswordPage } from '../pages/ForgotPasswordPage';
+import { CreateArtistPage, HomeAdminPage } from '../pages/admin';
+import { HomeOrganizacionPage } from '../pages/organization';
 
 const artistSidebar = {
   sectionTitle: 'Información',
   menuItems: artistSidebarMenus,
 };
-
-function ArtistProfileAliasPage() {
-  const { user } = useAuth();
-  if (!user?.uid) return <Navigate to="/login" replace />;
-  if (!isBackendRoleArtista(user.role)) return <Navigate to="/profile" replace />;
-  return <ArtistViewPage idOverride={user.uid} />;
-}
 
 export function AppRoutes() {
   return (
@@ -130,7 +120,7 @@ export function AppRoutes() {
         path="/artist/profile"
         element={
           <ProtectedRoute>
-            <ArtistProfileAliasPage />
+            <ArtistProfileIdRedirect />
           </ProtectedRoute>
         }
       />
@@ -148,10 +138,14 @@ export function AppRoutes() {
         path="/artist/:id"
         element={
           <ProtectedRoute>
-            <ArtistViewPage />
+            <ArtistProfileLayout />
           </ProtectedRoute>
         }
-      />
+      >
+        <Route index element={<ArtistProfileMainPage />} />
+        <Route path="gallery" element={<ArtistProfileGalleryPage />} />
+        <Route path="documents" element={<ArtistProfileDocumentsPage />} />
+      </Route>
       <Route
         path="/client/profile"
         element={

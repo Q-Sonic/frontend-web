@@ -11,3 +11,16 @@ export { UserMenu } from './UserMenu';
 export { AppSidebar } from './AppSidebar';
 export { ArtistServiceCard } from './ArtistServiceCard';
 export { Skeleton, SkeletonText, SkeletonHeading } from './Skeleton';
+export {
+  ARTIST_PROFILE_ACCENT,
+  defaultAvailabilitySelection,
+  localDateKey,
+  weekdayShortEs,
+} from '../helpers/artistProfile';
+export {
+  ArtistProfileAvailabilityDay,
+  ArtistProfileEditButton,
+  ArtistProfileGalleryGrid,
+  ArtistProfileSectionTitle,
+  ArtistProfileSocialNetworkLink,
+} from './artist-profile';

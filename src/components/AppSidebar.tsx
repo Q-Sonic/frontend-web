@@ -1,72 +1,181 @@
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { FiArrowLeft } from 'react-icons/fi';
+import StageGoLogo from '../../public/icons/StageGoLogo';
 
 export interface SidebarMenuItem {
   to: string;
   label: string;
   icon?: ReactNode;
+  /** If true, only an exact pathname match counts (no `/artist/foo` matching `/artist`). */
+  exactPath?: boolean;
+}
+
+function splitPathAndHash(to: string): { path: string; hash: string } {
+  const i = to.indexOf('#');
+  if (i === -1) return { path: to, hash: '' };
+  return { path: to.slice(0, i), hash: to.slice(i) };
+}
+
+/** Active when pathname matches; if `to` includes a hash, `location.hash` must match (empty hash counts as #description for profile top). */
+export function isSidebarItemActive(
+  pathname: string,
+  hash: string,
+  to: string,
+  exactPath?: boolean,
+): boolean {
+  const { path, hash: itemHash } = splitPathAndHash(to);
+  const locHash = hash || '';
+  const pathMatches = exactPath
+    ? pathname === path
+    : pathname === path || (path.length > 0 && pathname.startsWith(`${path}/`));
+
+  if (!pathMatches) return false;
+
+  if (!itemHash) {
+    return pathname === path || pathname.startsWith(`${path}/`);
+  }
+
+  if (itemHash === '#description') {
+    return locHash === '#description' || locHash === '' || locHash === '#';
+  }
+
+  return locHash === itemHash;
 }
 
 interface AppSidebarProps {
-  /** Menu items; active state is derived from current pathname. */
+  /** Menu items; active state is derived from current pathname (and hash when `to` includes #fragment). */
   menuItems: SidebarMenuItem[];
   /** Optional section title above the menu (e.g. "Información"). */
   sectionTitle?: string;
   /** Optional content below the menu (e.g. cards, buttons). */
   footer?: ReactNode;
+  /** Overrides default accent for the active item (e.g. artist profile nav). */
+  activeNavColor?: string;
+  /** When set, shows a back control and links logo + back to this path (e.g. `/artist`). */
+  backHref?: string;
+  profileIntro?: string;
+  profileIntroLoading?: boolean;
+  onProfileIntroEdit?: () => void;
 }
 
-function Logo() {
+function Logo({ backHref }: { backHref?: string }) {
+  if (backHref) {
+    return (
+      <div className="flex items-center gap-1 px-4 py-4">
+        <Link
+          to={backHref}
+          className="text-white/80 hover:text-white p-2 rounded-lg hover:bg-white/5 shrink-0 transition-colors"
+          aria-label="Volver al dashboard"
+        >
+          <FiArrowLeft size={22} strokeWidth={2} />
+        </Link>
+        <Link
+          to={backHref}
+          className="flex items-baseline gap-1.5 min-w-0 opacity-90 hover:opacity-100 transition-opacity"
+          aria-label="Ir al dashboard"
+        >
+          <StageGoLogo />
+        </Link>
+      </div>
+    );
+  }
   return (
     <Link to="/" className="flex items-baseline gap-1.5 px-4 py-4">
-      <svg width="124" height="30" viewBox="0 0 124 30" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect y="6.09375" width="24.5714" height="21.985" fill="#F12424"/>
-        <path d="M16.38 18.4609H12.9V22.0209H9.66V18.4609H6.18V15.4009H9.66V11.8209H12.9V15.4009H16.38V18.4609Z" fill="white"/>
-        <path d="M36.8913 22.14C35.8646 22.14 34.9446 21.9733 34.1313 21.64C33.318 21.3067 32.6646 20.8133 32.1713 20.16C31.6913 19.5067 31.438 18.72 31.4113 17.8H35.0513C35.1046 18.32 35.2846 18.72 35.5913 19C35.898 19.2667 36.298 19.4 36.7913 19.4C37.298 19.4 37.698 19.2867 37.9913 19.06C38.2846 18.82 38.4313 18.4933 38.4313 18.08C38.4313 17.7333 38.3113 17.4467 38.0713 17.22C37.8446 16.9933 37.558 16.8067 37.2113 16.66C36.878 16.5133 36.398 16.3467 35.7713 16.16C34.8646 15.88 34.1246 15.6 33.5513 15.32C32.978 15.04 32.4846 14.6267 32.0713 14.08C31.658 13.5333 31.4513 12.82 31.4513 11.94C31.4513 10.6333 31.9246 9.61333 32.8713 8.88C33.818 8.13333 35.0513 7.76 36.5713 7.76C38.118 7.76 39.3646 8.13333 40.3113 8.88C41.258 9.61333 41.7646 10.64 41.8313 11.96H38.1313C38.1046 11.5067 37.938 11.1533 37.6313 10.9C37.3246 10.6333 36.9313 10.5 36.4513 10.5C36.038 10.5 35.7046 10.6133 35.4513 10.84C35.198 11.0533 35.0713 11.3667 35.0713 11.78C35.0713 12.2333 35.2846 12.5867 35.7113 12.84C36.138 13.0933 36.8046 13.3667 37.7113 13.66C38.618 13.9667 39.3513 14.26 39.9113 14.54C40.4846 14.82 40.978 15.2267 41.3913 15.76C41.8046 16.2933 42.0113 16.98 42.0113 17.82C42.0113 18.62 41.8046 19.3467 41.3913 20C40.9913 20.6533 40.4046 21.1733 39.6313 21.56C38.858 21.9467 37.9446 22.14 36.8913 22.14ZM50.336 19.1V22H48.596C47.356 22 46.3893 21.7 45.696 21.1C45.0026 20.4867 44.656 19.4933 44.656 18.12V13.68H43.296V10.84H44.656V8.12H48.076V10.84H50.316V13.68H48.076V18.16C48.076 18.4933 48.156 18.7333 48.316 18.88C48.476 19.0267 48.7426 19.1 49.116 19.1H50.336ZM51.561 16.4C51.561 15.2533 51.7743 14.2467 52.201 13.38C52.641 12.5133 53.2343 11.8467 53.981 11.38C54.7276 10.9133 55.561 10.68 56.481 10.68C57.2676 10.68 57.9543 10.84 58.541 11.16C59.141 11.48 59.601 11.9 59.921 12.42V10.84H63.341V22H59.921V20.42C59.5876 20.94 59.121 21.36 58.521 21.68C57.9343 22 57.2476 22.16 56.461 22.16C55.5543 22.16 54.7276 21.9267 53.981 21.46C53.2343 20.98 52.641 20.3067 52.201 19.44C51.7743 18.56 51.561 17.5467 51.561 16.4ZM59.921 16.42C59.921 15.5667 59.681 14.8933 59.201 14.4C58.7343 13.9067 58.161 13.66 57.481 13.66C56.801 13.66 56.221 13.9067 55.741 14.4C55.2743 14.88 55.041 15.5467 55.041 16.4C55.041 17.2533 55.2743 17.9333 55.741 18.44C56.221 18.9333 56.801 19.18 57.481 19.18C58.161 19.18 58.7343 18.9333 59.201 18.44C59.681 17.9467 59.921 17.2733 59.921 16.42ZM70.0552 10.68C70.8419 10.68 71.5285 10.84 72.1152 11.16C72.7152 11.48 73.1752 11.9 73.4952 12.42V10.84H76.9152V21.98C76.9152 23.0067 76.7085 23.9333 76.2952 24.76C75.8952 25.6 75.2752 26.2667 74.4352 26.76C73.6085 27.2533 72.5752 27.5 71.3352 27.5C69.6819 27.5 68.3419 27.1067 67.3152 26.32C66.2885 25.5467 65.7019 24.4933 65.5552 23.16H68.9352C69.0419 23.5867 69.2952 23.92 69.6952 24.16C70.0952 24.4133 70.5885 24.54 71.1752 24.54C71.8819 24.54 72.4419 24.3333 72.8552 23.92C73.2819 23.52 73.4952 22.8733 73.4952 21.98V20.4C73.1619 20.92 72.7019 21.3467 72.1152 21.68C71.5285 22 70.8419 22.16 70.0552 22.16C69.1352 22.16 68.3019 21.9267 67.5552 21.46C66.8085 20.98 66.2152 20.3067 65.7752 19.44C65.3485 18.56 65.1352 17.5467 65.1352 16.4C65.1352 15.2533 65.3485 14.2467 65.7752 13.38C66.2152 12.5133 66.8085 11.8467 67.5552 11.38C68.3019 10.9133 69.1352 10.68 70.0552 10.68ZM73.4952 16.42C73.4952 15.5667 73.2552 14.8933 72.7752 14.4C72.3085 13.9067 71.7352 13.66 71.0552 13.66C70.3752 13.66 69.7952 13.9067 69.3152 14.4C68.8485 14.88 68.6152 15.5467 68.6152 16.4C68.6152 17.2533 68.8485 17.9333 69.3152 18.44C69.7952 18.9333 70.3752 19.18 71.0552 19.18C71.7352 19.18 72.3085 18.9333 72.7752 18.44C73.2552 17.9467 73.4952 17.2733 73.4952 16.42ZM89.9094 16.24C89.9094 16.56 89.8894 16.8933 89.8494 17.24H82.1094C82.1627 17.9333 82.3827 18.4667 82.7694 18.84C83.1694 19.2 83.6561 19.38 84.2294 19.38C85.0827 19.38 85.6761 19.02 86.0094 18.3H89.6494C89.4627 19.0333 89.1227 19.6933 88.6294 20.28C88.1494 20.8667 87.5427 21.3267 86.8094 21.66C86.0761 21.9933 85.2561 22.16 84.3494 22.16C83.2561 22.16 82.2827 21.9267 81.4294 21.46C80.5761 20.9933 79.9094 20.3267 79.4294 19.46C78.9494 18.5933 78.7094 17.58 78.7094 16.42C78.7094 15.26 78.9427 14.2467 79.4094 13.38C79.8894 12.5133 80.5561 11.8467 81.4094 11.38C82.2627 10.9133 83.2427 10.68 84.3494 10.68C85.4294 10.68 86.3894 10.9067 87.2294 11.36C88.0694 11.8133 88.7227 12.46 89.1894 13.3C89.6694 14.14 89.9094 15.12 89.9094 16.24ZM86.4094 15.34C86.4094 14.7533 86.2094 14.2867 85.8094 13.94C85.4094 13.5933 84.9094 13.42 84.3094 13.42C83.7361 13.42 83.2494 13.5867 82.8494 13.92C82.4627 14.2533 82.2227 14.7267 82.1294 15.34H86.4094ZM105.272 12.4C105.019 11.9333 104.652 11.58 104.172 11.34C103.705 11.0867 103.152 10.96 102.512 10.96C101.405 10.96 100.519 11.3267 99.8519 12.06C99.1852 12.78 98.8519 13.7467 98.8519 14.96C98.8519 16.2533 99.1986 17.2667 99.8919 18C100.599 18.72 101.565 19.08 102.792 19.08C103.632 19.08 104.339 18.8667 104.912 18.44C105.499 18.0133 105.925 17.4 106.192 16.6H101.852V14.08H109.292V17.26C109.039 18.1133 108.605 18.9067 107.992 19.64C107.392 20.3733 106.625 20.9667 105.692 21.42C104.759 21.8733 103.705 22.1 102.532 22.1C101.145 22.1 99.9052 21.8 98.8119 21.2C97.7319 20.5867 96.8852 19.74 96.2719 18.66C95.6719 17.58 95.3719 16.3467 95.3719 14.96C95.3719 13.5733 95.6719 12.34 96.2719 11.26C96.8852 10.1667 97.7319 9.32 98.8119 8.72C99.8919 8.10667 101.125 7.8 102.512 7.8C104.192 7.8 105.605 8.20667 106.752 9.02C107.912 9.83333 108.679 10.96 109.052 12.4H105.272ZM116.266 22.16C115.173 22.16 114.186 21.9267 113.306 21.46C112.44 20.9933 111.753 20.3267 111.246 19.46C110.753 18.5933 110.506 17.58 110.506 16.42C110.506 15.2733 110.76 14.2667 111.266 13.4C111.773 12.52 112.466 11.8467 113.346 11.38C114.226 10.9133 115.213 10.68 116.306 10.68C117.4 10.68 118.386 10.9133 119.266 11.38C120.146 11.8467 120.84 12.52 121.346 13.4C121.853 14.2667 122.106 15.2733 122.106 16.42C122.106 17.5667 121.846 18.58 121.326 19.46C120.82 20.3267 120.12 20.9933 119.226 21.46C118.346 21.9267 117.36 22.16 116.266 22.16ZM116.266 19.2C116.92 19.2 117.473 18.96 117.926 18.48C118.393 18 118.626 17.3133 118.626 16.42C118.626 15.5267 118.4 14.84 117.946 14.36C117.506 13.88 116.96 13.64 116.306 13.64C115.64 13.64 115.086 13.88 114.646 14.36C114.206 14.8267 113.986 15.5133 113.986 16.42C113.986 17.3133 114.2 18 114.626 18.48C115.066 18.96 115.613 19.2 116.266 19.2Z" fill="white"/>
-      </svg>
+      <StageGoLogo />
     </Link>
   );
 }
 
-export function AppSidebar({ menuItems, sectionTitle, footer }: AppSidebarProps) {
+function activeNavStyle(color: string): CSSProperties {
+  return {
+    color,
+    backgroundColor: `${color}26`,
+  };
+}
+
+export function AppSidebar({
+  menuItems,
+  sectionTitle,
+  footer,
+  activeNavColor,
+  backHref,
+  profileIntro,
+  profileIntroLoading,
+  onProfileIntroEdit,
+}: AppSidebarProps) {
   const location = useLocation();
 
   return (
     <aside
-      className="w-64 shrink-0 flex flex-col min-h-screen p-4"
+      className="w-64 shrink-0 flex flex-col h-full max-h-screen min-h-0 p-4"
       style={{
         background: 'linear-gradient(180deg, var(--color-sidebar) 0%, rgba(10,10,10,0) 100%)',
       }}
     >
-      <Logo />
-      <nav className="flex-1 px-3 pb-4 mt-20">
-        {sectionTitle && (
-          <p className="text-muted font-bold tracking-wider px-3 pt-2 pb-2">
-            {sectionTitle}
-          </p>
-        )}
-        <ul className="space-y-0.5">
-          {menuItems.map((item) => {
-            const isActive = location.pathname === item.to || location.pathname.startsWith(item.to + '/');
-            return (
-              <li key={item.to}>
-                <Link
-                  to={item.to}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                    isActive
-                      ? 'bg-accent/20 text-accent'
-                      : 'text-muted hover:bg-white/5 hover:text-white'
-                  }`}
+      <div className="shrink-0">
+        <Logo backHref={backHref} />
+      </div>
+      <nav className="flex-1 min-h-0 flex flex-col mt-6 overflow-hidden">
+        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-3 pb-4 [scrollbar-color:rgba(255,255,255,0.12)_transparent]">
+          <div className="mb-7">
+            {onProfileIntroEdit && (
+              <div className="flex items-center justify-end gap-2">
+                <button
+                  onClick={onProfileIntroEdit}
+                  className="text-xs font-medium text-accent hover:text-accent/80 hover:underline shrink-0 cursor-pointer"
                 >
-                  {item.icon && <span className="shrink-0 w-5 flex items-center justify-center">{item.icon}</span>}
-                  <span>{item.label}</span>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+                  Editar
+                </button>
+              </div>
+            )}
+            {profileIntroLoading ? (
+              <div className="pb-3 space-y-2" aria-hidden>
+                <div className="h-2.5 rounded bg-white/10 w-full" />
+                <div className="h-2.5 rounded bg-white/10 w-[92%]" />
+                <div className="h-2.5 rounded bg-white/10 w-4/5" />
+              </div>
+            ): (
+              <>
+                {profileIntro ? (
+                  <p className="text-xs text-neutral-400 leading-relaxed pb-3">{profileIntro}</p>
+                ) : (
+                  <p className="text-xs text-neutral-500 pb-3 italic">Sin descripción.</p>
+                )}
+              </>
+            )}
+          </div>
+
+          {sectionTitle && (
+            <p className="text-muted font-bold tracking-wider pt-1 pb-2">{sectionTitle}</p>
+          )}
+          <ul className="space-y-0.5">
+            {menuItems.map((item) => {
+              const isActive = isSidebarItemActive(location.pathname, location.hash, item.to, item.exactPath);
+              const useCustomActive = isActive && activeNavColor;
+              return (
+                <li key={item.to}>
+                  <Link
+                    to={item.to}
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                      useCustomActive
+                        ? ''
+                        : isActive
+                          ? 'bg-accent/20 text-accent'
+                          : 'text-muted hover:bg-white/5 hover:text-white'
+                    }`}
+                    style={useCustomActive ? activeNavStyle(activeNavColor) : undefined}
+                  >
+                    {item.icon && <span className="shrink-0 w-5 flex items-center justify-center [&>svg]:size-[18px]">{item.icon}</span>}
+                    <span>{item.label}</span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+        {footer && <div className="shrink-0 pt-2 border-t border-white/10 px-3 pb-1">{footer}</div>}
       </nav>
-      {footer && <div className="p-3 border-t border-white/10">{footer}</div>}
     </aside>
   );
 }
