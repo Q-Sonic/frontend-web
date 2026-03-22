@@ -30,12 +30,12 @@ export function getProfilePath(role: string | undefined): string {
   }
 }
 
-/** Clean profile edit path by role (no /profile/edit/artista). */
+/** Clean profile edit path by role (artist uses public profile; no dedicated edit route). */
 export function getProfileEditPath(role: string | undefined): string {
   const r = getProfileEditRoute(role);
   switch (r) {
     case 'artista':
-      return '/artist/profile/edit';
+      return '/artist/profile';
     case 'cliente':
       return '/client/profile/edit';
     default:

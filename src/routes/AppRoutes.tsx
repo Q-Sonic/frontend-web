@@ -6,7 +6,6 @@ import { EditProfilePage, HomeRedirectPage, ProfileRedirectPage } from '../pages
 import { ClientEditScreen, HomeClientePage, ProfileClientePage } from '../pages/client';
 import {
   ArtistCalendarPage,
-  ArtistEditScreen,
   ArtistMediaPage,
   ArtistProfileDocumentsPage,
   ArtistProfileGalleryPage,
@@ -121,16 +120,6 @@ export function AppRoutes() {
         element={
           <ProtectedRoute>
             <ArtistProfileIdRedirect />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/artist/profile/edit"
-        element={
-          <ProtectedRoute>
-            <SidebarLayout sidebar={artistSidebar}>
-              <ArtistEditScreen />
-            </SidebarLayout>
           </ProtectedRoute>
         }
       />
