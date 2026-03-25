@@ -25,3 +25,6 @@ dist-ssr
 
 # Environment variables
 .env
+
+# Local-only notes (backend docs, private references — never commit)
+local/

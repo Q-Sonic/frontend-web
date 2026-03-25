@@ -3,3 +3,9 @@ export { ArtistProfileSocialNetworkLink } from './ArtistProfileSocialNetworkLink
 export { ArtistProfileEditButton } from './ArtistProfileEditButton';
 export { ArtistProfileSectionTitle } from './ArtistProfileSectionTitle';
 export { ArtistProfileGalleryGrid } from './ArtistProfileGalleryGrid';
+export { ArtistProfileDocumentsServicesTable } from './ArtistProfileDocumentsServicesTable';
+export { ArtistProfileRidersGrid } from './ArtistProfileRidersGrid';
+export type { ArtistRiderItem } from './ArtistProfileRidersGrid';
+export { ArtistGalleryFilterTabs } from './ArtistGalleryFilterTabs';
+export type { GalleryFilterKey } from './ArtistGalleryFilterTabs';
+export { ArtistGalleryMasonryGrid } from './ArtistGalleryMasonryGrid';

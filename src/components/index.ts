@@ -18,9 +18,15 @@ export {
   weekdayShortEs,
 } from '../helpers/artistProfile';
 export {
+  ArtistGalleryFilterTabs,
+  ArtistGalleryMasonryGrid,
   ArtistProfileAvailabilityDay,
+  ArtistProfileDocumentsServicesTable,
   ArtistProfileEditButton,
   ArtistProfileGalleryGrid,
+  ArtistProfileRidersGrid,
   ArtistProfileSectionTitle,
   ArtistProfileSocialNetworkLink,
+  type GalleryFilterKey,
+  type ArtistRiderItem,
 } from './artist-profile';

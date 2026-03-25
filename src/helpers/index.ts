@@ -1,3 +1,4 @@
+export { loginErrorMessage, registerErrorMessage } from './authErrors';
 export { getProfileEditRoute, normalizeRole, isBackendRoleCliente, isBackendRoleArtista, isBackendRoleAdmin } from './role';
 export type { ProfileEditRoute, CanonicalRole } from './role';
 export { sanitizeOptionalString, getRequiredError, getUrlError, getPhoneDigitsError, getCountryCodeRequiredError } from './validation';
