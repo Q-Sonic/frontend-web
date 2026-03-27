@@ -5,6 +5,7 @@ import { AuthLayout } from '../components/AuthLayout';
 import { register, loginWithGoogleBackend } from '../api/authService';
 import { useAuth } from '../contexts/AuthContext';
 import { normalizeRole } from '../helpers/role';
+import { registerErrorMessage } from '../helpers/authErrors';
 import { signInWithPopup, signInWithCustomToken } from 'firebase/auth';
 import { auth as firebaseAuth, googleProvider } from '../config/firebase';
 
@@ -54,13 +55,6 @@ const AlertIcon = () => (
 /* ── Helpers ── */
 const trim = (s: string) => s.trim();
 const MIN_PASSWORD_LENGTH = 8;
-const DUPLICATE_EMAIL_SPANISH = 'Este correo ya pertenece a una cuenta existente.';
-
-function getRegisterErrorMessage(err: unknown): string {
-  const message = err instanceof Error ? err.message : String(err ?? '');
-  if (/already in use/i.test(message)) return DUPLICATE_EMAIL_SPANISH;
-  return message || 'No se pudo completar el registro. Inténtalo nuevamente.';
-}
 
 function getEmailError(value: string): string | undefined {
   if (!trim(value)) return 'Este campo es obligatorio';
@@ -137,7 +131,7 @@ export function RegisterPage() {
       });
       navigate('/login', { state: { registerSuccess: true }, replace: true });
     } catch (err) {
-      setSubmitError(getRegisterErrorMessage(err));
+      setSubmitError(registerErrorMessage(err));
     } finally {
       setIsSubmitting(false);
     }

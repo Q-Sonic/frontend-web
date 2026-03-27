@@ -5,6 +5,7 @@ import { AuthLayout } from '../components/AuthLayout';
 import { useAuth } from '../contexts/AuthContext';
 import { login, loginWithGoogleBackend } from '../api/authService';
 import { normalizeRole } from '../helpers/role';
+import { loginErrorMessage } from '../helpers/authErrors';
 import { signInWithPopup, signInWithCustomToken } from 'firebase/auth';
 import { auth as firebaseAuth, googleProvider } from '../config/firebase';
 
@@ -88,9 +89,9 @@ export function LoginPage() {
       localStorage.setItem('role', normalizeRole(role));
       await refreshUser();
       navigate(from, { replace: true });
-    } catch {
+    } catch (err) {
       clearRegisterSuccess();
-      setError('Correo o contraseña incorrectos. Verifica tus datos e intenta de nuevo.');
+      setError(loginErrorMessage(err));
     } finally {
       setIsSubmitting(false);
     }
