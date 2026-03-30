@@ -13,6 +13,8 @@ export interface SidebarLayoutSidebar {
   backHref?: string;
   /** Short text shown above the section title (e.g. profile biography). */
   profileIntro?: string;
+  /** Rich intro (e.g. name in accent + bio). Takes precedence over `profileIntro` when set. */
+  profileIntroRich?: ReactNode;
   profileIntroLoading?: boolean;
   /** When set, shows an "Editar" control beside the Descripción label (e.g. `/artist/profile/edit`). */
   onProfileIntroEdit?: () => void;
@@ -36,6 +38,7 @@ export function SidebarLayout({ sidebar, children }: SidebarLayoutProps) {
         activeNavColor={sidebar.activeNavColor}
         backHref={sidebar.backHref}
         profileIntro={sidebar.profileIntro}
+        profileIntroRich={sidebar.profileIntroRich}
         profileIntroLoading={sidebar.profileIntroLoading}
         onProfileIntroEdit={sidebar.onProfileIntroEdit}
       />

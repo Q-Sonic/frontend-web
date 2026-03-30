@@ -6,6 +6,7 @@ export { Card } from './Card';
 export { ProtectedRoute } from './ProtectedRoute';
 export { PublicOnlyRoute } from './PublicOnlyRoute';
 export { AdminOnlyRoute } from './AdminOnlyRoute';
+export { ClienteOnlyRoute } from './ClienteOnlyRoute';
 export { Topbar } from './Topbar';
 export { UserMenu } from './UserMenu';
 export { AppSidebar } from './AppSidebar';
@@ -20,6 +21,7 @@ export {
 export {
   ArtistGalleryFilterTabs,
   ArtistGalleryMasonryGrid,
+  ArtistGalleryWavePlayer,
   ArtistProfileAvailabilityDay,
   ArtistProfileDocumentsServicesTable,
   ArtistProfileEditButton,

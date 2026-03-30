@@ -1,3 +1,4 @@
+import { FiDownload } from 'react-icons/fi';
 import type { ArtistServiceRecord } from '../../types';
 
 interface ArtistProfileDocumentsServicesTableProps {
@@ -29,11 +30,15 @@ export function ArtistProfileDocumentsServicesTable({
       <div className="overflow-x-auto">
         <table className="min-w-[740px] w-full text-sm">
           <thead className="bg-white/[0.04] text-neutral-300">
-            <tr className="[&>th]:px-4 [&>th]:py-3 [&>th]:text-left [&>th]:font-medium">
+            <tr className="[&>th]:px-4 [&>th]:py-3 [&>th]:text-left [&>th]:font-medium [&>th]:text-neutral-400">
               <th>Servicio</th>
               <th>Condiciones clave del contrato</th>
               <th>Monto</th>
-              <th>PDF</th>
+              <th>
+                <span className="inline-flex items-center gap-1.5">
+                  PDF <span className="text-[10px] font-normal text-neutral-500">(descarga)</span>
+                </span>
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-white/5">
@@ -52,6 +57,7 @@ export function ArtistProfileDocumentsServicesTable({
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-2 text-[#00d4c8] hover:text-[#00ece0] transition-colors"
                       >
+                        <FiDownload size={14} aria-hidden />
                         Descargar
                       </a>
                     ) : (
@@ -60,6 +66,7 @@ export function ArtistProfileDocumentsServicesTable({
                         onClick={onMissingDocumentClick}
                         className="inline-flex items-center gap-2 rounded-full border border-[#00d4c8]/40 px-3 py-1 text-[#00d4c8] hover:border-[#00ece0] hover:text-[#00ece0] transition-colors"
                       >
+                        <FiDownload size={14} aria-hidden />
                         Descargar
                       </button>
                     )}

@@ -7,9 +7,37 @@ import type {
 } from '../types';
 import { api, apiPostFormData, apiPutFormData, ApiError } from './client';
 
-/** List all artist profiles (for client browse). Requires cliente/admin/organizacion/soporte. */
-export async function listArtistProfiles(): Promise<ArtistProfileListItem[]> {
-  const res = await api<ApiResponse<ArtistProfileListItem[]>>('artist-profiles');
+/** Query params for `GET /artist-profiles` (backend may ignore unknown keys). */
+export type ArtistProfileListFilters = {
+  genre?: string;
+  city?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  search?: string;
+  availableToday?: boolean;
+};
+
+function buildArtistProfilesQuery(filters: ArtistProfileListFilters): string {
+  const p = new URLSearchParams();
+  const g = filters.genre?.trim();
+  const c = filters.city?.trim();
+  const s = filters.search?.trim();
+  if (g) p.set('genre', g);
+  if (c) p.set('city', c);
+  if (s) p.set('search', s);
+  if (filters.minPrice != null && Number.isFinite(filters.minPrice)) p.set('minPrice', String(filters.minPrice));
+  if (filters.maxPrice != null && Number.isFinite(filters.maxPrice)) p.set('maxPrice', String(filters.maxPrice));
+  if (filters.availableToday === true) p.set('availableToday', 'true');
+  const q = p.toString();
+  return q ? `?${q}` : '';
+}
+
+/** List artist profiles (client browse / discovery). Requires cliente/admin/organizacion/soporte. */
+export async function listArtistProfiles(
+  filters: ArtistProfileListFilters = {},
+): Promise<ArtistProfileListItem[]> {
+  const suffix = buildArtistProfilesQuery(filters);
+  const res = await api<ApiResponse<ArtistProfileListItem[]>>(`artist-profiles${suffix}`);
   return res.data ?? [];
 }
 

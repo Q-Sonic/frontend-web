@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { FaBuilding, FaChurch, FaMicrophone } from 'react-icons/fa';
 import { ClientAreaHeader } from '../../components/client/ClientAreaHeader';
 import { ClientFloatingChatButton } from '../../components/client/ClientFloatingChatButton';
+import { ClientAreaPageShell } from '../../components/shared/ClientAreaPageShell';
 import {
   mockClientCalendarEvents,
   mockClientCalendarMonthIndex,
@@ -84,12 +85,11 @@ export function ClientEventsPage() {
   const cells = useMemo(() => buildMonthCells(year, month), [year, month]);
 
   return (
-    <div className="relative min-h-full bg-surface text-neutral-100">
-      <div className="p-5 md:p-6 pb-28">
-        <div
-          className="rounded-2xl border border-accent/25 bg-[#0f1215] p-5 md:p-6 shadow-[0_0_18px_rgba(0,204,203,0.12)]"
-          style={{ boxShadow: '0 0 24px rgba(0, 204, 203, 0.08), inset 0 1px 0 rgba(255,255,255,0.04)' }}
-        >
+    <ClientAreaPageShell>
+      <div
+        className="rounded-2xl border border-accent/25 bg-[#0f1215] p-5 md:p-6 shadow-[0_0_18px_rgba(0,204,203,0.12)]"
+        style={{ boxShadow: '0 0 24px rgba(0, 204, 203, 0.08), inset 0 1px 0 rgba(255,255,255,0.04)' }}
+      >
           <ClientAreaHeader />
 
           <div className="flex flex-col xl:flex-row xl:items-start gap-8 pt-2">
@@ -208,9 +208,8 @@ export function ClientEventsPage() {
               </ul>
             </aside>
           </div>
-        </div>
       </div>
       <ClientFloatingChatButton />
-    </div>
+    </ClientAreaPageShell>
   );
 }

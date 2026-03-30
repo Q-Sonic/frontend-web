@@ -1,3 +1,5 @@
+import { FiDownload } from 'react-icons/fi';
+
 interface ArtistProfileRiderCardProps {
   title: string;
   description: string;
@@ -43,16 +45,18 @@ export function ArtistProfileRiderCard({
               href={documentUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center justify-center rounded-full bg-[#00d4c8] px-4 py-2 text-xs font-semibold text-[#0d1117] hover:bg-[#00ece0] transition-colors"
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-[#00d4c8] px-4 py-2 text-xs font-semibold text-[#0d1117] hover:bg-[#00ece0] transition-colors"
             >
+              <FiDownload size={14} aria-hidden />
               Descargar PDF
             </a>
           ) : (
             <button
               type="button"
               onClick={onMissingDocumentClick}
-              className="inline-flex items-center rounded-full border border-[#00d4c8]/45 px-4 py-2 text-xs font-medium text-[#00d4c8] hover:border-[#00ece0] hover:text-[#00ece0] transition-colors"
+              className="inline-flex items-center gap-2 rounded-full border border-[#00d4c8]/45 px-4 py-2 text-xs font-medium text-[#00d4c8] hover:border-[#00ece0] hover:text-[#00ece0] transition-colors"
             >
+              <FiDownload size={14} aria-hidden />
               Descargar PDF
             </button>
           )}

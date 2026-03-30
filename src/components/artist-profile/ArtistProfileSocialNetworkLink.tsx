@@ -17,7 +17,7 @@ export function ArtistProfileSocialNetworkLink({
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="text-white/80 hover:text-white transition p-2 rounded-xl hover:bg-white/5"
+      className="inline-flex items-center justify-center bg-transparent p-0 rounded-none text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#00d4c8]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0a0a]"
       aria-label={network}
     >
       {network === 'tiktok' && <Tiktok />}

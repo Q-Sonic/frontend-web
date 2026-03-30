@@ -1,15 +1,17 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Navigate, Outlet, useParams } from 'react-router-dom';
+import { Navigate, Outlet, useLocation, useParams } from 'react-router-dom';
 import { getArtistProfileById } from '../../api';
 import { useAuth } from '../../contexts/AuthContext';
+import { ArtistProfileNavProvider } from '../../contexts/ArtistProfileNavContext';
 import { isBackendRoleArtista, isBackendRoleCliente } from '../../helpers/role';
 import { SidebarLayout } from '../../layouts';
-import { FiCalendar, FiImage, FiFileText, FiUser } from 'react-icons/fi';
+import { FiImage, FiFileText, FiUser } from 'react-icons/fi';
 
 const SIDEBAR_ACTIVE_NAV = '#38BACC';
 
 export function ArtistProfileLayout() {
   const { id } = useParams<{ id: string }>();
+  const location = useLocation();
   const { user } = useAuth();
   const [intro, setIntro] = useState<string | undefined>(undefined);
   const [introLoading, setIntroLoading] = useState(false);
@@ -67,35 +69,6 @@ export function ArtistProfileLayout() {
       },
     ];
 
-    /** Cliente logueado: navegación completa al ver un artista. */
-    const clientVisitorMenu = [
-      {
-        to: base,
-        label: 'Perfil',
-        icon: <FiUser className="text-current" aria-hidden />,
-        exactPath: true as const,
-      },
-      {
-        to: `${base}/documents`,
-        label: 'Documentos',
-        icon: <FiFileText className="text-current" aria-hidden />,
-        exactPath: true as const,
-      },
-      {
-        to: `${base}/gallery`,
-        label: 'Galería',
-        icon: <FiImage className="text-current" aria-hidden />,
-        exactPath: true as const,
-      },
-      {
-        to: `${base}/calendar`,
-        label: 'Calendario',
-        icon: <FiCalendar className="text-current" aria-hidden />,
-        exactPath: true as const,
-      },
-    ];
-
-    /** Otro rol visitando un perfil ajeno (mismo orden que el panel del artista, sin calendario embebido). */
     const guestMenu = [
       {
         to: base,
@@ -119,12 +92,8 @@ export function ArtistProfileLayout() {
 
     let backHref: string | undefined;
     if (isOwnArtistProfile) backHref = '/artist';
-    else if (isClienteViewer) backHref = '/client';
 
-    let menuItems;
-    if (isOwnArtistProfile) menuItems = ownerMenu;
-    else if (isClienteViewer) menuItems = clientVisitorMenu;
-    else menuItems = guestMenu;
+    const menuItems = isOwnArtistProfile ? ownerMenu : guestMenu;
 
     return {
       sectionTitle: 'Información' as const,
@@ -135,15 +104,21 @@ export function ArtistProfileLayout() {
       onProfileIntroEdit: undefined,
       menuItems,
     };
-  }, [id, intro, introLoading, isOwnArtistProfile, isClienteViewer]);
+  }, [id, intro, introLoading, isOwnArtistProfile]);
 
   if (!user?.uid) return <Navigate to="/login" replace />;
+  if (isClienteViewer && id) {
+    const suffix = location.pathname.slice(`/artist/${id}`.length) || '';
+    return <Navigate to={`/client/artists/${id}${suffix}`} replace />;
+  }
   if (!id) return <Navigate to="/artist" replace />;
   if (!sidebar) return null;
 
   return (
-    <SidebarLayout sidebar={sidebar}>
-      <Outlet />
-    </SidebarLayout>
+    <ArtistProfileNavProvider value={{ basePath: `/artist/${id}`, exitHomePath: '/artist' }}>
+      <SidebarLayout sidebar={sidebar}>
+        <Outlet />
+      </SidebarLayout>
+    </ArtistProfileNavProvider>
   );
 }

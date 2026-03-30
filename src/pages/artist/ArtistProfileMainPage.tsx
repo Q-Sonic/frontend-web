@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useArtistProfileNav } from '../../contexts/ArtistProfileNavContext';
 import { isBackendRoleArtista } from '../../helpers/role';
 import {
   ARTIST_PROFILE_ACCENT,
@@ -27,10 +28,11 @@ const PLACEHOLDER_COVER =
 export function ArtistProfileMainPage() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
+  const { basePath } = useArtistProfileNav();
   const effectiveId = id;
   const isSelfArtist =
     !!user?.uid && isBackendRoleArtista(user.role) && user?.uid === effectiveId;
-  const calendarMoreHref = isSelfArtist ? '/artist/calendario' : `/artist/${effectiveId}/calendar`;
+  const calendarMoreHref = isSelfArtist ? '/artist/calendario' : `${basePath}/calendar`;
 
   const { profile, services, artistDisplayName, loading, error } = useArtistProfileById(effectiveId);
 

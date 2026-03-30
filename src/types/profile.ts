@@ -56,6 +56,8 @@ export interface ArtistProfile {
 export interface ArtistProfileListItem extends ArtistProfile {
   uid: string;
   displayName: string;
+  /** When provided by list/filters API (discovery). */
+  genre?: string;
 }
 
 export interface ArtistProfileUpdate {

@@ -7,8 +7,11 @@ import {
   Skeleton,
   type GalleryFilterKey,
 } from '../../components';
+import { ClientArtistSectionHeader } from '../../components/client/ClientArtistSectionHeader';
 import { useAuth } from '../../contexts/AuthContext';
-import { isBackendRoleArtista } from '../../helpers/role';
+import { useArtistProfileNav } from '../../contexts/ArtistProfileNavContext';
+import { filterVisualGalleryMedia } from '../../helpers/galleryAudioTracks';
+import { isBackendRoleArtista, isBackendRoleCliente } from '../../helpers/role';
 import { useArtistProfileById } from '../../hooks/useArtistProfileById';
 import type { ArtistMediaItem } from '../../types';
 
@@ -26,24 +29,37 @@ export function ArtistProfileGalleryPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { exitHomePath, basePath } = useArtistProfileNav();
   const [activeFilter, setActiveFilter] = useState<GalleryFilterKey>('all');
 
-  const { profile, loading, error } = useArtistProfileById(id);
+  const { profile, artistDisplayName, loading, error } = useArtistProfileById(id);
   const isSelfArtist = !!id && !!user?.uid && isBackendRoleArtista(user.role) && user.uid === id;
+  const isClientGallery = isBackendRoleCliente(user?.role) && basePath.startsWith('/client/artists');
 
   const gallerySource = profile?.media ?? [];
+  const sourceForGrid = isClientGallery ? filterVisualGalleryMedia(gallerySource) : gallerySource;
   const filteredItems = useMemo(
-    () => filterMedia(gallerySource, activeFilter),
-    [gallerySource, activeFilter],
+    () => filterMedia(sourceForGrid, activeFilter),
+    [sourceForGrid, activeFilter],
   );
 
-  if (!id) return <Navigate to="/artist" replace />;
+  if (!id) return <Navigate to={exitHomePath} replace />;
 
   if (loading) {
     return (
       <div className="w-full max-w-[1600px] mx-auto space-y-6 px-4 sm:px-8 lg:px-10 pt-8 sm:pt-10 lg:pt-12 pb-12">
+        {isClientGallery ? (
+          <ClientArtistSectionHeader
+            titleLead="Galería de"
+            artistDisplayName=""
+            profile={null}
+            basePath={basePath}
+            loading
+            showMusicPlayer
+          />
+        ) : null}
         <div className="grid min-h-[56px] grid-cols-[minmax(2.5rem,1fr)_minmax(0,auto)_minmax(2.5rem,1fr)] items-center gap-2 sm:gap-4">
-          <div />
+          <div aria-hidden className="hidden sm:block" />
           <Skeleton className="mx-auto h-14 w-full max-w-[min(100%,760px)] rounded-full" />
           <Skeleton className="ml-auto h-10 w-10 rounded-xl" />
         </div>
@@ -68,19 +84,37 @@ export function ArtistProfileGalleryPage() {
 
   return (
     <div className="w-full max-w-[1600px] mx-auto space-y-7 px-4 sm:px-8 lg:px-10 pt-8 sm:pt-10 lg:pt-12 pb-12">
-      <div className="grid min-h-[56px] grid-cols-[minmax(2.5rem,1fr)_minmax(0,auto)_minmax(2.5rem,1fr)] items-center gap-2 sm:gap-4">
-        <div aria-hidden className="hidden sm:block" />
-        <div className="flex min-w-0 justify-center px-1 sm:px-4">
-          <ArtistGalleryFilterTabs activeFilter={activeFilter} onChange={setActiveFilter} />
-        </div>
-        <div className="flex justify-end self-center">
-          <ArtistProfileEditButton
-            show={isSelfArtist}
-            onClick={() => navigate('/artist/media')}
+      {isClientGallery ? (
+        <ClientArtistSectionHeader
+          titleLead="Galería de"
+          artistDisplayName={artistDisplayName}
+          profile={profile}
+          basePath={basePath}
+          showMusicPlayer
+        />
+      ) : null}
+
+      <div
+        className={
+          isClientGallery
+            ? 'flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between gap-y-4'
+            : 'grid min-h-[56px] grid-cols-[minmax(2.5rem,1fr)_minmax(0,auto)_minmax(2.5rem,1fr)] items-center gap-2 sm:gap-4'
+        }
+      >
+        {!isClientGallery ? <div aria-hidden className="hidden sm:block" /> : null}
+        <div className={`flex min-w-0 justify-center ${isClientGallery ? 'w-full sm:flex-1 px-0' : 'px-1 sm:px-4'}`}>
+          <ArtistGalleryFilterTabs
+            activeFilter={activeFilter}
+            onChange={setActiveFilter}
+            resultCount={filteredItems.length}
           />
         </div>
+        <div className={`flex justify-end self-center ${isClientGallery ? 'sm:shrink-0' : ''}`}>
+          <ArtistProfileEditButton show={isSelfArtist} onClick={() => navigate('/artist/media')} />
+        </div>
       </div>
-      <ArtistGalleryMasonryGrid items={filteredItems} />
+
+      <ArtistGalleryMasonryGrid items={filteredItems} variant={isClientGallery ? 'client' : 'default'} />
     </div>
   );
 }
