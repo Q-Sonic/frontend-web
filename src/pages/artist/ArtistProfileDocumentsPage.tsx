@@ -8,7 +8,9 @@ import {
 } from '../../components';
 import { useArtistProfileById } from '../../hooks/useArtistProfileById';
 import { useAuth } from '../../contexts/AuthContext';
+import { contractPdfUrlForService, technicalRiderPdfFromProfile } from '../../helpers/artistDocumentUrls';
 import { isBackendRoleArtista } from '../../helpers/role';
+import type { ArtistServiceRecord } from '../../types';
 
 const RIDER_IMAGES = [
   'https://images.unsplash.com/photo-1511379938547-c1f69419868d?q=80&w=987&auto=format&fit=crop',
@@ -53,7 +55,8 @@ export function ArtistProfileDocumentsPage() {
   const [infoBanner, setInfoBanner] = useState('');
   const isSelfArtist = !!user?.uid && isBackendRoleArtista(user.role) && user.uid === id;
 
-  const getDocumentUrl = () => profile?.technicalRiderUrl;
+  const riderPdfUrl = technicalRiderPdfFromProfile(profile);
+  const getDocumentUrl = (service: ArtistServiceRecord) => contractPdfUrlForService(service, profile);
   const handleMissingDocumentClick = () => {
     setInfoBanner('Este artista aun no tiene un PDF cargado. Lo activaremos cuando backend reciba el archivo.');
   };
@@ -69,16 +72,16 @@ export function ArtistProfileDocumentsPage() {
         description: matchingService?.description || section.description,
         bulletItems: matchingService ? toBulletItems(matchingService.description) : section.bulletItems,
         imageUrl: RIDER_IMAGES[index % RIDER_IMAGES.length],
-        documentUrl: profile?.technicalRiderUrl,
+        documentUrl: riderPdfUrl,
       };
     });
-  }, [profile?.technicalRiderUrl, services]);
+  }, [riderPdfUrl, services]);
 
   if (!id) return <Navigate to="/artist" replace />;
 
   if (loading) {
     return (
-      <div className="w-full mx-auto space-y-8 p-6 pb-12">
+      <div className="w-full max-w-[1600px] mx-auto space-y-8 px-4 sm:px-8 lg:pl-12 lg:pr-10 pt-8 sm:pt-10 lg:pt-12 pb-12">
         <div className="space-y-2">
           <Skeleton className="h-8 w-80 rounded-lg" />
           <Skeleton className="h-4 w-full max-w-2xl rounded" />
@@ -95,14 +98,14 @@ export function ArtistProfileDocumentsPage() {
 
   if (error) {
     return (
-      <div className="w-full max-w-2xl mx-auto p-6 pb-12">
+      <div className="w-full max-w-2xl mx-auto px-4 sm:px-8 lg:pl-12 lg:pr-10 pt-8 sm:pt-10 lg:pt-12 pb-12">
         <p className="text-red-400 text-sm leading-relaxed">{error}</p>
       </div>
     );
   }
 
   return (
-    <div className="w-full mx-auto space-y-9 p-6 pb-12">
+    <div className="w-full max-w-[1600px] mx-auto space-y-9 px-4 sm:px-8 lg:pl-12 lg:pr-10 pt-8 sm:pt-10 lg:pt-12 pb-12">
       <header className="space-y-2">
         <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-white">
           Listado de contratos por servicio

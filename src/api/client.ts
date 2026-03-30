@@ -83,3 +83,28 @@ export async function apiPutFormData<T>(path: string, formData: FormData): Promi
   const data = (await res.json()) as T;
   return data;
 }
+
+/** POST with FormData (e.g. multipart gallery upload). Do not set Content-Type. */
+export async function apiPostFormData<T>(path: string, formData: FormData): Promise<T> {
+  const base = config.apiBaseUrl.replace(/\/$/, '');
+  const pathNorm = path.replace(/^\//, '');
+  const url = `${base}/${pathNorm}`;
+  const idToken = getIdToken();
+  const headers: HeadersInit = {};
+  if (idToken) {
+    (headers as Record<string, string>)['Authorization'] = `Bearer ${idToken}`;
+  }
+  const res = await fetch(url, {
+    method: 'POST',
+    body: formData,
+    headers,
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ message: res.statusText }));
+    const message = (err as { message?: string }).message ?? res.statusText;
+    throw new ApiError(message, res.status);
+  }
+  if (res.status === 204) return undefined as T;
+  const data = (await res.json()) as T;
+  return data;
+}
