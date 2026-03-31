@@ -10,3 +10,5 @@ export { ArtistGalleryFilterTabs } from './ArtistGalleryFilterTabs';
 export type { GalleryFilterKey } from './ArtistGalleryFilterTabs';
 export { ArtistGalleryMasonryGrid } from './ArtistGalleryMasonryGrid';
 export { ArtistGalleryWavePlayer } from './ArtistGalleryWavePlayer';
+export { ArtistServicesAdminModal } from './ArtistServicesAdminModal';
+export { ArtistProfileSettingsModal } from './ArtistProfileSettingsModal';

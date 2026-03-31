@@ -6,7 +6,7 @@ import { formatMoney } from '../helpers/money';
 const ACCENT_HEX = '#00d4c8';
 
 export type ArtistServiceCardProps = {
-  service: Pick<ArtistServiceRecord, 'id' | 'name' | 'price' | 'description'>;
+  service: Pick<ArtistServiceRecord, 'id' | 'name' | 'price' | 'description' | 'duration' | 'features'>;
   coverPhotoUrl?: string | null;
   highlighted?: boolean;
   features?: string[];

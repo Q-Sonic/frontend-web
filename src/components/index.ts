@@ -26,6 +26,8 @@ export {
   ArtistProfileDocumentsServicesTable,
   ArtistProfileEditButton,
   ArtistProfileGalleryGrid,
+  ArtistProfileSettingsModal,
+  ArtistServicesAdminModal,
   ArtistProfileRidersGrid,
   ArtistProfileSectionTitle,
   ArtistProfileSocialNetworkLink,

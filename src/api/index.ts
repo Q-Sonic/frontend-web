@@ -17,7 +17,9 @@ export {
   getArtistServicesByArtistId,
   getArtistServiceById,
   createArtistService,
+  createArtistServiceWithFormData,
   updateArtistService,
+  updateArtistServiceWithFormData,
   deleteArtistService,
 } from './artistServiceService';
 export { uploadFile } from './storageService';

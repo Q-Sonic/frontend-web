@@ -66,6 +66,13 @@ export interface ArtistProfileUpdate {
   socialNetworks?: ArtistSocialNetworks;
   photo?: string;
   media?: ArtistMediaItem[];
+  blockedDates?: string[];
+  featuredSong?: {
+    title: string;
+    artistName: string;
+    streamUrl: string;
+    coverUrl?: string;
+  };
 }
 
 export type ClientProfileResponse = ApiResponse<ClientProfile>;

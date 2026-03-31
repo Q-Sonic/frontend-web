@@ -8,8 +8,10 @@ import {
   ArtistProfileAvailabilityDay,
   ArtistProfileEditButton,
   ArtistProfileGalleryGrid,
+  ArtistProfileSettingsModal,
   ArtistProfileSectionTitle,
   ArtistProfileSocialNetworkLink,
+  ArtistServicesAdminModal,
   ArtistServiceCard,
   BackButton,
   Button,
@@ -18,12 +20,12 @@ import {
   localDateKey,
   weekdayShortEs,
 } from '../../components';
-import type { ArtistMediaItem } from '../../types';
+import { updateArtistProfile } from '../../api';
+import type { ArtistMediaItem, ArtistProfile, ArtistProfileUpdate, ArtistServiceRecord } from '../../types';
 import { FiPlay, FiPause, FiSkipBack, FiSkipForward } from 'react-icons/fi';
 import { useArtistProfileById } from '../../hooks/useArtistProfileById';
 
-const PLACEHOLDER_COVER =
-  'https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?q=80&w=869&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D';
+type ArtistModalType = 'profile' | 'songs' | 'featured-song' | 'services' | null;
 
 export function ArtistProfileMainPage() {
   const { id } = useParams<{ id: string }>();
@@ -34,12 +36,36 @@ export function ArtistProfileMainPage() {
     !!user?.uid && isBackendRoleArtista(user.role) && user?.uid === effectiveId;
   const calendarMoreHref = isSelfArtist ? '/artist/calendario' : `${basePath}/calendar`;
 
-  const { profile, services, artistDisplayName, loading, error } = useArtistProfileById(effectiveId);
+  const { profile, services, artistDisplayName: artistDisplayNameFromApi, loading, error } = useArtistProfileById(effectiveId);
+  const [artistDisplayName, setArtistDisplayName] = useState('Artista');
+  const [localProfile, setLocalProfile] = useState<(ArtistProfile & { uid: string }) | null>(null);
+  const [localServices, setLocalServices] = useState<ArtistServiceRecord[]>([]);
+  const [activeModal, setActiveModal] = useState<ArtistModalType>(null);
+  const [modalError, setModalError] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+
+  const [songForm, setSongForm] = useState({ title: '', url: '' });
+  const [editingSongIndex, setEditingSongIndex] = useState<number | null>(null);
+
+  const [featuredSongUrl, setFeaturedSongUrl] = useState('');
+
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
+
+  useEffect(() => {
+    setLocalProfile(profile);
+  }, [profile]);
+
+  useEffect(() => {
+    setLocalServices(services);
+  }, [services]);
+
+  useEffect(() => {
+    setArtistDisplayName(artistDisplayNameFromApi);
+  }, [artistDisplayNameFromApi]);
 
   const availabilityDays = useMemo(() => {
     return Array.from({ length: 7 }, (_, idx) => {
@@ -50,8 +76,8 @@ export function ArtistProfileMainPage() {
   }, []);
 
   const blockedSet = useMemo(
-    () => new Set(profile?.blockedDates ?? []),
-    [profile?.blockedDates],
+    () => new Set(localProfile?.blockedDates ?? []),
+    [localProfile?.blockedDates],
   );
 
   const [, setSelectedAvailabilityKey] = useState<string>(() =>
@@ -71,7 +97,16 @@ export function ArtistProfileMainPage() {
     setPlaying(false);
     setProgress(0);
     setDuration(0);
-  }, [effectiveId, profile?.featuredSong, profile?.media]);
+  }, [effectiveId, localProfile?.featuredSong, localProfile?.media]);
+
+  useEffect(() => {
+    if (!activeModal) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !isSaving) setActiveModal(null);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [activeModal, isSaving]);
 
   const onTimeUpdate = useCallback(() => {
     const el = audioRef.current;
@@ -147,7 +182,7 @@ export function ArtistProfileMainPage() {
     );
   }
 
-  if (error || !profile) {
+  if (error || !localProfile) {
     return (
       <div
         className={
@@ -164,24 +199,155 @@ export function ArtistProfileMainPage() {
     );
   }
 
-  const media = profile.media ?? [];
+  const media = localProfile.media ?? [];
   const imageMedia = media.filter((m) => m.type === 'image');
   const audioMedia = media.filter((m) => m.type === 'audio');
 
   const featuredSong =
-    profile.featuredSong ??
+    localProfile.featuredSong ??
     (audioMedia[0]
       ? {
           title: audioMedia[0].name ?? 'Canción',
           artistName: artistDisplayName,
           streamUrl: audioMedia[0].url,
-          coverUrl: profile.photo,
+          coverUrl: localProfile.photo,
         }
       : undefined);
 
-  const coverPhoto = PLACEHOLDER_COVER;
-  const social = profile.socialNetworks ?? {};
-  const heroSubtitle = profile.city?.trim() || 'Música en vivo';
+  const coverPhoto = localProfile.photo?.trim() || '';
+  const social = localProfile.socialNetworks ?? {};
+  const heroSubtitle = localProfile.city?.trim() || 'Música en vivo';
+
+  const editableSongs = audioMedia.map((item, index) => ({
+    index,
+    title: item.name?.trim() || `Canción ${index + 1}`,
+    url: item.url,
+  }));
+
+  const openModal = (modalType: Exclude<ArtistModalType, null>) => {
+    setModalError('');
+    if (modalType === 'featured-song') {
+      setFeaturedSongUrl(localProfile.featuredSong?.streamUrl ?? editableSongs[0]?.url ?? '');
+    }
+    if (modalType === 'songs') {
+      setSongForm({ title: '', url: '' });
+      setEditingSongIndex(null);
+    }
+    setActiveModal(modalType);
+  };
+
+  const closeModal = () => {
+    if (isSaving) return;
+    setActiveModal(null);
+    setModalError('');
+    setEditingSongIndex(null);
+  };
+
+  const persistProfile = async (nextProfile: ArtistProfile) => {
+    const payload: ArtistProfileUpdate = {
+      biography: nextProfile.biography ?? '',
+      city: nextProfile.city ?? '',
+      photo: nextProfile.photo ?? '',
+      socialNetworks: {
+        instagram: nextProfile.socialNetworks?.instagram ?? '',
+        facebook: nextProfile.socialNetworks?.facebook ?? '',
+        youtube: nextProfile.socialNetworks?.youtube ?? '',
+        tiktok: nextProfile.socialNetworks?.tiktok ?? '',
+        twitter: nextProfile.socialNetworks?.twitter ?? '',
+      },
+      media: nextProfile.media ?? [],
+      blockedDates: nextProfile.blockedDates ?? [],
+      featuredSong: nextProfile.featuredSong,
+    };
+    const saved = await updateArtistProfile(payload);
+    setLocalProfile((prev) => (prev ? { ...prev, ...saved } : prev));
+  };
+
+  const handleSaveSong = async () => {
+    if (!localProfile) return;
+    const title = songForm.title.trim();
+    const url = songForm.url.trim();
+    if (!title || !url) {
+      setModalError('Completa el nombre y la URL de la canción.');
+      return;
+    }
+    setIsSaving(true);
+    setModalError('');
+    try {
+      const nextMedia = [...(localProfile.media ?? [])];
+      const audioIndexes = nextMedia
+        .map((item, idx) => ({ item, idx }))
+        .filter(({ item }) => item.type === 'audio')
+        .map(({ idx }) => idx);
+      const payloadSong: ArtistMediaItem = { type: 'audio', name: title, url };
+
+      if (editingSongIndex == null) {
+        nextMedia.push(payloadSong);
+      } else {
+        const mediaIndex = audioIndexes[editingSongIndex];
+        if (mediaIndex != null) nextMedia[mediaIndex] = payloadSong;
+      }
+
+      await persistProfile({ ...localProfile, media: nextMedia });
+      setSongForm({ title: '', url: '' });
+      setEditingSongIndex(null);
+    } catch (err) {
+      setModalError(err instanceof Error ? err.message : 'No se pudo guardar la canción.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDeleteSong = async (songIndex: number) => {
+    if (!localProfile) return;
+    setIsSaving(true);
+    setModalError('');
+    try {
+      const audioIndexes = (localProfile.media ?? [])
+        .map((item, idx) => ({ item, idx }))
+        .filter(({ item }) => item.type === 'audio')
+        .map(({ idx }) => idx);
+      const mediaIndex = audioIndexes[songIndex];
+      if (mediaIndex == null) return;
+      const nextMedia = (localProfile.media ?? []).filter((_, idx) => idx !== mediaIndex);
+      await persistProfile({ ...localProfile, media: nextMedia });
+      if (editingSongIndex === songIndex) {
+        setEditingSongIndex(null);
+        setSongForm({ title: '', url: '' });
+      }
+    } catch (err) {
+      setModalError(err instanceof Error ? err.message : 'No se pudo eliminar la canción.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSaveFeaturedSong = async () => {
+    if (!localProfile) return;
+    const selected = editableSongs.find((song) => song.url === featuredSongUrl);
+    if (!selected) {
+      setModalError('Selecciona una canción destacada.');
+      return;
+    }
+    setIsSaving(true);
+    setModalError('');
+    try {
+      await persistProfile({
+        ...localProfile,
+        featuredSong: {
+          title: selected.title,
+          artistName: artistDisplayName,
+          streamUrl: selected.url,
+          coverUrl: localProfile.photo || undefined,
+        },
+      });
+      closeModal();
+    } catch (err) {
+      setModalError(err instanceof Error ? err.message : 'No se pudo actualizar la canción destacada.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   return (
     <div className="w-full mx-auto space-y-10 pb-12 p-6">
@@ -205,7 +371,7 @@ export function ArtistProfileMainPage() {
               </h1>
               <p className="text-white/80 text-sm sm:text-base pt-1">{heroSubtitle}</p>
             </div>
-            <ArtistProfileEditButton show={isSelfArtist} onClick={() => {}} />
+            <ArtistProfileEditButton show={isSelfArtist} onClick={() => openModal('profile')} />
           </div>
 
           <div className="flex flex-wrap items-center gap-3 mt-8">
@@ -278,7 +444,7 @@ export function ArtistProfileMainPage() {
           <div className="rounded-4xl bg-card/86 p-8 flex flex-col min-h-[200px]">
             <div className="flex items-center justify-between gap-2 mb-4">
               <h2 className="font-bold text-white tracking-wide">Música</h2>
-              <ArtistProfileEditButton show={isSelfArtist} onClick={() => {}} />
+              <ArtistProfileEditButton show={isSelfArtist} onClick={() => openModal('songs')} />
             </div>
             {audioMedia.length === 0 ? (
               <p className="text-neutral-500 text-sm mt-auto">Sin canciones.</p>
@@ -324,7 +490,7 @@ export function ArtistProfileMainPage() {
         <div className="rounded-4xl bg-card/86 p-8 flex flex-col">
           <div className="flex items-center justify-between gap-2 mb-4">
             <h2 className="font-bold text-white tracking-wide">Canción destacada</h2>
-            <ArtistProfileEditButton show={isSelfArtist} onClick={() => {}} />
+            <ArtistProfileEditButton show={isSelfArtist} onClick={() => openModal('featured-song')} />
           </div>
           {featuredSong?.streamUrl ? (
             <>
@@ -423,23 +589,26 @@ export function ArtistProfileMainPage() {
       </div>
 
       <section id="documents" className="space-y-5 scroll-mt-24">
-        <ArtistProfileSectionTitle title="Servicios" onClick={() => {}} isSelfArtist={isSelfArtist} />
-        {services.length === 0 ? (
+        <ArtistProfileSectionTitle
+          title="Servicios"
+          onClick={() => openModal('services')}
+          isSelfArtist={isSelfArtist}
+        />
+        {localServices.length === 0 ? (
           <p className="text-neutral-500 text-sm">Sin servicios.</p>
         ) : (
           <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-5">
-            {services.slice(0, 8).map((s, idx) => {
-              const features = [
-                'Duración: 60-90 minutos',
-                'Equipo de sonido incluido',
-                'Producción de luces profesional',
-                'Músicos de apoyo',
-              ];
+            {localServices.slice(0, 8).map((s, idx) => {
+              const serviceFeatures = Array.isArray(s.features) ? s.features : [];
+              const features =
+                s.duration && s.duration.trim()
+                  ? [`Duración: ${s.duration.trim()}`, ...serviceFeatures]
+                  : serviceFeatures;
               return (
                 <ArtistServiceCard
                   key={s.id}
                   service={s}
-                  coverPhotoUrl={coverPhoto}
+                  coverPhotoUrl={s.imageUrl || coverPhoto}
                   highlighted={idx === 0}
                   features={features}
                   isSelfArtist={isSelfArtist}
@@ -458,6 +627,145 @@ export function ArtistProfileMainPage() {
           <ArtistProfileGalleryGrid images={imageMedia.slice(0, 7)} />
         )}
       </section>
+
+      {activeModal && activeModal !== 'services' && activeModal !== 'profile' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+          <div className="w-full max-w-4xl rounded-3xl border border-[#00d4c8]/35 bg-[#111214] p-6 shadow-[0_0_40px_rgba(0,212,200,0.2)]">
+            <div className="mb-5 flex items-center justify-between">
+              <h3 className="text-2xl font-semibold text-white">
+                {activeModal === 'songs' && 'Administrar canciones'}
+                {activeModal === 'featured-song' && 'Editar canción destacada'}
+              </h3>
+              <button
+                type="button"
+                onClick={closeModal}
+                className="rounded-full border border-white/20 px-3 py-1 text-white/70 transition hover:text-white"
+              >
+                X
+              </button>
+            </div>
+
+            {modalError && (
+              <p className="mb-4 rounded-lg border border-red-400/40 bg-red-500/10 px-3 py-2 text-sm text-red-300">
+                {modalError}
+              </p>
+            )}
+
+            {activeModal === 'songs' && (
+              <div className="space-y-4">
+                <div className="space-y-2 rounded-2xl border border-white/10 bg-black/20 p-4">
+                  {editableSongs.length === 0 && (
+                    <p className="text-sm text-white/60">No tienes canciones cargadas.</p>
+                  )}
+                  {editableSongs.map((song, idx) => (
+                    <div
+                      key={`${song.url}-${idx}`}
+                      className="flex items-center justify-between gap-3 rounded-lg border border-white/10 px-3 py-2"
+                    >
+                      <div>
+                        <p className="text-sm font-semibold text-white">{song.title}</p>
+                        <p className="text-xs text-white/50">{song.url}</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            setEditingSongIndex(idx);
+                            setSongForm({ title: song.title, url: song.url });
+                          }}
+                          disabled={isSaving}
+                        >
+                          Editar
+                        </Button>
+                        <Button
+                          variant="danger"
+                          onClick={() => handleDeleteSong(idx)}
+                          disabled={isSaving}
+                        >
+                          Eliminar
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <input
+                    value={songForm.title}
+                    onChange={(e) => setSongForm((prev) => ({ ...prev, title: e.target.value }))}
+                    placeholder="Nombre de canción"
+                    className="rounded-xl border border-white/20 bg-transparent px-3 py-2 text-white"
+                  />
+                  <input
+                    value={songForm.url}
+                    onChange={(e) => setSongForm((prev) => ({ ...prev, url: e.target.value }))}
+                    placeholder="URL del audio"
+                    className="rounded-xl border border-white/20 bg-transparent px-3 py-2 text-white"
+                  />
+                </div>
+                <div className="flex justify-end gap-3">
+                  <Button variant="outline" onClick={closeModal} disabled={isSaving}>
+                    Cerrar
+                  </Button>
+                  <Button onClick={handleSaveSong} loading={isSaving}>
+                    {editingSongIndex == null ? 'Agregar canción' : 'Actualizar canción'}
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {activeModal === 'featured-song' && (
+              <div className="space-y-4">
+                <div className="max-h-[360px] space-y-2 overflow-auto rounded-2xl border border-white/10 bg-black/20 p-4">
+                  {editableSongs.length === 0 ? (
+                    <p className="text-sm text-white/60">Primero agrega canciones para destacar una.</p>
+                  ) : (
+                    editableSongs.map((song) => (
+                      <label
+                        key={song.url}
+                        className="flex cursor-pointer items-center justify-between rounded-lg border border-white/10 px-3 py-2"
+                      >
+                        <div>
+                          <p className="text-sm font-semibold text-white">{song.title}</p>
+                          <p className="text-xs text-white/50">{song.url}</p>
+                        </div>
+                        <input
+                          type="radio"
+                          name="featured-song"
+                          checked={featuredSongUrl === song.url}
+                          onChange={() => setFeaturedSongUrl(song.url)}
+                        />
+                      </label>
+                    ))
+                  )}
+                </div>
+                <div className="flex justify-end gap-3">
+                  <Button variant="outline" onClick={closeModal} disabled={isSaving}>
+                    Cancelar
+                  </Button>
+                  <Button onClick={handleSaveFeaturedSong} loading={isSaving} disabled={editableSongs.length === 0}>
+                    Guardar
+                  </Button>
+                </div>
+              </div>
+            )}
+
+          </div>
+        </div>
+      )}
+      <ArtistServicesAdminModal
+        isOpen={activeModal === 'services'}
+        services={localServices}
+        onClose={closeModal}
+        onServicesChange={setLocalServices}
+      />
+      <ArtistProfileSettingsModal
+        isOpen={activeModal === 'profile'}
+        profile={localProfile}
+        artistDisplayName={artistDisplayName}
+        onClose={closeModal}
+        onSaved={(saved) => setLocalProfile((prev) => (prev ? { ...prev, ...saved } : prev))}
+        onArtistNameSaved={setArtistDisplayName}
+      />
     </div>
   );
 }
