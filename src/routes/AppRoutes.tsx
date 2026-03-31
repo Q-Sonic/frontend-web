@@ -19,6 +19,7 @@ import {
   ArtistProfileDocumentsPage,
   ArtistProfileGalleryPage,
   ArtistProfileCalendarPage,
+  ArtistAccessSettingsPage,
   ArtistProfileIdRedirect,
   ArtistProfileLayout,
   ArtistProfileMainPage,
@@ -194,6 +195,7 @@ export function AppRoutes() {
         <Route path="gallery" element={<ArtistProfileGalleryPage />} />
         <Route path="documents" element={<ArtistProfileDocumentsPage />} />
         <Route path="calendar" element={<ArtistProfileCalendarPage />} />
+        <Route path="settings" element={<ArtistAccessSettingsPage />} />
       </Route>
       <Route
         path="/client/profile"

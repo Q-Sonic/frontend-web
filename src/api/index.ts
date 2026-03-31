@@ -1,5 +1,15 @@
 export { api, apiPostFormData, getIdToken, ApiError } from './client';
-export { login, register, getMe } from './authService';
+export {
+  login,
+  register,
+  getMe,
+  getAccountChangeStatus,
+  requestAccountChangeCode,
+  verifyAccountChangeCode,
+  changeAccountEmail,
+  changeAccountPassword,
+} from './authService';
+export type { AccountChangeStatus } from './authService';
 export { getAllUsers, getUser, updateUser } from './userService';
 export { getClientProfile, updateClientProfile } from './clientProfileService';
 export type { ArtistProfileListFilters } from './artistProfileService';
