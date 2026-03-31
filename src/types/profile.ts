@@ -42,8 +42,10 @@ export interface ArtistProfile {
     streamUrl: string;
     coverUrl?: string;
   };
-  /** Link to technical rider (PDF) */
+  /** Link to technical rider (PDF), e.g. after multipart `rider` on PUT /artist-profiles */
   technicalRiderUrl?: string;
+  /** Some backends expose the same file under this name */
+  riderUrl?: string;
   /** Manual blocked dates (YYYY-MM-DD). */
   blockedDates?: string[];
   /** Media gallery URLs (stored client-side until backend supports it). */
@@ -54,6 +56,8 @@ export interface ArtistProfile {
 export interface ArtistProfileListItem extends ArtistProfile {
   uid: string;
   displayName: string;
+  /** When provided by list/filters API (discovery). */
+  genre?: string;
 }
 
 export interface ArtistProfileUpdate {

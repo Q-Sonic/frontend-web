@@ -1,10 +1,14 @@
 import { useMemo, useState } from 'react';
 import { Navigate, useParams } from 'react-router-dom';
 import { FiChevronLeft, FiChevronRight } from 'react-icons/fi';
-import { useArtistProfileById } from '../../hooks/useArtistProfileById';
-import { localDateKey } from '../../helpers/artistProfile';
-import { DEMO_BLOCKED_DATES_MAY_2026 } from '../../mocks/client';
 import { Skeleton } from '../../components';
+import { ClientArtistSectionHeader } from '../../components/client/ClientArtistSectionHeader';
+import { useAuth } from '../../contexts/AuthContext';
+import { useArtistProfileNav } from '../../contexts/ArtistProfileNavContext';
+import { localDateKey } from '../../helpers/artistProfile';
+import { isBackendRoleCliente } from '../../helpers/role';
+import { useArtistProfileById } from '../../hooks/useArtistProfileById';
+import { DEMO_BLOCKED_DATES_MAY_2026 } from '../../mocks/client';
 
 const WEEKDAYS_ES_LONG = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
@@ -38,7 +42,12 @@ function monthLabelEs(year: number, month: number): string {
 
 export function ArtistProfileCalendarPage() {
   const { id } = useParams<{ id: string }>();
+  const { user } = useAuth();
+  const { exitHomePath, basePath } = useArtistProfileNav();
   const { profile, artistDisplayName, loading, error } = useArtistProfileById(id);
+
+  const isClientArtistCalendar =
+    isBackendRoleCliente(user?.role) && basePath.startsWith('/client/artists');
 
   /** Default May 2026 so demo blocked dates from the mockup align when API has no blockedDates. */
   const [view, setView] = useState({ y: 2026, m: 4 });
@@ -66,12 +75,28 @@ export function ArtistProfileCalendarPage() {
 
   const currentKey = `${view.y}-${view.m}`;
 
-  if (!id) return <Navigate to="/artist" replace />;
+  if (!id) return <Navigate to={exitHomePath} replace />;
 
   if (loading) {
     return (
-      <div className="p-6 md:p-8 max-w-5xl mx-auto space-y-6">
-        <Skeleton className="h-8 w-64 rounded-lg" />
+      <div
+        className={
+          isClientArtistCalendar
+            ? 'w-full max-w-[1600px] mx-auto space-y-8 px-4 sm:px-8 lg:pl-12 lg:pr-10 pt-8 sm:pt-10 lg:pt-12 pb-16'
+            : 'p-6 md:p-8 max-w-5xl mx-auto space-y-6'
+        }
+      >
+        {isClientArtistCalendar ? (
+          <ClientArtistSectionHeader
+            titleLead="Calendario de"
+            artistDisplayName=""
+            profile={null}
+            basePath={basePath}
+            loading
+          />
+        ) : (
+          <Skeleton className="h-8 w-64 rounded-lg" />
+        )}
         <Skeleton className="h-[420px] w-full rounded-2xl" />
       </div>
     );
@@ -86,15 +111,31 @@ export function ArtistProfileCalendarPage() {
   }
 
   return (
-    <div className="w-full max-w-5xl mx-auto p-6 md:p-8 pb-16 space-y-6">
-      <div>
-        <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">
-          Calendario · {artistDisplayName}
-        </h1>
-        <p className="text-sm text-neutral-500 mt-1">
-          Fechas no disponibles según configuración del artista.
-        </p>
-      </div>
+    <div
+      className={
+        isClientArtistCalendar
+          ? 'w-full max-w-[1600px] mx-auto px-4 sm:px-8 lg:pl-12 lg:pr-10 pt-8 sm:pt-10 lg:pt-12 pb-16 space-y-8'
+          : 'w-full max-w-5xl mx-auto p-6 md:p-8 pb-16 space-y-6'
+      }
+    >
+      {isClientArtistCalendar ? (
+        <ClientArtistSectionHeader
+          titleLead="Calendario de"
+          artistDisplayName={artistDisplayName}
+          profile={profile}
+          basePath={basePath}
+          description="Fechas no disponibles según configuración del artista."
+        />
+      ) : (
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">
+            Calendario · {artistDisplayName}
+          </h1>
+          <p className="text-sm text-neutral-500 mt-1">
+            Fechas no disponibles según configuración del artista.
+          </p>
+        </div>
+      )}
 
       <div
         className="rounded-2xl border border-white/10 bg-[#121820] p-4 md:p-6 shadow-[0_0_20px_rgba(0,204,203,0.08)]"

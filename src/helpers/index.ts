@@ -5,3 +5,10 @@ export { sanitizeOptionalString, getRequiredError, getUrlError, getPhoneDigitsEr
 export { MEDIA_TYPE_OPTIONS, MAX_IMAGE_BYTES, MAX_AUDIO_BYTES, MAX_VIDEO_BYTES } from './mediaLimits';
 export type { MediaTypeOption } from './mediaLimits';
 export { getArtistMediaKey, getStoredArtistMedia, setStoredArtistMedia, appendStoredArtistMedia, removeStoredArtistMediaByUrl } from './artistMediaStorage';
+export {
+  normalizeMediaDownloadUrl,
+  resolveArtistProfileMediaUrl,
+  isUnsignedGoogleStorageObjectUrl,
+  technicalRiderPdfFromProfile,
+  contractPdfUrlForService,
+} from './artistDocumentUrls';

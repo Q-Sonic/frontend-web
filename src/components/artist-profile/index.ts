@@ -9,3 +9,4 @@ export type { ArtistRiderItem } from './ArtistProfileRidersGrid';
 export { ArtistGalleryFilterTabs } from './ArtistGalleryFilterTabs';
 export type { GalleryFilterKey } from './ArtistGalleryFilterTabs';
 export { ArtistGalleryMasonryGrid } from './ArtistGalleryMasonryGrid';
+export { ArtistGalleryWavePlayer } from './ArtistGalleryWavePlayer';

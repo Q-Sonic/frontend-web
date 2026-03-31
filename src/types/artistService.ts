@@ -8,6 +8,12 @@ export interface ArtistServiceRecord {
   description: string;
   createdAt: string;
   updatedAt: string;
+  /** Optional PDF / document URL per service (if backend returns it on list/detail). */
+  pdfUrl?: string;
+  contractPdfUrl?: string;
+  documentUrl?: string;
+  riderPdfUrl?: string;
+  contractDocumentUrl?: string;
 }
 
 export interface CreateArtistServiceBody {

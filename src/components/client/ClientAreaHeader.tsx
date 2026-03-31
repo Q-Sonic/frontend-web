@@ -1,3 +1,4 @@
+import type { ChangeEvent } from 'react';
 import { FiBell, FiMail, FiSearch, FiSettings } from 'react-icons/fi';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -15,13 +16,20 @@ function getInitials(displayName: string | null | undefined, email: string | nul
   return 'ST';
 }
 
-export function ClientAreaHeader() {
+type ClientAreaHeaderProps = {
+  searchValue?: string;
+  onSearchChange?: (value: string) => void;
+};
+
+export function ClientAreaHeader({ searchValue = '', onSearchChange }: ClientAreaHeaderProps) {
   const { user } = useAuth();
   const initials = getInitials(user?.displayName ?? null, user?.email ?? null);
 
+  const controlledSearch = typeof onSearchChange === 'function';
+
   return (
     <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6 pb-6 border-b border-white/10">
-      <div className="flex-1 flex justify-center sm:justify-start min-w-0 order-2 sm:order-1">
+      <div className="flex-1 flex justify-center sm:justify-start min-w-0 order-2 sm:order-1 w-full max-w-full sm:max-w-none">
         <label className="relative w-full max-w-xl">
           <span className="sr-only">Buscar</span>
           <FiSearch
@@ -33,6 +41,12 @@ export function ClientAreaHeader() {
             type="search"
             placeholder="buscar artista, genero o ciudad"
             className="w-full rounded-xl bg-black/40 border border-white/10 pl-11 pr-4 py-2.5 text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-accent/40"
+            {...(controlledSearch
+              ? {
+                  value: searchValue,
+                  onChange: (e: ChangeEvent<HTMLInputElement>) => onSearchChange(e.target.value),
+                }
+              : {})}
           />
         </label>
       </div>
