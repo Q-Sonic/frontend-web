@@ -28,6 +28,8 @@ export interface ArtistMediaItem {
   type: 'image' | 'audio' | 'video';
   /** Optional original filename. */
   name?: string;
+  /** Optional cover image URL for audio songs. */
+  coverUrl?: string;
 }
 
 export interface ArtistProfile {
@@ -50,6 +52,12 @@ export interface ArtistProfile {
   blockedDates?: string[];
   /** Media gallery URLs (stored client-side until backend supports it). */
   media?: ArtistMediaItem[];
+  /** Songs are independent from gallery media. */
+  songs?: Array<{
+    url: string;
+    title: string;
+    coverUrl?: string;
+  }>;
 }
 
 /** Artist profile as returned by list endpoint (with displayName). */
@@ -66,6 +74,18 @@ export interface ArtistProfileUpdate {
   socialNetworks?: ArtistSocialNetworks;
   photo?: string;
   media?: ArtistMediaItem[];
+  songs?: Array<{
+    url: string;
+    title: string;
+    coverUrl?: string;
+  }>;
+  blockedDates?: string[];
+  featuredSong?: {
+    title: string;
+    artistName: string;
+    streamUrl: string;
+    coverUrl?: string;
+  };
 }
 
 export type ClientProfileResponse = ApiResponse<ClientProfile>;
