@@ -12,3 +12,5 @@ export { ArtistGalleryMasonryGrid } from './ArtistGalleryMasonryGrid';
 export { ArtistGalleryWavePlayer } from './ArtistGalleryWavePlayer';
 export { ArtistServicesAdminModal } from './ArtistServicesAdminModal';
 export { ArtistProfileSettingsModal } from './ArtistProfileSettingsModal';
+export { ArtistSongsModal } from './ArtistSongsModal';
+export { ArtistFeaturedSongModal } from './ArtistFeaturedSongModal';

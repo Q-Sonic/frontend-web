@@ -33,3 +33,22 @@ export async function uploadFile(file: File, options?: UploadOptions): Promise<{
   if (!fileUrl) throw new Error('No URL returned from upload');
   return { url: fileUrl };
 }
+
+export async function deleteStorageFile(fileUrl: string): Promise<void> {
+  const baseUrl = config.apiBaseUrl.replace(/\/$/, '');
+  const url = `${baseUrl}/storage/delete`;
+  const idToken = getIdToken();
+  const headers: HeadersInit = { 'Content-Type': 'application/json' };
+  if (idToken) {
+    headers['Authorization'] = `Bearer ${idToken}`;
+  }
+  const res = await fetch(url, {
+    method: 'DELETE',
+    headers,
+    body: JSON.stringify({ url: fileUrl }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ message: res.statusText }));
+    throw new Error((err as { message?: string }).message ?? res.statusText);
+  }
+}

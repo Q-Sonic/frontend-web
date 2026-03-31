@@ -6,11 +6,13 @@ import { isBackendRoleArtista } from '../../helpers/role';
 import {
   ARTIST_PROFILE_ACCENT,
   ArtistProfileAvailabilityDay,
+  ArtistFeaturedSongModal,
   ArtistProfileEditButton,
   ArtistProfileGalleryGrid,
   ArtistProfileSettingsModal,
   ArtistProfileSectionTitle,
   ArtistProfileSocialNetworkLink,
+  ArtistSongsModal,
   ArtistServicesAdminModal,
   ArtistServiceCard,
   BackButton,
@@ -20,8 +22,8 @@ import {
   localDateKey,
   weekdayShortEs,
 } from '../../components';
-import { updateArtistProfile } from '../../api';
-import type { ArtistMediaItem, ArtistProfile, ArtistProfileUpdate, ArtistServiceRecord } from '../../types';
+import { getArtistSongsByArtistId } from '../../api';
+import type { ArtistMediaItem, ArtistProfile, ArtistServiceRecord, ArtistSongRecord } from '../../types';
 import { FiPlay, FiPause, FiSkipBack, FiSkipForward } from 'react-icons/fi';
 import { useArtistProfileById } from '../../hooks/useArtistProfileById';
 
@@ -41,14 +43,9 @@ export function ArtistProfileMainPage() {
   const [localProfile, setLocalProfile] = useState<(ArtistProfile & { uid: string }) | null>(null);
   const [localServices, setLocalServices] = useState<ArtistServiceRecord[]>([]);
   const [activeModal, setActiveModal] = useState<ArtistModalType>(null);
+  const [songs, setSongs] = useState<ArtistSongRecord[]>([]);
   const [modalError, setModalError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
-
-  const [songForm, setSongForm] = useState({ title: '', url: '' });
-  const [editingSongIndex, setEditingSongIndex] = useState<number | null>(null);
-
-  const [featuredSongUrl, setFeaturedSongUrl] = useState('');
-
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [playing, setPlaying] = useState(false);
@@ -66,6 +63,13 @@ export function ArtistProfileMainPage() {
   useEffect(() => {
     setArtistDisplayName(artistDisplayNameFromApi);
   }, [artistDisplayNameFromApi]);
+
+  useEffect(() => {
+    if (!effectiveId) return;
+    void getArtistSongsByArtistId(effectiveId)
+      .then(setSongs)
+      .catch(() => setSongs([]));
+  }, [effectiveId]);
 
   const availabilityDays = useMemo(() => {
     return Array.from({ length: 7 }, (_, idx) => {
@@ -201,38 +205,23 @@ export function ArtistProfileMainPage() {
 
   const media = localProfile.media ?? [];
   const imageMedia = media.filter((m) => m.type === 'image');
-  const audioMedia = media.filter((m) => m.type === 'audio');
 
-  const featuredSong =
-    localProfile.featuredSong ??
-    (audioMedia[0]
-      ? {
-          title: audioMedia[0].name ?? 'Canción',
-          artistName: artistDisplayName,
-          streamUrl: audioMedia[0].url,
-          coverUrl: localProfile.photo,
-        }
-      : undefined);
+  const featuredTrack = songs.find((song) => song.isFeatured) ?? songs[0];
+  const featuredSong = featuredTrack
+    ? {
+        title: featuredTrack.title ?? 'Canción',
+        artistName: artistDisplayName,
+        streamUrl: featuredTrack.audioUrl,
+        coverUrl: featuredTrack.coverUrl || localProfile.photo,
+      }
+    : undefined;
 
   const coverPhoto = localProfile.photo?.trim() || '';
   const social = localProfile.socialNetworks ?? {};
   const heroSubtitle = localProfile.city?.trim() || 'Música en vivo';
 
-  const editableSongs = audioMedia.map((item, index) => ({
-    index,
-    title: item.name?.trim() || `Canción ${index + 1}`,
-    url: item.url,
-  }));
-
   const openModal = (modalType: Exclude<ArtistModalType, null>) => {
     setModalError('');
-    if (modalType === 'featured-song') {
-      setFeaturedSongUrl(localProfile.featuredSong?.streamUrl ?? editableSongs[0]?.url ?? '');
-    }
-    if (modalType === 'songs') {
-      setSongForm({ title: '', url: '' });
-      setEditingSongIndex(null);
-    }
     setActiveModal(modalType);
   };
 
@@ -240,113 +229,6 @@ export function ArtistProfileMainPage() {
     if (isSaving) return;
     setActiveModal(null);
     setModalError('');
-    setEditingSongIndex(null);
-  };
-
-  const persistProfile = async (nextProfile: ArtistProfile) => {
-    const payload: ArtistProfileUpdate = {
-      biography: nextProfile.biography ?? '',
-      city: nextProfile.city ?? '',
-      photo: nextProfile.photo ?? '',
-      socialNetworks: {
-        instagram: nextProfile.socialNetworks?.instagram ?? '',
-        facebook: nextProfile.socialNetworks?.facebook ?? '',
-        youtube: nextProfile.socialNetworks?.youtube ?? '',
-        tiktok: nextProfile.socialNetworks?.tiktok ?? '',
-        twitter: nextProfile.socialNetworks?.twitter ?? '',
-      },
-      media: nextProfile.media ?? [],
-      blockedDates: nextProfile.blockedDates ?? [],
-      featuredSong: nextProfile.featuredSong,
-    };
-    const saved = await updateArtistProfile(payload);
-    setLocalProfile((prev) => (prev ? { ...prev, ...saved } : prev));
-  };
-
-  const handleSaveSong = async () => {
-    if (!localProfile) return;
-    const title = songForm.title.trim();
-    const url = songForm.url.trim();
-    if (!title || !url) {
-      setModalError('Completa el nombre y la URL de la canción.');
-      return;
-    }
-    setIsSaving(true);
-    setModalError('');
-    try {
-      const nextMedia = [...(localProfile.media ?? [])];
-      const audioIndexes = nextMedia
-        .map((item, idx) => ({ item, idx }))
-        .filter(({ item }) => item.type === 'audio')
-        .map(({ idx }) => idx);
-      const payloadSong: ArtistMediaItem = { type: 'audio', name: title, url };
-
-      if (editingSongIndex == null) {
-        nextMedia.push(payloadSong);
-      } else {
-        const mediaIndex = audioIndexes[editingSongIndex];
-        if (mediaIndex != null) nextMedia[mediaIndex] = payloadSong;
-      }
-
-      await persistProfile({ ...localProfile, media: nextMedia });
-      setSongForm({ title: '', url: '' });
-      setEditingSongIndex(null);
-    } catch (err) {
-      setModalError(err instanceof Error ? err.message : 'No se pudo guardar la canción.');
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleDeleteSong = async (songIndex: number) => {
-    if (!localProfile) return;
-    setIsSaving(true);
-    setModalError('');
-    try {
-      const audioIndexes = (localProfile.media ?? [])
-        .map((item, idx) => ({ item, idx }))
-        .filter(({ item }) => item.type === 'audio')
-        .map(({ idx }) => idx);
-      const mediaIndex = audioIndexes[songIndex];
-      if (mediaIndex == null) return;
-      const nextMedia = (localProfile.media ?? []).filter((_, idx) => idx !== mediaIndex);
-      await persistProfile({ ...localProfile, media: nextMedia });
-      if (editingSongIndex === songIndex) {
-        setEditingSongIndex(null);
-        setSongForm({ title: '', url: '' });
-      }
-    } catch (err) {
-      setModalError(err instanceof Error ? err.message : 'No se pudo eliminar la canción.');
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleSaveFeaturedSong = async () => {
-    if (!localProfile) return;
-    const selected = editableSongs.find((song) => song.url === featuredSongUrl);
-    if (!selected) {
-      setModalError('Selecciona una canción destacada.');
-      return;
-    }
-    setIsSaving(true);
-    setModalError('');
-    try {
-      await persistProfile({
-        ...localProfile,
-        featuredSong: {
-          title: selected.title,
-          artistName: artistDisplayName,
-          streamUrl: selected.url,
-          coverUrl: localProfile.photo || undefined,
-        },
-      });
-      closeModal();
-    } catch (err) {
-      setModalError(err instanceof Error ? err.message : 'No se pudo actualizar la canción destacada.');
-    } finally {
-      setIsSaving(false);
-    }
   };
 
   return (
@@ -446,22 +328,22 @@ export function ArtistProfileMainPage() {
               <h2 className="font-bold text-white tracking-wide">Música</h2>
               <ArtistProfileEditButton show={isSelfArtist} onClick={() => openModal('songs')} />
             </div>
-            {audioMedia.length === 0 ? (
+            {songs.length === 0 ? (
               <p className="text-neutral-500 text-sm mt-auto">Sin canciones.</p>
             ) : (
               <div className="flex gap-4 overflow-x-auto pb-2 flex-1 items-end">
-                {audioMedia.slice(0, 8).map((track: ArtistMediaItem) => (
+                {songs.slice(0, 8).map((track) => (
                   <a
-                    key={track.url}
-                    href={track.url}
+                    key={track.id}
+                    href={track.audioUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="shrink-0 flex flex-col items-center gap-2 group w-[72px]"
                   >
                     <div className="relative w-[72px] h-[72px] rounded-full overflow-hidden border border-white/10 bg-neutral-800 shadow-lg">
-                      {coverPhoto ? (
+                      {track.coverUrl || coverPhoto ? (
                         <img
-                          src={coverPhoto}
+                          src={track.coverUrl || coverPhoto}
                           alt=""
                           className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition"
                         />
@@ -477,7 +359,7 @@ export function ArtistProfileMainPage() {
                     <div className="text-center w-full">
                       <p className="text-[11px] text-neutral-400 truncate w-full">{artistDisplayName}</p>
                       <p className="text-xs font-medium text-white truncate w-full">
-                        {track.name || 'Canción'}
+                        {track.title || 'Canción'}
                       </p>
                     </div>
                   </a>
@@ -628,13 +510,11 @@ export function ArtistProfileMainPage() {
         )}
       </section>
 
-      {activeModal && activeModal !== 'services' && activeModal !== 'profile' && (
+      {activeModal && activeModal !== 'services' && activeModal !== 'profile' && activeModal !== 'songs' && activeModal !== 'featured-song' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
           <div className="w-full max-w-4xl rounded-3xl border border-[#00d4c8]/35 bg-[#111214] p-6 shadow-[0_0_40px_rgba(0,212,200,0.2)]">
             <div className="mb-5 flex items-center justify-between">
               <h3 className="text-2xl font-semibold text-white">
-                {activeModal === 'songs' && 'Administrar canciones'}
-                {activeModal === 'featured-song' && 'Editar canción destacada'}
               </h3>
               <button
                 type="button"
@@ -649,104 +529,6 @@ export function ArtistProfileMainPage() {
               <p className="mb-4 rounded-lg border border-red-400/40 bg-red-500/10 px-3 py-2 text-sm text-red-300">
                 {modalError}
               </p>
-            )}
-
-            {activeModal === 'songs' && (
-              <div className="space-y-4">
-                <div className="space-y-2 rounded-2xl border border-white/10 bg-black/20 p-4">
-                  {editableSongs.length === 0 && (
-                    <p className="text-sm text-white/60">No tienes canciones cargadas.</p>
-                  )}
-                  {editableSongs.map((song, idx) => (
-                    <div
-                      key={`${song.url}-${idx}`}
-                      className="flex items-center justify-between gap-3 rounded-lg border border-white/10 px-3 py-2"
-                    >
-                      <div>
-                        <p className="text-sm font-semibold text-white">{song.title}</p>
-                        <p className="text-xs text-white/50">{song.url}</p>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          onClick={() => {
-                            setEditingSongIndex(idx);
-                            setSongForm({ title: song.title, url: song.url });
-                          }}
-                          disabled={isSaving}
-                        >
-                          Editar
-                        </Button>
-                        <Button
-                          variant="danger"
-                          onClick={() => handleDeleteSong(idx)}
-                          disabled={isSaving}
-                        >
-                          Eliminar
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <div className="grid gap-3 md:grid-cols-2">
-                  <input
-                    value={songForm.title}
-                    onChange={(e) => setSongForm((prev) => ({ ...prev, title: e.target.value }))}
-                    placeholder="Nombre de canción"
-                    className="rounded-xl border border-white/20 bg-transparent px-3 py-2 text-white"
-                  />
-                  <input
-                    value={songForm.url}
-                    onChange={(e) => setSongForm((prev) => ({ ...prev, url: e.target.value }))}
-                    placeholder="URL del audio"
-                    className="rounded-xl border border-white/20 bg-transparent px-3 py-2 text-white"
-                  />
-                </div>
-                <div className="flex justify-end gap-3">
-                  <Button variant="outline" onClick={closeModal} disabled={isSaving}>
-                    Cerrar
-                  </Button>
-                  <Button onClick={handleSaveSong} loading={isSaving}>
-                    {editingSongIndex == null ? 'Agregar canción' : 'Actualizar canción'}
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {activeModal === 'featured-song' && (
-              <div className="space-y-4">
-                <div className="max-h-[360px] space-y-2 overflow-auto rounded-2xl border border-white/10 bg-black/20 p-4">
-                  {editableSongs.length === 0 ? (
-                    <p className="text-sm text-white/60">Primero agrega canciones para destacar una.</p>
-                  ) : (
-                    editableSongs.map((song) => (
-                      <label
-                        key={song.url}
-                        className="flex cursor-pointer items-center justify-between rounded-lg border border-white/10 px-3 py-2"
-                      >
-                        <div>
-                          <p className="text-sm font-semibold text-white">{song.title}</p>
-                          <p className="text-xs text-white/50">{song.url}</p>
-                        </div>
-                        <input
-                          type="radio"
-                          name="featured-song"
-                          checked={featuredSongUrl === song.url}
-                          onChange={() => setFeaturedSongUrl(song.url)}
-                        />
-                      </label>
-                    ))
-                  )}
-                </div>
-                <div className="flex justify-end gap-3">
-                  <Button variant="outline" onClick={closeModal} disabled={isSaving}>
-                    Cancelar
-                  </Button>
-                  <Button onClick={handleSaveFeaturedSong} loading={isSaving} disabled={editableSongs.length === 0}>
-                    Guardar
-                  </Button>
-                </div>
-              </div>
             )}
 
           </div>
@@ -765,6 +547,21 @@ export function ArtistProfileMainPage() {
         onClose={closeModal}
         onSaved={(saved) => setLocalProfile((prev) => (prev ? { ...prev, ...saved } : prev))}
         onArtistNameSaved={setArtistDisplayName}
+      />
+      <ArtistSongsModal
+        isOpen={activeModal === 'songs'}
+        profile={localProfile}
+        artistDisplayName={artistDisplayName}
+        onClose={closeModal}
+        onSongsChange={setSongs}
+      />
+      <ArtistFeaturedSongModal
+        isOpen={activeModal === 'featured-song'}
+        profile={localProfile}
+        artistDisplayName={artistDisplayName}
+        songs={songs}
+        onClose={closeModal}
+        onSongsChange={setSongs}
       />
     </div>
   );

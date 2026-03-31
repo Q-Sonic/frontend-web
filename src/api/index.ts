@@ -22,4 +22,11 @@ export {
   updateArtistServiceWithFormData,
   deleteArtistService,
 } from './artistServiceService';
-export { uploadFile } from './storageService';
+export {
+  getMyArtistSongs,
+  getArtistSongsByArtistId,
+  createArtistSongWithFormData,
+  updateArtistSongWithFormData,
+  deleteArtistSong,
+} from './artistSongService';
+export { uploadFile, deleteStorageFile } from './storageService';

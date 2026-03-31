@@ -28,6 +28,8 @@ export {
   ArtistProfileGalleryGrid,
   ArtistProfileSettingsModal,
   ArtistServicesAdminModal,
+  ArtistSongsModal,
+  ArtistFeaturedSongModal,
   ArtistProfileRidersGrid,
   ArtistProfileSectionTitle,
   ArtistProfileSocialNetworkLink,

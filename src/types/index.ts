@@ -22,3 +22,8 @@ export type {
   ArtistServiceResponse,
   ArtistServiceListResponse,
 } from './artistService';
+export type {
+  ArtistSongRecord,
+  ArtistSongResponse,
+  ArtistSongListResponse,
+} from './artistSong';
