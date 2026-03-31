@@ -5,7 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { ArtistProfileNavProvider } from '../../contexts/ArtistProfileNavContext';
 import { isBackendRoleArtista, isBackendRoleCliente } from '../../helpers/role';
 import { SidebarLayout } from '../../layouts';
-import { FiImage, FiFileText, FiUser } from 'react-icons/fi';
+import { FiImage, FiFileText, FiUser, FiSettings } from 'react-icons/fi';
 
 const SIDEBAR_ACTIVE_NAV = '#38BACC';
 
@@ -65,6 +65,12 @@ export function ArtistProfileLayout() {
         to: `${base}/documents`,
         label: 'Documentos',
         icon: <FiFileText className="text-current" aria-hidden />,
+        exactPath: true as const,
+      },
+      {
+        to: `${base}/settings`,
+        label: 'Configuración',
+        icon: <FiSettings className="text-current" aria-hidden />,
         exactPath: true as const,
       },
     ];
