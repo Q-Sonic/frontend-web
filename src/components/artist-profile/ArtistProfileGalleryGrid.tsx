@@ -14,7 +14,7 @@ export function ArtistProfileGalleryGrid({ images }: { images: ArtistMediaItem[]
       {images.map((img) => (
         <div
           key={img.url}
-          className={`relative aspect-3/2 shrink-0 overflow-hidden rounded-2xl border border-white/8 bg-neutral-900 ${itemWidthClass}`}
+          className={`group relative aspect-3/2 shrink-0 overflow-hidden rounded-3xl border border-[#00d4c8]/20 bg-white/[0.04] transition-all duration-300 hover:z-10 hover:-translate-y-1 hover:border-[#00d4c8]/50 hover:shadow-[0_0_24px_rgba(0,212,200,0.35)] ${itemWidthClass}`}
         >
           <img
             src={img.url}

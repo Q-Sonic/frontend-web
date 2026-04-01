@@ -24,18 +24,11 @@ function getMediaTypeBadge(type: ArtistMediaItem['type']) {
 const masonryShell =
   'columns-2 [column-fill:balance] [column-gap:0.625rem] sm:columns-3 sm:[column-gap:0.75rem] lg:columns-4';
 
-const cardBaseDefault =
-  'group relative w-full break-inside-avoid overflow-hidden rounded-[1.25rem] border border-white/10 bg-neutral-950 ' +
-  'shadow-[0_2px_12px_rgba(0,0,0,0.4)] transition-all duration-300 ' +
-  'mb-2.5 sm:mb-3 ' +
-  'hover:z-10 hover:-translate-y-0.5 hover:border-[#00d4c8]/40 hover:shadow-[0_10px_28px_rgba(0,212,200,0.16)]';
-
-/** Stronger cyan frame on hover (client gallery reference). */
-const cardBaseClient =
-  'group relative w-full break-inside-avoid overflow-hidden rounded-[1.25rem] border border-white/10 bg-neutral-950 ' +
-  'shadow-[0_2px_12px_rgba(0,0,0,0.4)] transition-all duration-300 ' +
-  'mb-2.5 sm:mb-3 ' +
-  'hover:z-10 hover:-translate-y-0.5 hover:border-[#00d4c8] hover:shadow-[0_12px_36px_rgba(0,212,200,0.28)]';
+/** Same hover / chrome as `ArtistProfileRiderCard` and `ArtistServiceCard` (cyan border + lift + glow). */
+const galleryTileCardBase =
+  'group relative w-full break-inside-avoid overflow-hidden rounded-3xl border border-[#00d4c8]/20 bg-white/[0.04] ' +
+  'transition-all duration-300 mb-2.5 sm:mb-3 ' +
+  'hover:z-10 hover:-translate-y-1 hover:border-[#00d4c8]/50 hover:shadow-[0_0_24px_rgba(0,212,200,0.35)]';
 
 const EAGER_IMAGE_COUNT = 14;
 
@@ -259,10 +252,9 @@ function MediaLightbox({ item, onClose }: { item: ArtistMediaItem; onClose: () =
   );
 }
 
-export function ArtistGalleryMasonryGrid({ items, variant = 'default' }: ArtistGalleryMasonryGridProps) {
-  const cardBase = variant === 'client' ? cardBaseClient : cardBaseDefault;
-  const mediaCardButtonClass = `${cardBase} relative block w-full cursor-pointer p-0 text-left font-inherit appearance-none`;
-  const audioCardInteractiveClass = `${cardBase} relative cursor-pointer`;
+export function ArtistGalleryMasonryGrid({ items }: ArtistGalleryMasonryGridProps) {
+  const mediaCardButtonClass = `${galleryTileCardBase} relative block w-full cursor-pointer p-0 text-left font-inherit appearance-none`;
+  const audioCardInteractiveClass = `${galleryTileCardBase} relative cursor-pointer`;
   const [lightboxItem, setLightboxItem] = useState<ArtistMediaItem | null>(null);
 
   useEffect(() => {

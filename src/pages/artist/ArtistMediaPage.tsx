@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Button, Skeleton, SkeletonText } from '../../components';
 import { useAuth } from '../../contexts/AuthContext';
 import { addArtistProfileMedia, removeArtistProfileGalleryItem, getArtistProfile, ApiError } from '../../api';
@@ -186,6 +186,8 @@ function makePendingId(): string {
 
 export function ArtistMediaPage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const { id: routeProfileId } = useParams<{ id: string }>();
   const [mediaList, setMediaList] = useState<ArtistMediaItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
@@ -202,6 +204,13 @@ export function ArtistMediaPage() {
   /** Backend should send `uid`; some responses use `id` — keep both for links and guards. */
   const sessionArtistId = user?.uid ?? (user as { id?: string } | null)?.id ?? '';
   const galleryHref = sessionArtistId ? `/artist/${sessionArtistId}/gallery` : '/artist';
+
+  useEffect(() => {
+    if (!isArtista || !sessionArtistId || !routeProfileId) return;
+    if (routeProfileId !== sessionArtistId) {
+      navigate(`/artist/${sessionArtistId}/gallery/edit`, { replace: true });
+    }
+  }, [isArtista, sessionArtistId, routeProfileId, navigate]);
   const currentOption = MEDIA_TYPE_OPTIONS.find((o) => o.value === selectedType)!;
 
   const revokePreviews = useCallback((items: PendingMediaItem[]) => {

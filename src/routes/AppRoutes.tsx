@@ -16,6 +16,7 @@ import {
 import {
   ArtistCalendarPage,
   ArtistMediaPage,
+  ArtistMediaLegacyRedirect,
   ArtistProfileDocumentsPage,
   ArtistProfileGalleryPage,
   ArtistProfileCalendarPage,
@@ -169,9 +170,7 @@ export function AppRoutes() {
         path="/artist/media"
         element={
           <ProtectedRoute>
-            <SidebarLayout sidebar={artistSidebar}>
-              <ArtistMediaPage />
-            </SidebarLayout>
+            <ArtistMediaLegacyRedirect />
           </ProtectedRoute>
         }
       />
@@ -192,6 +191,7 @@ export function AppRoutes() {
         }
       >
         <Route index element={<ArtistProfileMainPage />} />
+        <Route path="gallery/edit" element={<ArtistMediaPage />} />
         <Route path="gallery" element={<ArtistProfileGalleryPage />} />
         <Route path="documents" element={<ArtistProfileDocumentsPage />} />
         <Route path="calendar" element={<ArtistProfileCalendarPage />} />
