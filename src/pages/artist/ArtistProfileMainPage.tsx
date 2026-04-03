@@ -32,7 +32,7 @@ type ArtistModalType = 'profile' | 'songs' | 'featured-song' | 'services' | null
 export function ArtistProfileMainPage() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
-  const { basePath } = useArtistProfileNav();
+  const { basePath, setSidebarProfileIntro } = useArtistProfileNav();
   const effectiveId = id;
   const isSelfArtist =
     !!user?.uid && isBackendRoleArtista(user.role) && user?.uid === effectiveId;
@@ -46,6 +46,7 @@ export function ArtistProfileMainPage() {
   const [songs, setSongs] = useState<ArtistSongRecord[]>([]);
   const [modalError, setModalError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [servicesExpanded, setServicesExpanded] = useState(false);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [playing, setPlaying] = useState(false);
@@ -475,31 +476,49 @@ export function ArtistProfileMainPage() {
           title="Servicios"
           onClick={() => openModal('services')}
           isSelfArtist={isSelfArtist}
+          asideContent={
+            localServices.length > 4 ? (
+              <button
+                type="button"
+                onClick={() => setServicesExpanded((prev) => !prev)}
+                className="cursor-pointer border-0 bg-transparent p-0 text-sm font-medium text-[#00d4c8] underline-offset-4 transition hover:underline"
+              >
+                {servicesExpanded
+                  ? 'Ver menos'
+                  : `Ver más (${localServices.length - 4} más)`}
+              </button>
+            ) : null
+          }
         />
         {localServices.length === 0 ? (
           <p className="text-neutral-500 text-sm">Sin servicios.</p>
         ) : (
-          <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-5">
-            {localServices.slice(0, 8).map((s, idx) => {
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
+            {(servicesExpanded ? localServices : localServices.slice(0, 4)).map((s) => {
               const serviceFeatures = Array.isArray(s.features) ? s.features : [];
               const features =
                 s.duration && s.duration.trim()
                   ? [`Duración: ${s.duration.trim()}`, ...serviceFeatures]
                   : serviceFeatures;
               return (
-                <ArtistServiceCard
-                  key={s.id}
-                  service={s}
-                  coverPhotoUrl={s.imageUrl || coverPhoto}
-                  highlighted={idx === 0}
-                  features={features}
-                  isSelfArtist={isSelfArtist}
-                />
+                <div key={s.id} className="min-w-0 flex h-full">
+                  <ArtistServiceCard
+                    service={s}
+                    coverPhotoUrl={s.imageUrl || coverPhoto}
+                    features={features}
+                    isSelfArtist={isSelfArtist}
+                  />
+                </div>
               );
             })}
           </div>
         )}
       </section>
+
+      <div
+        className="my-10 sm:my-12 border-t border-white/10"
+        aria-hidden
+      />
 
       <section id="gallery" className="space-y-5 scroll-mt-24">
         <ArtistProfileSectionTitle title="Galería" onClick={() => {}} isSelfArtist={isSelfArtist} />
@@ -545,7 +564,10 @@ export function ArtistProfileMainPage() {
         profile={localProfile}
         artistDisplayName={artistDisplayName}
         onClose={closeModal}
-        onSaved={(saved) => setLocalProfile((prev) => (prev ? { ...prev, ...saved } : prev))}
+        onSaved={(saved) => {
+          setLocalProfile((prev) => (prev ? { ...prev, ...saved } : prev));
+          setSidebarProfileIntro?.(saved.biography?.trim() ?? '');
+        }}
         onArtistNameSaved={setArtistDisplayName}
       />
       <ArtistSongsModal

@@ -34,7 +34,7 @@ export function AuthLayout({ children }: AuthLayoutProps) {
               aria-hidden
               className="w-8 h-8 flex-shrink-0 object-contain"
             />          
-            <span className="text-white font-semibold text-lg tracking-wide">Q-Sonic</span>
+            <span className="text-white font-semibold text-lg tracking-wide">Stage Go</span>
           </div>
 
           {/* Main headline */}
@@ -49,13 +49,7 @@ export function AuthLayout({ children }: AuthLayoutProps) {
           </div>
 
           {/* Bottom tagline */}
-          <div className="flex items-center gap-3">
-            <img
-              src={loginSmallLogoUrl}
-              alt=""
-              aria-hidden
-              className="w-8 h-8 flex-shrink-0 object-contain"
-            />
+          <div>
             <p className="text-white/90 text-sm leading-snug">
               Shows en vivo, acústicos y
               <br />

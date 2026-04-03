@@ -110,7 +110,10 @@ export function ArtistProfileGalleryPage() {
           />
         </div>
         <div className={`flex justify-end self-center ${isClientGallery ? 'sm:shrink-0' : ''}`}>
-          <ArtistProfileEditButton show={isSelfArtist} onClick={() => navigate('/artist/media')} />
+          <ArtistProfileEditButton
+            show={isSelfArtist}
+            onClick={() => navigate(`${basePath}/gallery/edit`)}
+          />
         </div>
       </div>
 

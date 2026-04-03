@@ -10,6 +10,8 @@ export interface SidebarMenuItem {
   icon?: ReactNode;
   /** If true, only an exact pathname match counts (no `/artist/foo` matching `/artist`). */
   exactPath?: boolean;
+  /** Paths where this item should also show as active (e.g. `/artist/:id/gallery/edit` for Galería). */
+  additionalActivePaths?: string[];
 }
 
 function splitPathAndHash(to: string): { path: string; hash: string } {
@@ -151,7 +153,10 @@ export function AppSidebar({
           )}
           <ul className="space-y-0.5">
             {menuItems.map((item) => {
-              const isActive = isSidebarItemActive(location.pathname, location.hash, item.to, item.exactPath);
+              const extraActive = item.additionalActivePaths?.includes(location.pathname) ?? false;
+              const isActive =
+                extraActive ||
+                isSidebarItemActive(location.pathname, location.hash, item.to, item.exactPath);
               const useCustomActive = isActive && activeNavColor;
               return (
                 <li key={item.to}>

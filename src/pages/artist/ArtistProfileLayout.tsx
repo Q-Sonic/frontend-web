@@ -5,9 +5,11 @@ import { useAuth } from '../../contexts/AuthContext';
 import { ArtistProfileNavProvider } from '../../contexts/ArtistProfileNavContext';
 import { isBackendRoleArtista, isBackendRoleCliente } from '../../helpers/role';
 import { SidebarLayout } from '../../layouts';
-import { FiImage, FiFileText, FiUser, FiSettings } from 'react-icons/fi';
-
-const SIDEBAR_ACTIVE_NAV = '#38BACC';
+import { FiImage, FiFileText, FiUser } from 'react-icons/fi';
+import {
+  ARTIST_PROFILE_SIDEBAR_ACTIVE_NAV,
+  artistOwnerProfileNavItems,
+} from '../../helpers/artistOwnerProfileNav';
 
 export function ArtistProfileLayout() {
   const { id } = useParams<{ id: string }>();
@@ -48,32 +50,7 @@ export function ArtistProfileLayout() {
     if (!id) return null;
     const base = `/artist/${id}`;
 
-    const ownerMenu = [
-      {
-        to: base,
-        label: 'Perfil',
-        icon: <FiUser className="text-current" aria-hidden />,
-        exactPath: true as const,
-      },
-      {
-        to: `${base}/gallery`,
-        label: 'Galeria',
-        icon: <FiImage className="text-current" aria-hidden />,
-        exactPath: true as const,
-      },
-      {
-        to: `${base}/documents`,
-        label: 'Documentos',
-        icon: <FiFileText className="text-current" aria-hidden />,
-        exactPath: true as const,
-      },
-      {
-        to: `${base}/settings`,
-        label: 'Configuración',
-        icon: <FiSettings className="text-current" aria-hidden />,
-        exactPath: true as const,
-      },
-    ];
+    const ownerMenu = artistOwnerProfileNavItems(base);
 
     const guestMenu = [
       {
@@ -103,7 +80,7 @@ export function ArtistProfileLayout() {
 
     return {
       sectionTitle: 'Información' as const,
-      activeNavColor: SIDEBAR_ACTIVE_NAV,
+      activeNavColor: ARTIST_PROFILE_SIDEBAR_ACTIVE_NAV,
       backHref,
       profileIntro: intro,
       profileIntroLoading: introLoading,
@@ -121,7 +98,13 @@ export function ArtistProfileLayout() {
   if (!sidebar) return null;
 
   return (
-    <ArtistProfileNavProvider value={{ basePath: `/artist/${id}`, exitHomePath: '/artist' }}>
+    <ArtistProfileNavProvider
+      value={{
+        basePath: `/artist/${id}`,
+        exitHomePath: '/artist',
+        setSidebarProfileIntro: (text) => setIntro(text),
+      }}
+    >
       <SidebarLayout sidebar={sidebar}>
         <Outlet />
       </SidebarLayout>

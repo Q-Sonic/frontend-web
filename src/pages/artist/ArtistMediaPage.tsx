@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Button, Skeleton, SkeletonText } from '../../components';
 import { useAuth } from '../../contexts/AuthContext';
 import { addArtistProfileMedia, removeArtistProfileGalleryItem, getArtistProfile, ApiError } from '../../api';
@@ -27,8 +27,8 @@ type GalleryKindFilter = 'all' | MediaTypeOption;
 const GALLERY_FILTER_OPTIONS: { key: GalleryKindFilter; label: string }[] = [
   { key: 'all', label: 'Todos' },
   { key: 'image', label: 'Imágenes' },
-  { key: 'audio', label: 'Audio' },
   { key: 'video', label: 'Video' },
+  { key: 'audio', label: 'Audio' },
 ];
 
 function MediaTypeDropdown({
@@ -186,6 +186,8 @@ function makePendingId(): string {
 
 export function ArtistMediaPage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const { id: routeProfileId } = useParams<{ id: string }>();
   const [mediaList, setMediaList] = useState<ArtistMediaItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
@@ -202,6 +204,13 @@ export function ArtistMediaPage() {
   /** Backend should send `uid`; some responses use `id` — keep both for links and guards. */
   const sessionArtistId = user?.uid ?? (user as { id?: string } | null)?.id ?? '';
   const galleryHref = sessionArtistId ? `/artist/${sessionArtistId}/gallery` : '/artist';
+
+  useEffect(() => {
+    if (!isArtista || !sessionArtistId || !routeProfileId) return;
+    if (routeProfileId !== sessionArtistId) {
+      navigate(`/artist/${sessionArtistId}/gallery/edit`, { replace: true });
+    }
+  }, [isArtista, sessionArtistId, routeProfileId, navigate]);
   const currentOption = MEDIA_TYPE_OPTIONS.find((o) => o.value === selectedType)!;
 
   const revokePreviews = useCallback((items: PendingMediaItem[]) => {
@@ -728,47 +737,74 @@ export function ArtistMediaPage() {
             )}
             {mediaList.length > 0 ? (
               filteredGalleryItems.length > 0 ? (
-              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                {filteredGalleryItems.map((item) => (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                {filteredGalleryItems.map((item) => {
+                  const isAudio = item.type === 'audio';
+                  const mediaShellClass = isAudio
+                    ? 'relative w-full aspect-[4/1] min-h-[3.25rem] flex items-center justify-center bg-black/35 px-2 py-1.5 sm:py-2'
+                    : 'relative w-full aspect-square min-h-[14rem] bg-black/35 p-2 sm:p-3';
+                  return (
                   <article
                     key={item.url}
-                    className="group rounded-2xl border border-white/10 bg-white/[0.02] overflow-hidden transition-all duration-300 hover:border-[#00d4c8]/35 hover:shadow-[0_0_20px_rgba(0,212,200,0.12)]"
+                    className="flex flex-col rounded-3xl border border-[#00d4c8]/20 bg-[#0b0b0d] overflow-hidden transition-all duration-300 hover:border-[#00d4c8]/50 hover:shadow-[0_0_24px_rgba(0,212,200,0.35)]"
                   >
-                    <div className="aspect-video bg-black/30 flex items-center justify-center p-2">
-                      {item.type === 'image' && (
-                        <img
-                          src={item.url}
-                          alt={item.name ?? 'Imagen'}
-                          className="max-h-44 w-full object-contain rounded-lg"
-                        />
-                      )}
-                      {item.type === 'audio' && (
-                        <audio controls src={item.url} className="w-full px-2">
-                          Audio
-                        </audio>
-                      )}
-                      {item.type === 'video' && (
-                        <video controls src={item.url} className="w-full max-h-44 rounded-lg">
-                          Video
-                        </video>
-                      )}
-                    </div>
-                    <div className="p-4 flex items-start justify-between gap-3 border-t border-white/5">
-                      <div className="min-w-0">
-                        <p className="text-xs font-medium uppercase tracking-wide text-[#00d4c8]/90">{item.type}</p>
-                        <p className="text-sm text-white/80 truncate mt-0.5">{item.name ?? item.url}</p>
-                      </div>
+                    <div className="flex items-center justify-end gap-2 px-3 py-2.5 bg-black/60 border-b border-white/[0.06] shrink-0">
                       <button
                         type="button"
                         onClick={() => void handleRemove(item.url)}
                         disabled={removingUrl !== null}
-                        className="shrink-0 text-xs font-semibold text-red-400/90 hover:text-red-300 px-3 py-1.5 rounded-full border border-red-500/30 hover:bg-red-500/10 transition-colors disabled:opacity-45 disabled:pointer-events-none"
+                        className="inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold text-white/80 hover:text-red-300 hover:bg-red-500/10 transition-colors disabled:opacity-45 disabled:pointer-events-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#00d4c8]/45 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b0b0d]"
+                        aria-label={`Borrar ${item.name ?? 'elemento de la galería'}`}
                       >
-                        {removingUrl === item.url ? 'Quitando…' : 'Quitar'}
+                        <svg
+                          viewBox="0 0 24 24"
+                          className="h-3.5 w-3.5 shrink-0 opacity-90"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          aria-hidden
+                        >
+                          <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14zM10 11v6M14 11v6" />
+                        </svg>
+                        {removingUrl === item.url ? 'Borrando…' : 'Borrar'}
                       </button>
                     </div>
+                    <div className={`${mediaShellClass} min-w-0 shrink`}>
+                      {item.type === 'image' && (
+                        <img
+                          src={item.url}
+                          alt={item.name ?? 'Imagen de la galería'}
+                          className="h-full w-full min-h-0 min-w-0 object-contain rounded-lg"
+                        />
+                      )}
+                      {item.type === 'audio' && (
+                        <audio controls src={item.url} className="w-full min-w-0">
+                          Audio
+                        </audio>
+                      )}
+                      {item.type === 'video' && (
+                        <video
+                          controls
+                          src={item.url}
+                          className="h-full w-full min-h-0 min-w-0 rounded-lg object-contain"
+                        >
+                          Video
+                        </video>
+                      )}
+                    </div>
+                    <div className="border-t border-white/[0.06] px-3 py-2 bg-black/40 shrink-0">
+                      <p
+                        className="text-[11px] leading-snug text-white/45 truncate"
+                        title={item.name ?? item.url}
+                      >
+                        {item.name ?? item.url}
+                      </p>
+                    </div>
                   </article>
-                ))}
+                  );
+                })}
               </div>
               ) : (
                 <p className="text-sm text-white/45 text-center py-10 border border-dashed border-[#00d4c8]/15 rounded-xl bg-[#00d4c8]/[0.03]">

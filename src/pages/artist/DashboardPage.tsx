@@ -150,7 +150,7 @@ export function HomeArtistaPage() {
               <p className="text-sm mt-1 text-muted">Configura tus precios</p>
             </Link>
             <Link
-              to="/artist/media"
+              to={user.uid ? `/artist/${user.uid}/gallery/edit` : '/artist'}
               className="rounded-xl p-5 border border-white/10 block hover:border-white/30 transition-colors bg-card"
             >
               <h3 className="text-lg font-bold text-white">Multimedia</h3>

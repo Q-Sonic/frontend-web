@@ -1,6 +1,7 @@
 export { HomeArtistaPage } from './DashboardPage';
 export { ArtistServicesPage } from './ArtistServicesPage';
 export { ArtistMediaPage } from './ArtistMediaPage';
+export { ArtistMediaLegacyRedirect } from './ArtistMediaLegacyRedirect';
 export { ArtistProfileIdRedirect } from './ArtistProfileIdRedirect';
 export { ArtistProfileLayout } from './ArtistProfileLayout';
 export { ArtistProfileMainPage } from './ArtistProfileMainPage';
