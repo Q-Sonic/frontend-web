@@ -24,9 +24,8 @@ export function DashboardPage() {
 
   const gridItems: DiscoverArtistCardDisplay[] = useMemo(() => {
     const fromApi = artists.map((item) => artistListItemToDiscoverCard(item));
-    if (loading) return fromApi;
     return [...fromApi, ...discoverFictionalArtists];
-  }, [artists, loading]);
+  }, [artists]);
 
   return (
     <ClientAreaPageShell>
@@ -38,7 +37,7 @@ export function DashboardPage() {
             Encuentra artistas para tu evento
           </h1>
           <p className="mt-2 text-sm md:text-base text-neutral-500">
-            Explora cantantes disponibles cerca de ti
+            Explora cantantes disponibles cerca de ti, incluidos los artistas que se acaban de unir.
           </p>
         </section>
 

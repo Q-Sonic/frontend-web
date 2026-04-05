@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import type { UseArtistProfileByIdOptions } from '../../hooks/useArtistProfileById';
 import { Navigate, useParams } from 'react-router-dom';
 import {
   ArtistProfileDocumentsServicesTable,
@@ -17,9 +18,19 @@ export function ArtistProfileDocumentsPage() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const { exitHomePath } = useArtistProfileNav();
-  const { profile, services, loading, error } = useArtistProfileById(id);
   const [infoBanner, setInfoBanner] = useState('');
   const isSelfArtist = !!user?.uid && isBackendRoleArtista(user.role) && user.uid === id;
+  const profileLoadOptions: UseArtistProfileByIdOptions | undefined = useMemo(
+    () =>
+      isSelfArtist && user?.uid
+        ? {
+            allowEmptyProfileForUid: user.uid,
+            fallbackDisplayName: user.displayName?.trim() || user.email?.trim(),
+          }
+        : undefined,
+    [isSelfArtist, user?.uid, user?.displayName, user?.email],
+  );
+  const { profile, services, loading, error } = useArtistProfileById(id, profileLoadOptions);
 
   const getDocumentUrl = (service: ArtistServiceRecord) => contractPdfUrlForService(service, profile);
   const handleMissingDocumentClick = () => {

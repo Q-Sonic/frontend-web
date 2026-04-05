@@ -71,9 +71,14 @@ export async function changeAccountPassword(payload: { newPassword: string }): P
   });
 }
 
-export async function loginWithGoogleBackend(idToken: string): Promise<ApiResponse<GoogleLoginResponse>> {
+export async function loginWithGoogleBackend(
+  idToken: string,
+  options?: { role?: string }
+): Promise<ApiResponse<GoogleLoginResponse>> {
+  const body: { idToken: string; role?: string } = { idToken };
+  if (options?.role) body.role = options.role;
   return api<ApiResponse<GoogleLoginResponse>>('auth/google', {
     method: 'POST',
-    body: JSON.stringify({ idToken }),
+    body: JSON.stringify(body),
   });
 }
