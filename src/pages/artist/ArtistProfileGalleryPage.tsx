@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import type { UseArtistProfileByIdOptions } from '../../hooks/useArtistProfileById';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import {
   ArtistGalleryFilterTabs,
@@ -32,8 +33,18 @@ export function ArtistProfileGalleryPage() {
   const { exitHomePath, basePath } = useArtistProfileNav();
   const [activeFilter, setActiveFilter] = useState<GalleryFilterKey>('all');
 
-  const { profile, artistDisplayName, loading, error } = useArtistProfileById(id);
   const isSelfArtist = !!id && !!user?.uid && isBackendRoleArtista(user.role) && user.uid === id;
+  const profileLoadOptions: UseArtistProfileByIdOptions | undefined = useMemo(
+    () =>
+      isSelfArtist && user?.uid
+        ? {
+            allowEmptyProfileForUid: user.uid,
+            fallbackDisplayName: user.displayName?.trim() || user.email?.trim(),
+          }
+        : undefined,
+    [isSelfArtist, user?.uid, user?.displayName, user?.email],
+  );
+  const { profile, artistDisplayName, loading, error } = useArtistProfileById(id, profileLoadOptions);
   const isClientGallery = isBackendRoleCliente(user?.role) && basePath.startsWith('/client/artists');
 
   const gallerySource = profile?.media ?? [];

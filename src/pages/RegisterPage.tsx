@@ -5,6 +5,7 @@ import { AuthLayout } from '../components/AuthLayout';
 import { register, loginWithGoogleBackend } from '../api/authService';
 import { useAuth } from '../contexts/AuthContext';
 import { normalizeRole } from '../helpers/role';
+import type { RegistrationRole } from '../types/auth';
 import { registerErrorMessage } from '../helpers/authErrors';
 import { signInWithPopup, signInWithCustomToken } from 'firebase/auth';
 import { auth as firebaseAuth, googleProvider } from '../config/firebase';
@@ -77,6 +78,11 @@ function getDisplayNameError(value: string): string | undefined {
   return trim(value) ? undefined : 'Este campo es obligatorio';
 }
 
+const REGISTRATION_ROLE_OPTIONS: readonly { value: RegistrationRole; label: string }[] = [
+  { value: 'cliente', label: 'Cliente' },
+  { value: 'artista', label: 'Artista' },
+];
+
 export function RegisterPage() {
   const navigate = useNavigate();
   const { refreshUser } = useAuth();
@@ -85,6 +91,7 @@ export function RegisterPage() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
+  const [accountRole, setAccountRole] = useState<RegistrationRole>('cliente');
   const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -127,7 +134,7 @@ export function RegisterPage() {
         email: trim(email),
         password,
         displayName: trim(displayName),
-        role: 'cliente',
+        role: accountRole,
       });
       navigate('/login', { state: { registerSuccess: true }, replace: true });
     } catch (err) {
@@ -144,7 +151,7 @@ export function RegisterPage() {
     try {
       const result = await signInWithPopup(firebaseAuth, googleProvider);
       const idToken = await result.user.getIdToken();
-      const res = await loginWithGoogleBackend(idToken);
+      const res = await loginWithGoogleBackend(idToken, { role: accountRole });
       
       const { customToken, uid, role } = res.data;
       const userCred = await signInWithCustomToken(firebaseAuth, customToken);
@@ -197,6 +204,31 @@ export function RegisterPage() {
           success={!!displayName && !displayNameError}
           required
         />
+
+        {/* Account type */}
+        <fieldset className="border-0 p-0 m-0 min-w-0">
+          <legend className="text-sm font-medium text-white/80 mb-2">Tipo de cuenta</legend>
+          <div className="flex gap-2" role="group" aria-label="Tipo de cuenta">
+            {REGISTRATION_ROLE_OPTIONS.map(({ value, label }) => {
+              const selected = accountRole === value;
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setAccountRole(value)}
+                  className={[
+                    'flex-1 rounded-lg border py-2.5 px-3 text-sm font-medium transition-all duration-200',
+                    selected
+                      ? 'border-[#00d4c8] bg-[#00d4c8]/10 text-white'
+                      : 'border-white/15 bg-transparent text-white/60 hover:border-white/35 hover:text-white/85',
+                  ].join(' ')}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+        </fieldset>
 
         {/* Email */}
         <Input

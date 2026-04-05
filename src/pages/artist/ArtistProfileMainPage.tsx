@@ -22,7 +22,7 @@ import {
   localDateKey,
   weekdayShortEs,
 } from '../../components';
-import { getArtistSongsByArtistId } from '../../api';
+import { ensureArtistProfileListedForDiscovery, getArtistSongsByArtistId } from '../../api';
 import type { ArtistMediaItem, ArtistProfile, ArtistServiceRecord, ArtistSongRecord } from '../../types';
 import { FiPlay, FiPause, FiSkipBack, FiSkipForward } from 'react-icons/fi';
 import { useArtistProfileById } from '../../hooks/useArtistProfileById';
@@ -38,7 +38,25 @@ export function ArtistProfileMainPage() {
     !!user?.uid && isBackendRoleArtista(user.role) && user?.uid === effectiveId;
   const calendarMoreHref = isSelfArtist ? '/artist/calendario' : `${basePath}/calendar`;
 
-  const { profile, services, artistDisplayName: artistDisplayNameFromApi, loading, error } = useArtistProfileById(effectiveId);
+  const profileLoadOptions = useMemo(
+    () =>
+      isSelfArtist && user?.uid
+        ? {
+            allowEmptyProfileForUid: user.uid,
+            fallbackDisplayName: user.displayName?.trim() || user.email?.trim(),
+          }
+        : undefined,
+    [isSelfArtist, user?.uid, user?.displayName, user?.email],
+  );
+
+  const { profile, services, artistDisplayName: artistDisplayNameFromApi, loading, error } =
+    useArtistProfileById(effectiveId, profileLoadOptions);
+
+  useEffect(() => {
+    if (!isSelfArtist || !user?.uid) return;
+    void ensureArtistProfileListedForDiscovery(user.uid);
+  }, [isSelfArtist, user?.uid]);
+
   const [artistDisplayName, setArtistDisplayName] = useState('Artista');
   const [localProfile, setLocalProfile] = useState<(ArtistProfile & { uid: string }) | null>(null);
   const [localServices, setLocalServices] = useState<ArtistServiceRecord[]>([]);
