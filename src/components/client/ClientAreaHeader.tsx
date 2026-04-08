@@ -1,5 +1,5 @@
 import type { ChangeEvent } from 'react';
-import { FiBell, FiMail, FiSearch, FiSettings } from 'react-icons/fi';
+import { FiBell, FiMail, FiSearch, FiSettings, FiShoppingCart } from 'react-icons/fi';
 import { useAuth } from '../../contexts/AuthContext';
 
 function getInitials(displayName: string | null | undefined, email: string | null | undefined): string {
@@ -67,6 +67,13 @@ export function ClientAreaHeader({ searchValue = '', onSearchChange }: ClientAre
           aria-label="Mensajes"
         >
           <FiMail size={20} />
+        </button>
+        <button
+          type="button"
+          className="p-2 rounded-lg text-neutral-300 hover:bg-white/5 hover:text-white transition-colors"
+          aria-label="Tienda"
+        >
+          <FiShoppingCart size={20} />
         </button>
         <button
           type="button"

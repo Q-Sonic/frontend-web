@@ -525,6 +525,7 @@ export function ArtistProfileMainPage() {
                     coverPhotoUrl={s.imageUrl || coverPhoto}
                     features={features}
                     isSelfArtist={isSelfArtist}
+                    hireLinkTo={`${basePath}/services/${s.id}`}
                   />
                 </div>
               );
