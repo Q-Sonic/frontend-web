@@ -21,6 +21,7 @@ export {
   updateArtistProfileWithFormData,
   addArtistProfileMedia,
   removeArtistProfileGalleryItem,
+  ensureArtistProfileListedForDiscovery,
 } from './artistProfileService';
 export {
   getMyArtistServices,

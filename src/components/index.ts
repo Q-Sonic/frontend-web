@@ -10,7 +10,7 @@ export { ClienteOnlyRoute } from './ClienteOnlyRoute';
 export { Topbar } from './Topbar';
 export { UserMenu } from './UserMenu';
 export { AppSidebar } from './AppSidebar';
-export { ArtistServiceCard } from './ArtistServiceCard';
+export { ArtistServiceCard, ARTIST_SERVICE_LINK_STATE_KEY } from './ArtistServiceCard';
 export { Skeleton, SkeletonText, SkeletonHeading } from './Skeleton';
 export {
   ARTIST_PROFILE_ACCENT,

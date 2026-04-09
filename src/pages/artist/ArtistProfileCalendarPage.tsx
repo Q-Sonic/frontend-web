@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import type { UseArtistProfileByIdOptions } from '../../hooks/useArtistProfileById';
 import { Navigate, useParams } from 'react-router-dom';
 import { FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 import { Skeleton } from '../../components';
@@ -6,7 +7,7 @@ import { ClientArtistSectionHeader } from '../../components/client/ClientArtistS
 import { useAuth } from '../../contexts/AuthContext';
 import { useArtistProfileNav } from '../../contexts/ArtistProfileNavContext';
 import { localDateKey } from '../../helpers/artistProfile';
-import { isBackendRoleCliente } from '../../helpers/role';
+import { isBackendRoleArtista, isBackendRoleCliente } from '../../helpers/role';
 import { useArtistProfileById } from '../../hooks/useArtistProfileById';
 import { DEMO_BLOCKED_DATES_MAY_2026 } from '../../mocks/client';
 
@@ -55,11 +56,11 @@ export function ArtistProfileCalendarPage() {
   const blockedSet = useMemo(() => {
     const fromApi = profile?.blockedDates ?? [];
     const set = new Set(fromApi);
-    if (set.size === 0 && profile) {
+    if (set.size === 0 && profile && isClientArtistCalendar) {
       DEMO_BLOCKED_DATES_MAY_2026.forEach((k) => set.add(k));
     }
     return set;
-  }, [profile]);
+  }, [profile, isClientArtistCalendar]);
 
   const cells = useMemo(() => buildMonthCells(view.y, view.m), [view.y, view.m]);
 

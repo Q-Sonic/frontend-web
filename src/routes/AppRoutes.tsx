@@ -12,6 +12,7 @@ import {
   ClientArtistProfileLayout,
   ClientArtistContractsSubPage,
   ClientArtistRiderSubPage,
+  ClientArtistServiceDetailPage,
 } from '../pages/client';
 import {
   ArtistCalendarPage,
@@ -132,6 +133,7 @@ export function AppRoutes() {
         <Route index element={<ArtistProfileMainPage />} />
         <Route path="gallery" element={<ArtistProfileGalleryPage />} />
         <Route path="calendar" element={<ArtistProfileCalendarPage />} />
+        <Route path="services/:serviceId" element={<ClientArtistServiceDetailPage />} />
         <Route path="contracts" element={<ClientArtistContractsSubPage />} />
         <Route path="rider" element={<ClientArtistRiderSubPage />} />
       </Route>
@@ -195,6 +197,7 @@ export function AppRoutes() {
         <Route path="gallery" element={<ArtistProfileGalleryPage />} />
         <Route path="documents" element={<ArtistProfileDocumentsPage />} />
         <Route path="calendar" element={<ArtistProfileCalendarPage />} />
+        <Route path="services/:serviceId" element={<ClientArtistServiceDetailPage />} />
         <Route path="settings" element={<ArtistAccessSettingsPage />} />
       </Route>
       <Route

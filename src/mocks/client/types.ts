@@ -13,7 +13,8 @@ export type ClientArtistCard = {
   previewTrackTitle?: string;
 };
 
-export type ClientCalendarEventKind = 'teal' | 'brown';
+/** `pending` / `ready` = contratos firmados por el cliente; teal/brown = datos demo legacy. */
+export type ClientCalendarEventKind = 'teal' | 'brown' | 'pending' | 'ready';
 
 export type ClientCalendarGridEvent = {
   id: string;

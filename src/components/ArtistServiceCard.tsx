@@ -3,6 +3,9 @@ import { FiArrowRight } from 'react-icons/fi';
 import type { ArtistServiceRecord } from '../types';
 import { formatMoney } from '../helpers/money';
 
+/** Passed through React Router so the service detail view can show the chosen row immediately. */
+export const ARTIST_SERVICE_LINK_STATE_KEY = 'artistService' as const;
+
 const ACCENT_HEX = '#00d4c8';
 
 /** Same shell as `ArtistProfileRiderCard` (Documentos → Riders técnicos): border, fill, hover lift + glow. */
@@ -12,7 +15,7 @@ const cardShell =
   'hover:shadow-[0_0_24px_rgba(0,212,200,0.35)]';
 
 export type ArtistServiceCardProps = {
-  service: Pick<ArtistServiceRecord, 'id' | 'name' | 'price' | 'description' | 'duration' | 'features'>;
+  service: ArtistServiceRecord;
   coverPhotoUrl?: string | null;
   features?: string[];
   isSelfArtist?: boolean;
@@ -93,6 +96,7 @@ export function ArtistServiceCard({
           ) : (
             <Link
               to={hireLinkTo}
+              state={{ [ARTIST_SERVICE_LINK_STATE_KEY]: service }}
               className="flex w-full items-center justify-center gap-2 rounded-full bg-accent px-4 py-2 text-center text-base font-semibold text-white transition hover:bg-accent/80 sm:text-lg"
             >
               <TextButton />

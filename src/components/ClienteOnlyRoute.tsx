@@ -1,6 +1,8 @@
 import { Navigate } from 'react-router-dom';
 import { getDashboardPath } from '../config';
 import { useAuth } from '../contexts/AuthContext';
+import { ClientNotificationsProvider } from '../contexts/ClientNotificationsContext';
+import { ClientServiceCartProvider } from '../contexts/ClientServiceCartContext';
 import { isBackendRoleCliente } from '../helpers/role';
 
 interface ClienteOnlyRouteProps {
@@ -27,5 +29,9 @@ export function ClienteOnlyRoute({ children }: ClienteOnlyRouteProps) {
     return <Navigate to={getDashboardPath(user.role)} replace />;
   }
 
-  return <>{children}</>;
+  return (
+    <ClientNotificationsProvider>
+      <ClientServiceCartProvider>{children}</ClientServiceCartProvider>
+    </ClientNotificationsProvider>
+  );
 }

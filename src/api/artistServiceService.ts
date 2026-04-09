@@ -7,6 +7,19 @@ import type {
 } from '../types';
 import { api, apiPostFormData, apiPutFormData } from './client';
 
+function unwrapArtistServiceBody(body: unknown): ArtistServiceRecord | null {
+  if (!body || typeof body !== 'object') return null;
+  const o = body as Record<string, unknown>;
+  const data = o.data;
+  if (data && typeof data === 'object' && typeof (data as ArtistServiceRecord).id === 'string') {
+    return data as ArtistServiceRecord;
+  }
+  if (typeof o.id === 'string' && typeof o.name === 'string') {
+    return body as ArtistServiceRecord;
+  }
+  return null;
+}
+
 export async function getMyArtistServices(): Promise<ArtistServiceRecord[]> {
   const res = await api<ArtistServiceListResponse>('artist-services');
   return res.data ?? [];
@@ -17,9 +30,14 @@ export async function getArtistServicesByArtistId(artistId: string): Promise<Art
   return res.data ?? [];
 }
 
-export async function getArtistServiceById(id: string): Promise<ArtistServiceRecord> {
-  const res = await api<ApiResponse<ArtistServiceRecord>>(`artist-services/${id}`);
-  return res.data;
+/** Returns null if the request fails or the payload is not a service (e.g. public GET unsupported). */
+export async function getArtistServiceById(id: string): Promise<ArtistServiceRecord | null> {
+  try {
+    const res = await api<unknown>(`artist-services/${id}`);
+    return unwrapArtistServiceBody(res);
+  } catch {
+    return null;
+  }
 }
 
 export async function createArtistService(

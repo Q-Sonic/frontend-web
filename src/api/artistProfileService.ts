@@ -32,13 +32,55 @@ function buildArtistProfilesQuery(filters: ArtistProfileListFilters): string {
   return q ? `?${q}` : '';
 }
 
+function dedupeArtistListByUid(rows: ArtistProfileListItem[]): ArtistProfileListItem[] {
+  const seen = new Set<string>();
+  const out: ArtistProfileListItem[] = [];
+  for (const r of rows) {
+    const id = r.uid?.trim();
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    out.push(r);
+  }
+  return out;
+}
+
+/** Accepts `{ data: T[] }`, a bare array, or `{ profiles: T[] }` from the wire. */
+function normalizeArtistProfileListPayload(body: unknown): ArtistProfileListItem[] {
+  if (Array.isArray(body)) {
+    return body as ArtistProfileListItem[];
+  }
+  if (body && typeof body === 'object') {
+    const o = body as Record<string, unknown>;
+    if (Array.isArray(o.data)) {
+      return o.data as ArtistProfileListItem[];
+    }
+    if (o.data && typeof o.data === 'object') {
+      const inner = o.data as Record<string, unknown>;
+      if (Array.isArray(inner.profiles)) {
+        return inner.profiles as ArtistProfileListItem[];
+      }
+      if (Array.isArray(inner.items)) {
+        return inner.items as ArtistProfileListItem[];
+      }
+    }
+    if (Array.isArray(o.profiles)) {
+      return o.profiles as ArtistProfileListItem[];
+    }
+    if (Array.isArray(o.items)) {
+      return o.items as ArtistProfileListItem[];
+    }
+  }
+  return [];
+}
+
 /** List artist profiles (client browse / discovery). Requires cliente/admin/organizacion/soporte. */
 export async function listArtistProfiles(
   filters: ArtistProfileListFilters = {},
 ): Promise<ArtistProfileListItem[]> {
   const suffix = buildArtistProfilesQuery(filters);
-  const res = await api<ApiResponse<ArtistProfileListItem[]>>(`artist-profiles${suffix}`);
-  return res.data ?? [];
+  const raw = await api<unknown>(`artist-profiles${suffix}`);
+  const list = normalizeArtistProfileListPayload(raw);
+  return dedupeArtistListByUid(list);
 }
 
 export async function getArtistProfile(): Promise<ArtistProfile> {
@@ -58,6 +100,78 @@ export async function updateArtistProfile(payload: ArtistProfileUpdate): Promise
     body: JSON.stringify(payload),
   });
   return res.data;
+}
+
+function artistProfileHasMeaningfulContent(profile: ArtistProfile): boolean {
+  const o = profile as Record<string, unknown>;
+  const str = (v: unknown) => typeof v === 'string' && v.trim().length > 0;
+  if (str(o.biography)) return true;
+  if (str(o.city)) return true;
+  if (str(o.photo)) return true;
+  if (Array.isArray(o.media) && o.media.length > 0) return true;
+  const sn = o.socialNetworks;
+  if (sn && typeof sn === 'object') {
+    if (Object.values(sn as Record<string, unknown>).some((x) => str(x))) return true;
+  }
+  if (o.featuredSong && typeof o.featuredSong === 'object') return true;
+  if (Array.isArray(o.blockedDates) && o.blockedDates.length > 0) return true;
+  return false;
+}
+
+/**
+ * True when the server returned no usable document yet (new artist). `{}` or all-empty fields still need a seed PUT
+ * so discovery lists can pick up the uid.
+ */
+function artistProfileNeedsDiscoverySeed(profile: ArtistProfile | null | undefined): boolean {
+  if (profile == null) return true;
+  if (typeof profile !== 'object') return true;
+  if (!artistProfileHasMeaningfulContent(profile)) return true;
+  return false;
+}
+
+const DISCOVERY_SEED_SESSION_PREFIX = 'artistDiscoverySeeded:';
+
+/**
+ * Ensures the signed-in artist has a persisted artist profile row for client discovery (`GET /artist-profiles`).
+ * Seeds with a minimal PUT when GET /me is missing (404/403) or returns an empty profile; repeats empty-profile PUT
+ * at most once per tab session (sessionStorage) to avoid hammering the API.
+ */
+export async function ensureArtistProfileListedForDiscovery(artistUid: string): Promise<boolean> {
+  const seedKey = `${DISCOVERY_SEED_SESSION_PREFIX}${artistUid}`;
+
+  let profile: ArtistProfile | null | undefined;
+  try {
+    const raw = await getArtistProfile();
+    profile = raw ?? null;
+  } catch (e) {
+    if (e instanceof ApiError && (e.status === 404 || e.status === 403)) {
+      profile = null;
+    } else {
+      return false;
+    }
+  }
+
+  if (!artistProfileNeedsDiscoverySeed(profile)) {
+    return true;
+  }
+
+  if (typeof sessionStorage !== 'undefined' && sessionStorage.getItem(seedKey)) {
+    return true;
+  }
+
+  try {
+    await updateArtistProfile({
+      biography: '',
+      city: '',
+      socialNetworks: {},
+    });
+    if (typeof sessionStorage !== 'undefined') {
+      sessionStorage.setItem(seedKey, '1');
+    }
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /** Update artist profile with photo as file (multipart). Use this instead of upload + update when changing photo. */

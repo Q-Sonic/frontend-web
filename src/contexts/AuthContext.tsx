@@ -2,7 +2,8 @@ import { createContext, useCallback, useContext, useEffect, useState, type React
 import type { UserRecord } from '../types';
 import { getIdToken } from '../api';
 import { getMe } from '../api/authService';
-import { normalizeRole } from '../helpers/role';
+import { ensureArtistProfileListedForDiscovery } from '../api/artistProfileService';
+import { isBackendRoleArtista, normalizeRole } from '../helpers/role';
 
 const AUTH_KEYS = ['idToken', 'refreshToken', 'uid', 'role'] as const;
 
@@ -40,10 +41,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const res = await getMe();
       const userData = res.data;
+      const normalizedRole = userData.role ? normalizeRole(userData.role) : userData.role;
       setUserState({
         ...userData,
-        role: userData.role ? normalizeRole(userData.role) : userData.role,
+        role: normalizedRole,
       });
+
+      if (userData.uid && isBackendRoleArtista(normalizedRole)) {
+        void ensureArtistProfileListedForDiscovery(userData.uid);
+      }
     } catch {
       clearAuthStorage();
       setUserState(null);
