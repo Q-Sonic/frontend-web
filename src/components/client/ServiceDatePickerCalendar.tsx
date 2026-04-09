@@ -89,40 +89,40 @@ export function ServiceDatePickerCalendar({
     <div
       className={
         'rounded-3xl border border-[#00d4c8]/20 bg-gradient-to-b from-white/[0.05] via-[#0a0c0f] to-black/55 ' +
-        'p-5 shadow-[0_0_36px_rgba(0,212,200,0.08)] sm:p-6'
+        'p-6 shadow-[0_0_36px_rgba(0,212,200,0.08)] sm:p-7 lg:p-8'
       }
       style={{ boxShadow: '0 0 32px rgba(0, 212, 200, 0.07), inset 0 1px 0 rgba(255,255,255,0.04)' }}
     >
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-center text-[11px] font-semibold uppercase tracking-[0.12em] text-neutral-500 sm:text-left">
+      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-center text-xs font-semibold uppercase tracking-[0.12em] text-neutral-500 sm:text-left">
           Calendario
         </p>
-        <div className="flex items-center justify-center gap-1 self-center rounded-2xl border border-white/10 bg-black/40 px-1.5 py-1.5 sm:self-end">
+        <div className="flex items-center justify-center gap-1 self-center rounded-2xl border border-white/10 bg-black/40 px-2 py-2 sm:self-end">
           <button
             type="button"
             onClick={goPrevMonth}
             disabled={!canGoPrev}
-            className="rounded-xl p-2 text-neutral-300 transition hover:bg-white/10 hover:text-[#00d4c8] disabled:cursor-not-allowed disabled:opacity-25 disabled:hover:bg-transparent disabled:hover:text-neutral-300"
+            className="rounded-xl p-2.5 text-neutral-300 transition hover:bg-white/10 hover:text-[#00d4c8] disabled:cursor-not-allowed disabled:opacity-25 disabled:hover:bg-transparent disabled:hover:text-neutral-300"
             aria-label="Mes anterior"
           >
-            <FiChevronLeft size={20} />
+            <FiChevronLeft size={22} />
           </button>
-          <span className="min-w-[9.5rem] text-center text-sm font-semibold text-neutral-100 sm:min-w-[11rem] sm:text-base">
+          <span className="min-w-[10rem] text-center text-base font-semibold text-neutral-100 sm:min-w-[12rem] sm:text-lg">
             {formatMonthYearLabel(viewYear, viewMonth)}
           </span>
           <button
             type="button"
             onClick={goNextMonth}
-            className="rounded-xl p-2 text-neutral-300 transition hover:bg-white/10 hover:text-[#00d4c8]"
+            className="rounded-xl p-2.5 text-neutral-300 transition hover:bg-white/10 hover:text-[#00d4c8]"
             aria-label="Mes siguiente"
           >
-            <FiChevronRight size={20} />
+            <FiChevronRight size={22} />
           </button>
         </div>
       </div>
 
       {selectedSummary ? (
-        <div className="mb-4 rounded-2xl border border-white/[0.08] bg-black/30 px-4 py-3 sm:px-5">
+        <div className="mb-5 rounded-2xl border border-white/[0.08] bg-black/30 px-4 py-3.5 sm:px-6 sm:py-4 text-sm sm:text-base">
           {selectedSummary}
         </div>
       ) : null}
@@ -132,7 +132,7 @@ export function ServiceDatePickerCalendar({
           {WEEKDAYS_ES.map((d) => (
             <div
               key={d}
-              className="bg-[#080a0c] px-1 py-2.5 text-center text-[10px] font-bold tracking-wide text-neutral-500 sm:text-[11px]"
+              className="bg-[#080a0c] px-0.5 py-3 text-center text-[11px] font-bold tracking-wide text-neutral-500 sm:py-3.5 sm:text-xs lg:text-sm"
             >
               {d}
             </div>
@@ -145,7 +145,7 @@ export function ServiceDatePickerCalendar({
             const muted = !cell.inMonth;
 
             const baseCell =
-              'min-h-[46px] bg-[#080a0c] px-0.5 py-2 text-sm font-semibold tabular-nums transition sm:min-h-[52px] sm:text-[15px]';
+              'min-h-[52px] bg-[#080a0c] px-0.5 py-2.5 text-[15px] font-semibold tabular-nums transition sm:min-h-[58px] sm:text-base lg:min-h-[64px] lg:text-lg';
             let extra = '';
             if (past) {
               extra =
