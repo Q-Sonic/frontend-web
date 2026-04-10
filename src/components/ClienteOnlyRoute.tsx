@@ -1,16 +1,12 @@
-import { Navigate } from 'react-router-dom';
+import { Navigate, Outlet } from 'react-router-dom';
 import { getDashboardPath } from '../config';
 import { useAuth } from '../contexts/AuthContext';
 import { ClientNotificationsProvider } from '../contexts/ClientNotificationsContext';
 import { ClientServiceCartProvider } from '../contexts/ClientServiceCartContext';
 import { isBackendRoleCliente } from '../helpers/role';
 
-interface ClienteOnlyRouteProps {
-  children: React.ReactNode;
-}
-
 /** Restricts `/client/*` shell routes to role cliente. */
-export function ClienteOnlyRoute({ children }: ClienteOnlyRouteProps) {
+export function ClienteOnlyRoute() {
   const { user, isLoading } = useAuth();
 
   if (isLoading) {
@@ -31,7 +27,9 @@ export function ClienteOnlyRoute({ children }: ClienteOnlyRouteProps) {
 
   return (
     <ClientNotificationsProvider>
-      <ClientServiceCartProvider>{children}</ClientServiceCartProvider>
+      <ClientServiceCartProvider>
+        <Outlet />
+      </ClientServiceCartProvider>
     </ClientNotificationsProvider>
   );
 }

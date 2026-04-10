@@ -35,8 +35,8 @@ export const NuveiPaymentButton: React.FC<NuveiPaymentButtonProps> = ({
         dev_reference,
       });
 
-      if (response.success && response.data.payment.payment_url) {
-        const url_para_pago = response.data.payment.payment_url;
+      if (response.success && response.data.payment_url) {
+        const url_para_pago = response.data.payment_url;
         
         if (onSuccess) {
           onSuccess(url_para_pago);

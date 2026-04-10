@@ -1,7 +1,7 @@
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { getDashboardPath } from '../../config';
-import { DashboardPage as AccountDashboardPage } from '../account/DashboardPage';
+import { AccountDashboardPage } from '../account/DashboardPage';
 
 /**
  * Redirects the user to their role-specific home page.

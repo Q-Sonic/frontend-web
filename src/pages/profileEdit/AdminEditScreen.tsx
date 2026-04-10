@@ -36,6 +36,7 @@ export function AdminEditScreen() {
 
     setIsSubmitting(true);
     try {
+      if (!user) throw new Error('Usuario no autenticado');
       let photoURL = user.photoURL;
       if (avatarFile) {
         const { url } = await uploadFile(avatarFile);
@@ -88,7 +89,6 @@ export function AdminEditScreen() {
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
             error={isSubmitted ? nameError : undefined}
-            variant="dark"
             required
           />
 
