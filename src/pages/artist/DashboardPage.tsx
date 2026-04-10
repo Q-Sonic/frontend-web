@@ -8,6 +8,7 @@ import { withMinimumDelay } from '../../helpers/withMinimumDelay';
 import { api, ensureArtistProfileListedForDiscovery } from '../../api';
 import type { ApiResponse } from '../../types';
 import { Skeleton } from '../../components';
+import { paymentService } from '../../api/paymentService';
 
 type DashboardStats = {
   totalEvents: number;
@@ -56,6 +57,64 @@ export function HomeArtistaPage() {
   const [nextShow, setNextShow] = useState<NextShow | null>(null);
   const [nextShowLoading, setNextShowLoading] = useState(true);
   const [nextShowError, setNextShowError] = useState('');
+  
+  const [withdrawing, setWithdrawing] = useState(false);
+
+  const loadStats = async (cancelled = false) => {
+    setStatsLoading(true);
+    setStatsError('');
+    try {
+      const statsRes = await withMinimumDelay(1000, async () => {
+        return api<ApiResponse<DashboardStats>>('dashboard/stats');
+      });
+      if (!cancelled) setStats(statsRes.data);
+    } catch (err) {
+      if (!cancelled) setStatsError(err instanceof Error ? err.message : 'Error al cargar el resumen.');
+    } finally {
+      if (!cancelled) setStatsLoading(false);
+    }
+  };
+
+  const handleWithdraw = async () => {
+    if (!stats || stats.totalBalance <= 0) {
+      alert('No tienes saldo suficiente para retirar.');
+      return;
+    }
+
+    const inputAmount = window.prompt(
+      `Saldo disponible: $${stats.totalBalance}\n¿Cuánto deseas retirar?`,
+      stats.totalBalance.toString()
+    );
+
+    if (inputAmount === null) return; // Cancelado
+
+    const amountToWithdraw = parseFloat(inputAmount);
+
+    if (isNaN(amountToWithdraw) || amountToWithdraw <= 0) {
+      alert('Por favor, ingresa un monto válido.');
+      return;
+    }
+
+    if (amountToWithdraw > stats.totalBalance) {
+      alert('No puedes retirar más de lo que tienes en tu saldo.');
+      return;
+    }
+
+    if (!window.confirm(`¿Estás seguro que deseas retirar $${amountToWithdraw}?`)) {
+      return;
+    }
+
+    setWithdrawing(true);
+    try {
+      await paymentService.withdraw(amountToWithdraw);
+      alert('Retiro solicitado con éxito. El administrador lo procesará en breve.');
+      loadStats(); // Refresh stats after withdrawal
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Error al procesar el retiro.');
+    } finally {
+      setWithdrawing(false);
+    }
+  };
 
   useEffect(() => {
     if (!user?.uid || !isArtista) return;
@@ -67,26 +126,14 @@ export function HomeArtistaPage() {
 
     let cancelled = false;
 
-    async function load() {
-      setStatsLoading(true);
-      setStatsError('');
+    async function initialLoad() {
+      loadStats(cancelled);
+
       setNextShowLoading(true);
       setNextShowError('');
-
       const now = new Date();
       const end = new Date(now);
       end.setMonth(end.getMonth() + 3);
-
-      try {
-        const statsRes = await withMinimumDelay(1000, async () => {
-          return api<ApiResponse<DashboardStats>>('dashboard/stats');
-        });
-        if (!cancelled) setStats(statsRes.data);
-      } catch (err) {
-        if (!cancelled) setStatsError(err instanceof Error ? err.message : 'Error al cargar el resumen.');
-      } finally {
-        if (!cancelled) setStatsLoading(false);
-      }
 
       try {
         const nextShowRes = await withMinimumDelay(1000, async () => {
@@ -113,7 +160,7 @@ export function HomeArtistaPage() {
       }
     }
 
-    load();
+    initialLoad();
     return () => {
       cancelled = true;
     };
@@ -179,7 +226,11 @@ export function HomeArtistaPage() {
 
       {/* Right panel */}
       <aside className="w-72 shrink-0 space-y-4 hidden xl:block">
-        <BalanceCard balance={stats?.totalBalance ?? null} loading={statsLoading} />
+        <BalanceCard 
+            balance={stats?.totalBalance ?? null} 
+            loading={statsLoading || withdrawing} 
+            onWithdraw={handleWithdraw} 
+        />
 
         {/* Próximo Show */}
         <div className="rounded-xl p-5 border border-white/10 bg-card">
@@ -324,7 +375,15 @@ function SummaryCard({
   );
 }
 
-function BalanceCard({ balance, loading }: { balance: number | null; loading: boolean }) {
+function BalanceCard({ 
+    balance, 
+    loading, 
+    onWithdraw 
+}: { 
+    balance: number | null; 
+    loading: boolean;
+    onWithdraw: () => void;
+}) {
   return (
     <div className="flex flex-col gap-2 items-center justify-center rounded-4xl p-5 text-white bg-linear-to-l from-accent to-[#3A9AF4]">
       <h3 className="font-medium opacity-90">My balance</h3>
@@ -333,22 +392,26 @@ function BalanceCard({ balance, loading }: { balance: number | null; loading: bo
       </p>
       <button
         type="button"
-        className="mt-3 px-4 py-2 rounded-full flex items-center gap-2 font-medium bg-white/20 hover:bg-white/30 cursor-pointer"
+        onClick={onWithdraw}
+        disabled={loading || balance === null || balance <= 0}
+        className="mt-3 px-4 py-2 rounded-full flex items-center gap-2 font-medium bg-white/20 hover:bg-white/30 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        Retirar{' '}
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden
-        >
-          <path d="m9 18 6-6-6-6" />
-        </svg>
+        {loading ? 'Procesando...' : 'Retirar'}{' '}
+        {!loading && (
+            <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden
+            >
+            <path d="m9 18 6-6-6-6" />
+            </svg>
+        )}
       </button>
     </div>
   );

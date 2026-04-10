@@ -41,3 +41,5 @@ export {
   deleteArtistSong,
 } from './artistSongService';
 export { uploadFile, deleteStorageFile } from './storageService';
+export { paymentService } from './paymentService';
+

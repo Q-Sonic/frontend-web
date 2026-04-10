@@ -27,3 +27,11 @@ export type {
   ArtistSongResponse,
   ArtistSongListResponse,
 } from './artistSong';
+export type {
+  CreateLinkToPayRequest,
+  CreateLinkToPayResponse,
+  NuveiOrder,
+  NuveiPayment,
+  WebhookProcessedResponse,
+} from './payment';
+
