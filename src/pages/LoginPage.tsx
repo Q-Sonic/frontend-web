@@ -5,6 +5,7 @@ import { AuthLayout } from '../components/AuthLayout';
 import { useAuth } from '../contexts/AuthContext';
 import { login, loginWithGoogleBackend } from '../api/authService';
 import { normalizeRole } from '../helpers/role';
+import { loginErrorMessage } from '../helpers/authErrors';
 import { signInWithPopup, signInWithCustomToken } from 'firebase/auth';
 import { auth as firebaseAuth, googleProvider } from '../config/firebase';
 
@@ -63,20 +64,32 @@ export function LoginPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
-  const locationState = location.state as { from?: { pathname: string }; registerSuccess?: boolean } | undefined;
+  const locationState = location.state as {
+    from?: { pathname: string };
+    registerSuccess?: boolean;
+    passwordChangedRelogin?: boolean;
+  } | undefined;
   // Use '/dashboard' as default redirected from main branch logic
   const from = locationState?.from?.pathname ?? '/dashboard';
   const [showRegisterSuccess, setShowRegisterSuccess] = useState(
     () => locationState?.registerSuccess === true
+  );
+  const [showPasswordRelogin, setShowPasswordRelogin] = useState(
+    () => locationState?.passwordChangedRelogin === true
   );
 
   function clearRegisterSuccess() {
     setShowRegisterSuccess(false);
   }
 
+  function clearPasswordRelogin() {
+    setShowPasswordRelogin(false);
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     clearRegisterSuccess();
+    clearPasswordRelogin();
     setError('');
     setIsSubmitting(true);
     try {
@@ -88,9 +101,9 @@ export function LoginPage() {
       localStorage.setItem('role', normalizeRole(role));
       await refreshUser();
       navigate(from, { replace: true });
-    } catch {
+    } catch (err) {
       clearRegisterSuccess();
-      setError('Correo o contraseña incorrectos. Verifica tus datos e intenta de nuevo.');
+      setError(loginErrorMessage(err));
     } finally {
       setIsSubmitting(false);
     }
@@ -98,6 +111,7 @@ export function LoginPage() {
 
   async function handleGoogleLogin() {
     clearRegisterSuccess();
+    clearPasswordRelogin();
     setError('');
     setIsGoogleLoading(true);
     try {
@@ -144,6 +158,18 @@ export function LoginPage() {
         </div>
       )}
 
+      {showPasswordRelogin && (
+        <div className="mb-6 flex items-start gap-3 rounded-lg border border-[#38BACC]/35 bg-[#38BACC]/10 px-4 py-3">
+          <CheckCircleIcon />
+          <div>
+            <p className="text-sm font-medium text-[#7ee8f0]">Contraseña actualizada</p>
+            <p className="mt-0.5 text-xs text-white/65">
+              Por seguridad cerramos tu sesión. Vuelve a iniciar sesión con tu correo y tu nueva contraseña.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Error banner */}
       {error && (
         <div className="mb-6 flex items-start gap-3 bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-3">
@@ -162,6 +188,7 @@ export function LoginPage() {
           value={email}
           onChange={(e) => {
             clearRegisterSuccess();
+            clearPasswordRelogin();
             setEmail(e.target.value);
           }}
           required
@@ -177,6 +204,7 @@ export function LoginPage() {
           value={password}
           onChange={(e) => {
             clearRegisterSuccess();
+            clearPasswordRelogin();
             setPassword(e.target.value);
           }}
           required

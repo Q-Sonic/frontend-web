@@ -1,24 +1,31 @@
-# 1. Build stage
-FROM node:20-alpine AS builder
+# Stage 1: Build
+FROM node:20-alpine AS build
 
 WORKDIR /app
 
-# Cache dependencies
+# Instalar dependencias primero (cache layer)
 COPY package*.json ./
 RUN npm ci
 
-# Copy all files and build
+# Copiar el resto del código y construir
 COPY . .
 RUN npm run build
 
-# 2. Production stage (Nginx)
+# Stage 2: Serve with Nginx
 FROM nginx:stable-alpine
 
-# Copy built assets from builder
-COPY --from=builder /app/dist /usr/share/nginx/html
+# Copiar el build de Vite a la carpeta de Nginx
+COPY --from=build /app/dist /usr/share/nginx/html
 
-# Generic Nginx config to handle SPA routing (optional but recommended)
-RUN printf 'server {\n\tlisten 80;\n\tlocation / {\n\t\troot /usr/share/nginx/html;\n\t\tindex index.html index.htm;\n\t\ttry_files $uri $uri/ /index.html;\n\t}\n}' > /etc/nginx/conf.d/default.conf
+# Configuración básica de Nginx para React (manejo de rutas de react-router)
+RUN echo 'server { \
+    listen 80; \
+    location / { \
+        root /usr/share/nginx/html; \
+        index index.html; \
+        try_files $uri $uri/ /index.html; \
+    } \
+}' > /etc/nginx/conf.d/default.conf
 
 EXPOSE 80
 

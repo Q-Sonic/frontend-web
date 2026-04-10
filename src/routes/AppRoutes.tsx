@@ -1,14 +1,27 @@
 import { Routes, Route } from 'react-router-dom';
-import { ProtectedRoute, PublicOnlyRoute, AdminOnlyRoute } from '../components';
+import { ProtectedRoute, PublicOnlyRoute, AdminOnlyRoute, ClienteOnlyRoute } from '../components';
 import { AppLayout, SidebarLayout } from '../layouts';
 import { artistSidebarMenus } from '../constants/menus';
 import { EditProfilePage, HomeRedirectPage, ProfileRedirectPage } from '../pages/redirects';
-import { ClientEditScreen, HomeClientePage, ProfileClientePage } from '../pages/client';
+import {
+  ClientEditScreen,
+  ProfileClientePage,
+  DashboardPage,
+  ClientEventsPage,
+  ClientContractsPage,
+  ClientArtistProfileLayout,
+  ClientArtistContractsSubPage,
+  ClientArtistRiderSubPage,
+  ClientArtistServiceDetailPage,
+} from '../pages/client';
 import {
   ArtistCalendarPage,
   ArtistMediaPage,
+  ArtistMediaLegacyRedirect,
   ArtistProfileDocumentsPage,
   ArtistProfileGalleryPage,
+  ArtistProfileCalendarPage,
+  ArtistAccessSettingsPage,
   ArtistProfileIdRedirect,
   ArtistProfileLayout,
   ArtistProfileMainPage,
@@ -21,10 +34,16 @@ import { RegisterPage } from '../pages/RegisterPage';
 import { ForgotPasswordPage } from '../pages/ForgotPasswordPage';
 import { CreateArtistPage, HomeAdminPage } from '../pages/admin';
 import { HomeOrganizacionPage } from '../pages/organization';
+import { clientSidebarMenus } from '../constants/menus/clientMenus';
 
 const artistSidebar = {
   sectionTitle: 'Información',
   menuItems: artistSidebarMenus,
+};
+
+const clientSidebar = {
+  sectionTitle: 'Información',
+  menuItems: clientSidebarMenus,
 };
 
 export function AppRoutes() {
@@ -69,12 +88,56 @@ export function AppRoutes() {
         path="/client"
         element={
           <ProtectedRoute>
-            <AppLayout>
-              <HomeClientePage />
-            </AppLayout>
+            <ClienteOnlyRoute>
+              <SidebarLayout sidebar={clientSidebar}>
+                <DashboardPage />
+              </SidebarLayout>
+            </ClienteOnlyRoute>
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/client/events"
+        element={
+          <ProtectedRoute>
+            <ClienteOnlyRoute>
+              <SidebarLayout sidebar={clientSidebar}>
+                <ClientEventsPage />
+              </SidebarLayout>
+            </ClienteOnlyRoute>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/client/contracts"
+        element={
+          <ProtectedRoute>
+            <ClienteOnlyRoute>
+              <SidebarLayout sidebar={clientSidebar}>
+                <ClientContractsPage />
+              </SidebarLayout>
+            </ClienteOnlyRoute>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/client/artists/:id"
+        element={
+          <ProtectedRoute>
+            <ClienteOnlyRoute>
+              <ClientArtistProfileLayout />
+            </ClienteOnlyRoute>
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<ArtistProfileMainPage />} />
+        <Route path="gallery" element={<ArtistProfileGalleryPage />} />
+        <Route path="calendar" element={<ArtistProfileCalendarPage />} />
+        <Route path="services/:serviceId" element={<ClientArtistServiceDetailPage />} />
+        <Route path="contracts" element={<ClientArtistContractsSubPage />} />
+        <Route path="rider" element={<ClientArtistRiderSubPage />} />
+      </Route>
+
       <Route
         path="/artist"
         element={
@@ -109,9 +172,7 @@ export function AppRoutes() {
         path="/artist/media"
         element={
           <ProtectedRoute>
-            <SidebarLayout sidebar={artistSidebar}>
-              <ArtistMediaPage />
-            </SidebarLayout>
+            <ArtistMediaLegacyRedirect />
           </ProtectedRoute>
         }
       />
@@ -132,16 +193,22 @@ export function AppRoutes() {
         }
       >
         <Route index element={<ArtistProfileMainPage />} />
+        <Route path="gallery/edit" element={<ArtistMediaPage />} />
         <Route path="gallery" element={<ArtistProfileGalleryPage />} />
         <Route path="documents" element={<ArtistProfileDocumentsPage />} />
+        <Route path="calendar" element={<ArtistProfileCalendarPage />} />
+        <Route path="services/:serviceId" element={<ClientArtistServiceDetailPage />} />
+        <Route path="settings" element={<ArtistAccessSettingsPage />} />
       </Route>
       <Route
         path="/client/profile"
         element={
           <ProtectedRoute>
-            <AppLayout>
-              <ProfileClientePage />
-            </AppLayout>
+            <ClienteOnlyRoute>
+              <AppLayout>
+                <ProfileClientePage />
+              </AppLayout>
+            </ClienteOnlyRoute>
           </ProtectedRoute>
         }
       />
@@ -149,9 +216,11 @@ export function AppRoutes() {
         path="/client/profile/edit"
         element={
           <ProtectedRoute>
-            <AppLayout>
-              <ClientEditScreen />
-            </AppLayout>
+            <ClienteOnlyRoute>
+              <AppLayout>
+                <ClientEditScreen />
+              </AppLayout>
+            </ClienteOnlyRoute>
           </ProtectedRoute>
         }
       />

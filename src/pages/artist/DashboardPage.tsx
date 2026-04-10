@@ -5,7 +5,7 @@ import { formatMoney } from '../../helpers/money';
 import { useAuth } from '../../contexts/AuthContext';
 import { isBackendRoleArtista } from '../../helpers/role';
 import { withMinimumDelay } from '../../helpers/withMinimumDelay';
-import { api } from '../../api';
+import { api, ensureArtistProfileListedForDiscovery } from '../../api';
 import type { ApiResponse } from '../../types';
 import { Skeleton } from '../../components';
 
@@ -56,6 +56,11 @@ export function HomeArtistaPage() {
   const [nextShow, setNextShow] = useState<NextShow | null>(null);
   const [nextShowLoading, setNextShowLoading] = useState(true);
   const [nextShowError, setNextShowError] = useState('');
+
+  useEffect(() => {
+    if (!user?.uid || !isArtista) return;
+    void ensureArtistProfileListedForDiscovery(user.uid);
+  }, [user?.uid, isArtista]);
 
   useEffect(() => {
     if (!user?.uid || !isArtista) return;
@@ -114,7 +119,16 @@ export function HomeArtistaPage() {
     };
   }, [user?.uid, isArtista]);
 
-  if (!user) return null;
+  if (!user) {
+    return (
+      <div className="w-full max-w-[1600px] mx-auto p-6">
+        <div className="flex-1 min-w-0 space-y-6 bg-card h-fit rounded-2xl p-6 animate-pulse">
+          <div className="h-8 w-48 rounded-lg bg-white/10" />
+          <div className="h-40 rounded-xl bg-white/5" />
+        </div>
+      </div>
+    );
+  }
 
   if (!isArtista) {
     return (
@@ -150,7 +164,7 @@ export function HomeArtistaPage() {
               <p className="text-sm mt-1 text-muted">Configura tus precios</p>
             </Link>
             <Link
-              to="/artist/media"
+              to={user.uid ? `/artist/${user.uid}/gallery/edit` : '/artist'}
               className="rounded-xl p-5 border border-white/10 block hover:border-white/30 transition-colors bg-card"
             >
               <h3 className="text-lg font-bold text-white">Multimedia</h3>

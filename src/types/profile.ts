@@ -28,6 +28,8 @@ export interface ArtistMediaItem {
   type: 'image' | 'audio' | 'video';
   /** Optional original filename. */
   name?: string;
+  /** Optional cover image URL for audio songs. */
+  coverUrl?: string;
 }
 
 export interface ArtistProfile {
@@ -42,18 +44,28 @@ export interface ArtistProfile {
     streamUrl: string;
     coverUrl?: string;
   };
-  /** Link to technical rider (PDF) */
+  /** Link to technical rider (PDF), e.g. after multipart `rider` on PUT /artist-profiles */
   technicalRiderUrl?: string;
+  /** Some backends expose the same file under this name */
+  riderUrl?: string;
   /** Manual blocked dates (YYYY-MM-DD). */
   blockedDates?: string[];
   /** Media gallery URLs (stored client-side until backend supports it). */
   media?: ArtistMediaItem[];
+  /** Songs are independent from gallery media. */
+  songs?: Array<{
+    url: string;
+    title: string;
+    coverUrl?: string;
+  }>;
 }
 
 /** Artist profile as returned by list endpoint (with displayName). */
 export interface ArtistProfileListItem extends ArtistProfile {
   uid: string;
   displayName: string;
+  /** When provided by list/filters API (discovery). */
+  genre?: string;
 }
 
 export interface ArtistProfileUpdate {
@@ -62,6 +74,18 @@ export interface ArtistProfileUpdate {
   socialNetworks?: ArtistSocialNetworks;
   photo?: string;
   media?: ArtistMediaItem[];
+  songs?: Array<{
+    url: string;
+    title: string;
+    coverUrl?: string;
+  }>;
+  blockedDates?: string[];
+  featuredSong?: {
+    title: string;
+    artistName: string;
+    streamUrl: string;
+    coverUrl?: string;
+  };
 }
 
 export type ClientProfileResponse = ApiResponse<ClientProfile>;

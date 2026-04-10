@@ -1,14 +1,43 @@
-export { api, getIdToken, ApiError } from './client';
-export { login, register, getMe } from './authService';
+export { api, apiPostFormData, getIdToken, ApiError } from './client';
+export {
+  login,
+  register,
+  getMe,
+  getAccountChangeStatus,
+  requestAccountChangeCode,
+  verifyAccountChangeCode,
+  changeAccountEmail,
+  changeAccountPassword,
+} from './authService';
+export type { AccountChangeStatus } from './authService';
 export { getAllUsers, getUser, updateUser } from './userService';
 export { getClientProfile, updateClientProfile } from './clientProfileService';
-export { listArtistProfiles, getArtistProfile, getArtistProfileById, updateArtistProfile, updateArtistProfileWithFormData } from './artistProfileService';
+export type { ArtistProfileListFilters } from './artistProfileService';
+export {
+  listArtistProfiles,
+  getArtistProfile,
+  getArtistProfileById,
+  updateArtistProfile,
+  updateArtistProfileWithFormData,
+  addArtistProfileMedia,
+  removeArtistProfileGalleryItem,
+  ensureArtistProfileListedForDiscovery,
+} from './artistProfileService';
 export {
   getMyArtistServices,
   getArtistServicesByArtistId,
   getArtistServiceById,
   createArtistService,
+  createArtistServiceWithFormData,
   updateArtistService,
+  updateArtistServiceWithFormData,
   deleteArtistService,
 } from './artistServiceService';
-export { uploadFile } from './storageService';
+export {
+  getMyArtistSongs,
+  getArtistSongsByArtistId,
+  createArtistSongWithFormData,
+  updateArtistSongWithFormData,
+  deleteArtistSong,
+} from './artistSongService';
+export { uploadFile, deleteStorageFile } from './storageService';

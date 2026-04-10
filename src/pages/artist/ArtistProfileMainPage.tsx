@@ -1,14 +1,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useArtistProfileNav } from '../../contexts/ArtistProfileNavContext';
 import { isBackendRoleArtista } from '../../helpers/role';
 import {
   ARTIST_PROFILE_ACCENT,
   ArtistProfileAvailabilityDay,
+  ArtistFeaturedSongModal,
   ArtistProfileEditButton,
   ArtistProfileGalleryGrid,
+  ArtistProfileSettingsModal,
   ArtistProfileSectionTitle,
   ArtistProfileSocialNetworkLink,
+  ArtistSongsModal,
+  ArtistServicesAdminModal,
   ArtistServiceCard,
   BackButton,
   Button,
@@ -17,26 +22,73 @@ import {
   localDateKey,
   weekdayShortEs,
 } from '../../components';
-import type { ArtistMediaItem } from '../../types';
+import { ensureArtistProfileListedForDiscovery, getArtistSongsByArtistId } from '../../api';
+import type { ArtistMediaItem, ArtistProfile, ArtistServiceRecord, ArtistSongRecord } from '../../types';
 import { FiPlay, FiPause, FiSkipBack, FiSkipForward } from 'react-icons/fi';
 import { useArtistProfileById } from '../../hooks/useArtistProfileById';
 
-const PLACEHOLDER_COVER =
-  'https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?q=80&w=869&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D';
+type ArtistModalType = 'profile' | 'songs' | 'featured-song' | 'services' | null;
 
 export function ArtistProfileMainPage() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
+  const { basePath, setSidebarProfileIntro } = useArtistProfileNav();
   const effectiveId = id;
   const isSelfArtist =
     !!user?.uid && isBackendRoleArtista(user.role) && user?.uid === effectiveId;
+  const calendarMoreHref = isSelfArtist ? '/artist/calendario' : `${basePath}/calendar`;
 
-  const { profile, services, artistDisplayName, loading, error } = useArtistProfileById(effectiveId);
+  const profileLoadOptions = useMemo(
+    () =>
+      isSelfArtist && user?.uid
+        ? {
+            allowEmptyProfileForUid: user.uid,
+            fallbackDisplayName: user.displayName?.trim() || user.email?.trim(),
+          }
+        : undefined,
+    [isSelfArtist, user?.uid, user?.displayName, user?.email],
+  );
+
+  const { profile, services, artistDisplayName: artistDisplayNameFromApi, loading, error } =
+    useArtistProfileById(effectiveId, profileLoadOptions);
+
+  useEffect(() => {
+    if (!isSelfArtist || !user?.uid) return;
+    void ensureArtistProfileListedForDiscovery(user.uid);
+  }, [isSelfArtist, user?.uid]);
+
+  const [artistDisplayName, setArtistDisplayName] = useState('Artista');
+  const [localProfile, setLocalProfile] = useState<(ArtistProfile & { uid: string }) | null>(null);
+  const [localServices, setLocalServices] = useState<ArtistServiceRecord[]>([]);
+  const [activeModal, setActiveModal] = useState<ArtistModalType>(null);
+  const [songs, setSongs] = useState<ArtistSongRecord[]>([]);
+  const [modalError, setModalError] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [servicesExpanded, setServicesExpanded] = useState(false);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
+
+  useEffect(() => {
+    setLocalProfile(profile);
+  }, [profile]);
+
+  useEffect(() => {
+    setLocalServices(services);
+  }, [services]);
+
+  useEffect(() => {
+    setArtistDisplayName(artistDisplayNameFromApi);
+  }, [artistDisplayNameFromApi]);
+
+  useEffect(() => {
+    if (!effectiveId) return;
+    void getArtistSongsByArtistId(effectiveId)
+      .then(setSongs)
+      .catch(() => setSongs([]));
+  }, [effectiveId]);
 
   const availabilityDays = useMemo(() => {
     return Array.from({ length: 7 }, (_, idx) => {
@@ -47,8 +99,8 @@ export function ArtistProfileMainPage() {
   }, []);
 
   const blockedSet = useMemo(
-    () => new Set(profile?.blockedDates ?? []),
-    [profile?.blockedDates],
+    () => new Set(localProfile?.blockedDates ?? []),
+    [localProfile?.blockedDates],
   );
 
   const [, setSelectedAvailabilityKey] = useState<string>(() =>
@@ -68,7 +120,16 @@ export function ArtistProfileMainPage() {
     setPlaying(false);
     setProgress(0);
     setDuration(0);
-  }, [effectiveId, profile?.featuredSong, profile?.media]);
+  }, [effectiveId, localProfile?.featuredSong, localProfile?.media]);
+
+  useEffect(() => {
+    if (!activeModal) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !isSaving) setActiveModal(null);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [activeModal, isSaving]);
 
   const onTimeUpdate = useCallback(() => {
     const el = audioRef.current;
@@ -144,7 +205,7 @@ export function ArtistProfileMainPage() {
     );
   }
 
-  if (error || !profile) {
+  if (error || !localProfile) {
     return (
       <div
         className={
@@ -161,24 +222,33 @@ export function ArtistProfileMainPage() {
     );
   }
 
-  const media = profile.media ?? [];
+  const media = localProfile.media ?? [];
   const imageMedia = media.filter((m) => m.type === 'image');
-  const audioMedia = media.filter((m) => m.type === 'audio');
 
-  const featuredSong =
-    profile.featuredSong ??
-    (audioMedia[0]
-      ? {
-          title: audioMedia[0].name ?? 'Canción',
-          artistName: artistDisplayName,
-          streamUrl: audioMedia[0].url,
-          coverUrl: profile.photo,
-        }
-      : undefined);
+  const featuredTrack = songs.find((song) => song.isFeatured) ?? songs[0];
+  const featuredSong = featuredTrack
+    ? {
+        title: featuredTrack.title ?? 'Canción',
+        artistName: artistDisplayName,
+        streamUrl: featuredTrack.audioUrl,
+        coverUrl: featuredTrack.coverUrl || localProfile.photo,
+      }
+    : undefined;
 
-  const coverPhoto = PLACEHOLDER_COVER;
-  const social = profile.socialNetworks ?? {};
-  const heroSubtitle = profile.city?.trim() || 'Música en vivo';
+  const coverPhoto = localProfile.photo?.trim() || '';
+  const social = localProfile.socialNetworks ?? {};
+  const heroSubtitle = localProfile.city?.trim() || 'Música en vivo';
+
+  const openModal = (modalType: Exclude<ArtistModalType, null>) => {
+    setModalError('');
+    setActiveModal(modalType);
+  };
+
+  const closeModal = () => {
+    if (isSaving) return;
+    setActiveModal(null);
+    setModalError('');
+  };
 
   return (
     <div className="w-full mx-auto space-y-10 pb-12 p-6">
@@ -202,7 +272,7 @@ export function ArtistProfileMainPage() {
               </h1>
               <p className="text-white/80 text-sm sm:text-base pt-1">{heroSubtitle}</p>
             </div>
-            <ArtistProfileEditButton show={isSelfArtist} onClick={() => {}} />
+            <ArtistProfileEditButton show={isSelfArtist} onClick={() => openModal('profile')} />
           </div>
 
           <div className="flex flex-wrap items-center gap-3 mt-8">
@@ -234,7 +304,7 @@ export function ArtistProfileMainPage() {
               <h2 className="text-base font-bold text-white tracking-wide">Disponibilidad</h2>
               <Link
                 className="text-sm font-normal text-white/90 hover:text-white transition"
-                to="/artist/calendario"
+                to={calendarMoreHref}
               >
                 Ver todo
               </Link>
@@ -275,24 +345,24 @@ export function ArtistProfileMainPage() {
           <div className="rounded-4xl bg-card/86 p-8 flex flex-col min-h-[200px]">
             <div className="flex items-center justify-between gap-2 mb-4">
               <h2 className="font-bold text-white tracking-wide">Música</h2>
-              <ArtistProfileEditButton show={isSelfArtist} onClick={() => {}} />
+              <ArtistProfileEditButton show={isSelfArtist} onClick={() => openModal('songs')} />
             </div>
-            {audioMedia.length === 0 ? (
+            {songs.length === 0 ? (
               <p className="text-neutral-500 text-sm mt-auto">Sin canciones.</p>
             ) : (
               <div className="flex gap-4 overflow-x-auto pb-2 flex-1 items-end">
-                {audioMedia.slice(0, 8).map((track: ArtistMediaItem) => (
+                {songs.slice(0, 8).map((track) => (
                   <a
-                    key={track.url}
-                    href={track.url}
+                    key={track.id}
+                    href={track.audioUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="shrink-0 flex flex-col items-center gap-2 group w-[72px]"
                   >
                     <div className="relative w-[72px] h-[72px] rounded-full overflow-hidden border border-white/10 bg-neutral-800 shadow-lg">
-                      {coverPhoto ? (
+                      {track.coverUrl || coverPhoto ? (
                         <img
-                          src={coverPhoto}
+                          src={track.coverUrl || coverPhoto}
                           alt=""
                           className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition"
                         />
@@ -308,7 +378,7 @@ export function ArtistProfileMainPage() {
                     <div className="text-center w-full">
                       <p className="text-[11px] text-neutral-400 truncate w-full">{artistDisplayName}</p>
                       <p className="text-xs font-medium text-white truncate w-full">
-                        {track.name || 'Canción'}
+                        {track.title || 'Canción'}
                       </p>
                     </div>
                   </a>
@@ -321,7 +391,7 @@ export function ArtistProfileMainPage() {
         <div className="rounded-4xl bg-card/86 p-8 flex flex-col">
           <div className="flex items-center justify-between gap-2 mb-4">
             <h2 className="font-bold text-white tracking-wide">Canción destacada</h2>
-            <ArtistProfileEditButton show={isSelfArtist} onClick={() => {}} />
+            <ArtistProfileEditButton show={isSelfArtist} onClick={() => openModal('featured-song')} />
           </div>
           {featuredSong?.streamUrl ? (
             <>
@@ -420,32 +490,54 @@ export function ArtistProfileMainPage() {
       </div>
 
       <section id="documents" className="space-y-5 scroll-mt-24">
-        <ArtistProfileSectionTitle title="Servicios" onClick={() => {}} isSelfArtist={isSelfArtist} />
-        {services.length === 0 ? (
+        <ArtistProfileSectionTitle
+          title="Servicios"
+          onClick={() => openModal('services')}
+          isSelfArtist={isSelfArtist}
+          asideContent={
+            localServices.length > 4 ? (
+              <button
+                type="button"
+                onClick={() => setServicesExpanded((prev) => !prev)}
+                className="cursor-pointer border-0 bg-transparent p-0 text-sm font-medium text-[#00d4c8] underline-offset-4 transition hover:underline"
+              >
+                {servicesExpanded
+                  ? 'Ver menos'
+                  : `Ver más (${localServices.length - 4} más)`}
+              </button>
+            ) : null
+          }
+        />
+        {localServices.length === 0 ? (
           <p className="text-neutral-500 text-sm">Sin servicios.</p>
         ) : (
-          <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-5">
-            {services.slice(0, 8).map((s, idx) => {
-              const features = [
-                'Duración: 60-90 minutos',
-                'Equipo de sonido incluido',
-                'Producción de luces profesional',
-                'Músicos de apoyo',
-              ];
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
+            {(servicesExpanded ? localServices : localServices.slice(0, 4)).map((s) => {
+              const serviceFeatures = Array.isArray(s.features) ? s.features : [];
+              const features =
+                s.duration && s.duration.trim()
+                  ? [`Duración: ${s.duration.trim()}`, ...serviceFeatures]
+                  : serviceFeatures;
               return (
-                <ArtistServiceCard
-                  key={s.id}
-                  service={s}
-                  coverPhotoUrl={coverPhoto}
-                  highlighted={idx === 0}
-                  features={features}
-                  isSelfArtist={isSelfArtist}
-                />
+                <div key={s.id} className="min-w-0 flex h-full">
+                  <ArtistServiceCard
+                    service={s}
+                    coverPhotoUrl={s.imageUrl || coverPhoto}
+                    features={features}
+                    isSelfArtist={isSelfArtist}
+                    hireLinkTo={`${basePath}/services/${s.id}`}
+                  />
+                </div>
               );
             })}
           </div>
         )}
       </section>
+
+      <div
+        className="my-10 sm:my-12 border-t border-white/10"
+        aria-hidden
+      />
 
       <section id="gallery" className="space-y-5 scroll-mt-24">
         <ArtistProfileSectionTitle title="Galería" onClick={() => {}} isSelfArtist={isSelfArtist} />
@@ -455,6 +547,63 @@ export function ArtistProfileMainPage() {
           <ArtistProfileGalleryGrid images={imageMedia.slice(0, 7)} />
         )}
       </section>
+
+      {activeModal && activeModal !== 'services' && activeModal !== 'profile' && activeModal !== 'songs' && activeModal !== 'featured-song' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+          <div className="w-full max-w-4xl rounded-3xl border border-[#00d4c8]/35 bg-[#111214] p-6 shadow-[0_0_40px_rgba(0,212,200,0.2)]">
+            <div className="mb-5 flex items-center justify-between">
+              <h3 className="text-2xl font-semibold text-white">
+              </h3>
+              <button
+                type="button"
+                onClick={closeModal}
+                className="rounded-full border border-white/20 px-3 py-1 text-white/70 transition hover:text-white"
+              >
+                X
+              </button>
+            </div>
+
+            {modalError && (
+              <p className="mb-4 rounded-lg border border-red-400/40 bg-red-500/10 px-3 py-2 text-sm text-red-300">
+                {modalError}
+              </p>
+            )}
+
+          </div>
+        </div>
+      )}
+      <ArtistServicesAdminModal
+        isOpen={activeModal === 'services'}
+        services={localServices}
+        onClose={closeModal}
+        onServicesChange={setLocalServices}
+      />
+      <ArtistProfileSettingsModal
+        isOpen={activeModal === 'profile'}
+        profile={localProfile}
+        artistDisplayName={artistDisplayName}
+        onClose={closeModal}
+        onSaved={(saved) => {
+          setLocalProfile((prev) => (prev ? { ...prev, ...saved } : prev));
+          setSidebarProfileIntro?.(saved.biography?.trim() ?? '');
+        }}
+        onArtistNameSaved={setArtistDisplayName}
+      />
+      <ArtistSongsModal
+        isOpen={activeModal === 'songs'}
+        profile={localProfile}
+        artistDisplayName={artistDisplayName}
+        onClose={closeModal}
+        onSongsChange={setSongs}
+      />
+      <ArtistFeaturedSongModal
+        isOpen={activeModal === 'featured-song'}
+        profile={localProfile}
+        artistDisplayName={artistDisplayName}
+        songs={songs}
+        onClose={closeModal}
+        onSongsChange={setSongs}
+      />
     </div>
   );
 }

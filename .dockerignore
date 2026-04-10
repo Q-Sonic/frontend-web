@@ -3,6 +3,7 @@ dist
 .env
 .git
 .gitignore
+Dockerfile
+docker-compose*
 README.md
-docs
-vercel.json
+npm-debug.log
