@@ -8,7 +8,8 @@ import { ServiceDatePickerCalendar } from '../../components/client/ServiceDatePi
 import { useAuth } from '../../contexts/AuthContext';
 import { useArtistProfileById } from '../../hooks/useArtistProfileById';
 import { useArtistProfileNav } from '../../contexts/ArtistProfileNavContext';
-import { addServiceCartLine, appendSignedCartMockRecord } from '../../helpers/clientServiceCart';
+import { persistSignedClientContractsWithApiFallback } from '../../helpers/clientContractPersistence';
+import { addServiceCartLine } from '../../helpers/clientServiceCart';
 import { appendContractSignedPendingArtistNotifications } from '../../helpers/clientNotifications';
 import { contractPdfUrlForService, resolveArtistProfileMediaUrl } from '../../helpers/artistDocumentUrls';
 import { isBackendRoleCliente } from '../../helpers/role';
@@ -389,35 +390,31 @@ function ServiceDetailArticle({
         onViewContract={handleViewContractPdf}
         onSign={async ({ dataUrl }) => {
           if (user && isBackendRoleCliente(user.role)) {
+            const line = {
+              id: `individual-${svc.id}-${Date.now()}`,
+              artistId,
+              serviceId: svc.id,
+              serviceName: svc.name,
+              price: svc.price,
+              selectedDateKeys: [...selectedDateKeys].sort(),
+              addedAt: new Date().toISOString(),
+              artistDisplayName: artistDisplayName.trim() || 'Artista',
+              artistPhotoUrl: resolveArtistProfileMediaUrl(profile?.photo) || undefined,
+              locationLabel: profile?.city?.trim() || 'Por definir',
+              serviceFeatures: Array.isArray(svc.features) ? [...svc.features] : undefined,
+            };
+            await persistSignedClientContractsWithApiFallback([line], {
+              dataUrl,
+              applyToAll: false,
+            });
             appendContractSignedPendingArtistNotifications([
               {
                 artistId,
                 artistDisplayName,
                 serviceName: svc.name,
-                lineId: `individual-${svc.id}`,
+                lineId: line.id,
               },
             ]);
-            appendSignedCartMockRecord({
-              signedAt: new Date().toISOString(),
-              signatureDataUrl: dataUrl,
-              applyToAll: false,
-              artistSignatureComplete: false,
-              lines: [
-                {
-                  id: `individual-${svc.id}-${Date.now()}`,
-                  artistId,
-                  serviceId: svc.id,
-                  serviceName: svc.name,
-                  price: svc.price,
-                  selectedDateKeys: [...selectedDateKeys].sort(),
-                  addedAt: new Date().toISOString(),
-                  artistDisplayName: artistDisplayName.trim() || 'Artista',
-                  artistPhotoUrl: resolveArtistProfileMediaUrl(profile?.photo) || undefined,
-                  locationLabel: profile?.city?.trim() || 'Por definir',
-                  serviceFeatures: Array.isArray(svc.features) ? [...svc.features] : undefined,
-                },
-              ],
-            });
           }
           setContractModalOpen(false);
           navigate(basePath, { replace: true });

@@ -27,3 +27,9 @@ export type {
   ArtistSongResponse,
   ArtistSongListResponse,
 } from './artistSong';
+export type {
+  ContractRecord,
+  CreateContractBody,
+  ContractLifecycleStatus,
+  ContractPaymentStatus,
+} from './contract';
