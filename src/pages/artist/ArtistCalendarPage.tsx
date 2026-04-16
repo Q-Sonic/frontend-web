@@ -6,7 +6,7 @@ import { isBackendRoleArtista } from '../../helpers/role';
 import { withMinimumDelay } from '../../helpers/withMinimumDelay';
 import { api } from '../../api';
 import { PageLayout } from '../../layouts';
-import { Button, Skeleton } from '../../components';
+import { Button, Skeleton, UserMenu } from '../../components';
 import { FiArrowLeft, FiCalendar, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 
 type CalendarContractEvent = {
@@ -250,6 +250,7 @@ export function ArtistCalendarPage() {
           <Button variant="secondary" className="p-2" onClick={() => setWeekStart((w) => addDays(w, 7))}>
             <FiChevronRight size={16} />
           </Button>
+          <UserMenu />
         </div>
       </div>
 

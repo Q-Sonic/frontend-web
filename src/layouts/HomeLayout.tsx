@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom';
-import { Topbar } from '../components/Topbar';
 import { UserMenu } from '../components/UserMenu';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
@@ -24,9 +23,11 @@ const gradientBtn = 'bg-gradient-to-r from-violet-500 to-blue-600 text-white hov
 
 export function HomeLayout({ title, subtitle, actions }: HomeLayoutProps) {
   return (
-    <div className="min-h-screen bg-neutral-950 text-neutral-100">
-      <Topbar variant="dark" right={<UserMenu />} />
-      <main className="max-w-md mx-auto px-4 py-8">
+    <div className="relative min-h-screen bg-neutral-950 text-neutral-100">
+      <div className="absolute right-4 top-4 z-20">
+        <UserMenu />
+      </div>
+      <main className="max-w-md mx-auto px-4 py-8 pt-16 sm:pt-8">
         <section className="mb-8">
           <h1 className="text-2xl font-bold text-white">{title}</h1>
           <p className="mt-2 text-neutral-400">{subtitle}</p>

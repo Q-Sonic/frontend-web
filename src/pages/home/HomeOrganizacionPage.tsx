@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Card, Button } from '../../components';
+import { Card, Button, UserMenu } from '../../components';
 
 const actions = [
   { label: 'Buscar artistas', to: '/organization', variant: 'primary' as const },
@@ -12,6 +12,9 @@ export function HomeOrganizacionPage() {
 
   return (
     <div className="max-w-md mx-auto px-4 py-8 w-full">
+      <div className="flex justify-end mb-4">
+        <UserMenu />
+      </div>
       <section className="mb-8">
         <h1 className="text-3xl font-bold text-white">Inicio (Organización)</h1>
         <p className="mt-2 text-neutral-400">Gestiona eventos, contratos y pagos con artistas.</p>

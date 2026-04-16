@@ -168,7 +168,7 @@ export function HomeArtistaPage() {
 
   if (!user) {
     return (
-      <div className="w-full max-w-[1600px] mx-auto p-6">
+      <div className="w-full max-w-[1600px] mx-auto px-6 pb-6 pt-8 md:pt-10">
         <div className="flex-1 min-w-0 space-y-6 bg-card h-fit rounded-2xl p-6 animate-pulse">
           <div className="h-8 w-48 rounded-lg bg-white/10" />
           <div className="h-40 rounded-xl bg-white/5" />
@@ -179,7 +179,7 @@ export function HomeArtistaPage() {
 
   if (!isArtista) {
     return (
-      <div className="w-full max-w-[1600px] mx-auto flex gap-6">
+      <div className="w-full max-w-[1600px] mx-auto flex gap-6 px-6 pb-6 pt-8 md:pt-10">
         <div className="flex-1 min-w-0 space-y-6 bg-card h-fit rounded-2xl p-6">
           <section>
             <h1 className="text-2xl font-semibold text-white mb-2">Dashboard del artista</h1>
@@ -191,7 +191,7 @@ export function HomeArtistaPage() {
   }
 
   return (
-    <div className="w-full max-w-[1600px] mx-auto flex gap-6 p-6">
+    <div className="w-full max-w-[1600px] mx-auto flex gap-6 px-6 pb-6 pt-8 md:pt-10">
       <div className="flex-1 min-w-0 space-y-6 bg-card h-fit rounded-2xl p-6">
         {/* Resumen */}
         <SummaryCard stats={stats} loading={statsLoading} error={statsError} />
