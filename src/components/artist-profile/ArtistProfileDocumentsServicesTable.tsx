@@ -1,5 +1,7 @@
 import { FiDownload } from 'react-icons/fi';
+import { NuveiPaymentButton } from '../NuveiPaymentButton';
 import type { ArtistServiceRecord } from '../../types';
+
 
 interface ArtistProfileDocumentsServicesTableProps {
   services: ArtistServiceRecord[];
@@ -39,6 +41,7 @@ export function ArtistProfileDocumentsServicesTable({
                   PDF <span className="text-[10px] font-normal text-neutral-500">(descarga)</span>
                 </span>
               </th>
+              <th>Pago</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-white/5">
@@ -70,6 +73,16 @@ export function ArtistProfileDocumentsServicesTable({
                         Descargar
                       </button>
                     )}
+                  </td>
+                  <td>
+                    <NuveiPaymentButton
+                      amount={service.price || 1}
+                      description={`Pago por servicio: ${service.name}`}
+                      dev_reference={service.id || `order-${Date.now()}`}
+                      className="!py-1 !px-3 !rounded-full !text-xs"
+                    >
+                      Pagar
+                    </NuveiPaymentButton>
                   </td>
                 </tr>
               );

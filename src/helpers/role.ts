@@ -61,5 +61,13 @@ export function isBackendRoleArtista(role: string | undefined): boolean {
 
 /** True when the user has admin role (for admin-only features). */
 export function isBackendRoleAdmin(role: string | undefined): boolean {
-  return normalizeRoleLower(role) === 'admin';
+  return getProfileEditRoute(role) === 'admin';
 }
+
+/** True when the user has organization role. */
+export function isBackendRoleOrganizacion(role: string | undefined): boolean {
+  return getProfileEditRoute(role) === 'organizacion';
+}
+
+/** All valid role routes for the application. */
+export const ROLE_ROUTES: ProfileEditRoute[] = ['cliente', 'artista', 'admin', 'organizacion', 'basico'];
