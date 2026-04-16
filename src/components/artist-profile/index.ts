@@ -14,3 +14,4 @@ export { ArtistServicesAdminModal } from './ArtistServicesAdminModal';
 export { ArtistProfileSettingsModal } from './ArtistProfileSettingsModal';
 export { ArtistSongsModal } from './ArtistSongsModal';
 export { ArtistFeaturedSongModal } from './ArtistFeaturedSongModal';
+export { ArtistWithdrawModal } from './ArtistWithdrawModal';

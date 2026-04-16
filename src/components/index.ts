@@ -32,6 +32,7 @@ export {
   ArtistServicesAdminModal,
   ArtistSongsModal,
   ArtistFeaturedSongModal,
+  ArtistWithdrawModal,
   ArtistProfileRidersGrid,
   ArtistProfileSectionTitle,
   ArtistProfileSocialNetworkLink,

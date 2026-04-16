@@ -30,10 +30,16 @@ export const paymentService = {
   /**
    * Requests a withdrawal of artist balance.
    */
-  withdraw: async (amount: number): Promise<any> => {
+  withdraw: async (amount: number, bankDetails: {
+    bankName: string;
+    accountNumber: string;
+    accountType: string;
+    holderName: string;
+    holderDocument: string;
+  }): Promise<any> => {
     return api('payments/withdraw', {
       method: 'POST',
-      body: JSON.stringify({ amount }),
+      body: JSON.stringify({ amount, bankDetails }),
     });
   },
 };

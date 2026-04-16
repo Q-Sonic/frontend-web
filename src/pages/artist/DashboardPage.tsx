@@ -7,7 +7,7 @@ import { isBackendRoleArtista } from '../../helpers/role';
 import { withMinimumDelay } from '../../helpers/withMinimumDelay';
 import { api, ensureArtistProfileListedForDiscovery } from '../../api';
 import type { ApiResponse } from '../../types';
-import { Skeleton } from '../../components';
+import { Skeleton, ArtistWithdrawModal } from '../../components';
 import { paymentService } from '../../api/paymentService';
 
 type DashboardStats = {
@@ -58,6 +58,10 @@ export function HomeArtistaPage() {
   const [nextShowLoading, setNextShowLoading] = useState(true);
   const [nextShowError, setNextShowError] = useState('');
   
+  const [withdrawals, setWithdrawals] = useState<any[]>([]);
+  const [withdrawalsLoading, setWithdrawalsLoading] = useState(false);
+
+  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [withdrawing, setWithdrawing] = useState(false);
 
   const loadStats = async (cancelled = false) => {
@@ -75,45 +79,24 @@ export function HomeArtistaPage() {
     }
   };
 
-  const handleWithdraw = async () => {
+  const loadWithdrawals = async (cancelled = false) => {
+    setWithdrawalsLoading(true);
+    try {
+      const res = await api<ApiResponse<any[]>>('payments/withdrawals');
+      if (!cancelled) setWithdrawals(res.data || []);
+    } catch (err) {
+      console.error('Error al cargar retiros:', err);
+    } finally {
+      if (!cancelled) setWithdrawalsLoading(false);
+    }
+  };
+
+  const handleWithdraw = () => {
     if (!stats || stats.totalBalance <= 0) {
       alert('No tienes saldo suficiente para retirar.');
       return;
     }
-
-    const inputAmount = window.prompt(
-      `Saldo disponible: $${stats.totalBalance}\n¿Cuánto deseas retirar?`,
-      stats.totalBalance.toString()
-    );
-
-    if (inputAmount === null) return; // Cancelado
-
-    const amountToWithdraw = parseFloat(inputAmount);
-
-    if (isNaN(amountToWithdraw) || amountToWithdraw <= 0) {
-      alert('Por favor, ingresa un monto válido.');
-      return;
-    }
-
-    if (amountToWithdraw > stats.totalBalance) {
-      alert('No puedes retirar más de lo que tienes en tu saldo.');
-      return;
-    }
-
-    if (!window.confirm(`¿Estás seguro que deseas retirar $${amountToWithdraw}?`)) {
-      return;
-    }
-
-    setWithdrawing(true);
-    try {
-      await paymentService.withdraw(amountToWithdraw);
-      alert('Retiro solicitado con éxito. El administrador lo procesará en breve.');
-      loadStats(); // Refresh stats after withdrawal
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Error al procesar el retiro.');
-    } finally {
-      setWithdrawing(false);
-    }
+    setShowWithdrawModal(true);
   };
 
   useEffect(() => {
@@ -160,10 +143,11 @@ export function HomeArtistaPage() {
       }
     }
 
-    initialLoad();
-    return () => {
-      cancelled = true;
-    };
+      initialLoad();
+      loadWithdrawals(cancelled);
+      return () => {
+        cancelled = true;
+      };
   }, [user?.uid, isArtista]);
 
   if (!user) {
@@ -268,7 +252,46 @@ export function HomeArtistaPage() {
             Ver Detalles
           </Link>
         </div>
+
+        {/* Historial de Retiros */}
+        <div className="rounded-xl p-5 border border-white/10 bg-card">
+          <h3 className="text-lg font-bold text-white mb-3">Retiros Recientes</h3>
+          <div className="space-y-3">
+            {withdrawalsLoading ? (
+                <Skeleton className="h-20 w-full rounded" />
+            ) : withdrawals.length > 0 ? (
+                withdrawals.slice(0, 3).map((w) => (
+                    <div key={w.id} className="flex items-center justify-between border-b border-white/5 pb-2">
+                        <div>
+                            <p className="text-sm font-semibold text-white">${formatMoney(w.amount)}</p>
+                            <p className="text-[10px] text-muted">{new Date(w.createdAt._seconds * 1000).toLocaleDateString()}</p>
+                        </div>
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
+                            w.status === 'completed' ? 'bg-green-500/20 text-green-400' : 
+                            w.status === 'rejected' ? 'bg-red-500/20 text-red-400' : 'bg-yellow-500/20 text-yellow-500'
+                        }`}>
+                            {w.status === 'pending' ? 'Pendiente' : w.status === 'completed' ? 'Éxito' : 'Rechazado'}
+                        </span>
+                    </div>
+                ))
+            ) : (
+                <p className="text-xs text-muted">No tienes retiros aún.</p>
+            )}
+          </div>
+        </div>
       </aside>
+
+      {/* Withdraw Modal */}
+      <ArtistWithdrawModal 
+        isOpen={showWithdrawModal} 
+        onClose={() => setShowWithdrawModal(false)} 
+        balance={stats?.totalBalance ?? 0}
+        onWithdrawSuccess={() => {
+            alert('¡Solicitud de retiro enviada! La procesaremos lo antes posible.');
+            loadStats();
+            loadWithdrawals();
+        }}
+      />
     </div>
   );
 }
