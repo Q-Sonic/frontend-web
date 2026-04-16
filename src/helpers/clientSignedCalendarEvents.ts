@@ -23,6 +23,18 @@ function fallbackDateKeyFromSignedAt(iso: string): string | null {
   return `${y}-${m}-${d}`;
 }
 
+function dedupeCalendarGridEvents(grid: ClientCalendarGridEvent[]): ClientCalendarGridEvent[] {
+  const seen = new Set<string>();
+  const out: ClientCalendarGridEvent[] = [];
+  for (const ev of grid) {
+    const k = `${ev.year}-${ev.monthIndex0}-${ev.dayOfMonth}|${ev.title.trim()}|${ev.subtitle.trim()}`;
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push(ev);
+  }
+  return out;
+}
+
 export function buildCalendarGridEventsFromSignedRecords(
   records: SignedCartMockRecord[],
 ): ClientCalendarGridEvent[] {
@@ -56,7 +68,7 @@ export function buildCalendarGridEventsFromSignedRecords(
       }
     }
   }
-  return grid;
+  return dedupeCalendarGridEvents(grid);
 }
 
 const MONTH_LABELS = [

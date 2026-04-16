@@ -28,10 +28,15 @@ export type {
   ArtistSongListResponse,
 } from './artistSong';
 export type {
+  ContractRecord,
+  CreateContractBody,
+  ContractLifecycleStatus,
+  ContractPaymentStatus,
+} from './contract';
+export type {
   CreateLinkToPayRequest,
   CreateLinkToPayResponse,
   NuveiOrder,
   NuveiPayment,
   WebhookProcessedResponse,
 } from './payment';
-

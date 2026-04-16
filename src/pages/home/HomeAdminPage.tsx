@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Card, Button } from '../../components';
+import { Card, Button, UserMenu } from '../../components';
 import { getAllUsers } from '../../api';
 import type { UserRecord } from '../../types';
 
@@ -45,6 +45,9 @@ export function HomeAdminPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 w-full">
+      <div className="flex justify-end mb-4">
+        <UserMenu />
+      </div>
       <section className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-white">Inicio (Admin)</h1>
