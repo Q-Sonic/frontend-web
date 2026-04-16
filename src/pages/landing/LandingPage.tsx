@@ -4,8 +4,38 @@ import { useAuth } from '../../contexts/AuthContext';
 import { config } from '../../config';
 import headerLogoIcon from '../../assets/icons/Logo small - Login.svg';
 import heroConcertScreen from '../../assets/images/landing/Concierto Pantalla LadingPage.svg';
+import howHireBookingCard from '../../assets/images/landing/how-hire-booking-card.png';
+import howHireConcertCrowd from '../../assets/images/landing/how-hire-concert-crowd.png';
+import howHireTablet from '../../assets/images/landing/how-hire-tablet.png';
+import catalogArtistRubenBlades from '../../assets/images/landing/catalog-artist-ruben-blades.png';
+import catalogArtistMarckVibes from '../../assets/images/landing/catalog-artist-marck-vibes.png';
+import catalogArtistAndreaEcheverry from '../../assets/images/landing/catalog-artist-andrea-echeverry.png';
+import catalogArtistDjMax from '../../assets/images/landing/catalog-artist-dj-max.png';
 
 const topMenuItems = ['Explora', 'Artistas', 'Como funciona', 'Precios', 'Contacto'];
+
+const catalogFeaturedArtists = [
+  {
+    name: 'Ruben Blades',
+    image: catalogArtistRubenBlades,
+    imageAlt: 'Musica en vivo con banda en escenario',
+  },
+  {
+    name: 'Marck Vibes',
+    image: catalogArtistMarckVibes,
+    imageAlt: 'Artista en concierto con iluminacion dramatica',
+  },
+  {
+    name: 'Andrea Echeverry',
+    image: catalogArtistAndreaEcheverry,
+    imageAlt: 'Cantante en vivo frente al microfono',
+  },
+  {
+    name: 'Dj Max',
+    image: catalogArtistDjMax,
+    imageAlt: 'DJ frente al publico en club nocturno',
+  },
+] as const;
 type TrustItem = {
   label: string;
   icon: 'verified' | 'payments' | 'support' | 'bookings';
@@ -18,7 +48,7 @@ const trustItems: TrustItem[] = [
   { label: 'CONTRATACIONES INMEDIATAS', icon: 'bookings' },
 ];
 const trustItemsLoop = [...trustItems, ...trustItems];
-const filterItems = ['Genero', 'Ubicacion', 'Disponible', 'Rango de precios'];
+const catalogFilterDropdowns = ['Genero', 'Ubicacion', 'Disponible'] as const;
 
 function TrustIcon({ type }: { type: TrustItem['icon'] }) {
   if (type === 'verified') {
@@ -59,6 +89,56 @@ function TrustIcon({ type }: { type: TrustItem['icon'] }) {
   );
 }
 
+function FilterLinesIcon({ className = 'h-5 w-5' }: { className?: string }) {
+  return (
+    <svg aria-hidden viewBox="0 0 24 24" className={className} fill="none">
+      <path d="M4 7h16M7 12h10M10 17h4" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function ChevronDownIcon({ className = 'h-4 w-4' }: { className?: string }) {
+  return (
+    <svg aria-hidden viewBox="0 0 24 24" className={className} fill="none">
+      <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function CatalogFilterBar() {
+  return (
+    <div
+      aria-hidden
+      className="pointer-events-none mb-8 flex max-w-full flex-nowrap items-center gap-3 self-start overflow-x-auto rounded-full border border-white/20 bg-black/50 py-2.5 pl-4 pr-5 text-xs text-neutral-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-sm sm:gap-4 sm:text-sm md:py-3 md:pl-5 md:pr-6"
+    >
+      <span className="inline-flex shrink-0 items-center justify-center text-neutral-400">
+        <FilterLinesIcon className="h-4 w-4 md:h-5 md:w-5" />
+      </span>
+      <span className="h-4 w-px shrink-0 bg-white/20" aria-hidden />
+      <div className="flex shrink-0 items-center gap-3 sm:gap-4">
+        {catalogFilterDropdowns.map((label) => (
+          <span
+            key={label}
+            className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap text-neutral-200"
+          >
+            {label}
+            <ChevronDownIcon className="h-3.5 w-3.5 shrink-0 opacity-75 md:h-4 md:w-4" />
+          </span>
+        ))}
+      </div>
+      <span className="h-4 w-px shrink-0 bg-white/20" aria-hidden />
+      <span className="shrink-0 whitespace-nowrap text-[0.7rem] text-neutral-400 sm:text-xs">Rango de precios</span>
+      <span className="shrink-0 whitespace-nowrap text-xs font-medium text-[#28C76F] sm:text-sm">$200</span>
+      <div className="relative h-1.5 w-[5.5rem] shrink-0 rounded-full bg-neutral-600 sm:w-[7.5rem] md:w-[8.5rem]">
+        <div className="absolute inset-y-0 left-[18%] right-[30%] rounded-full bg-[#28C76F]" />
+        <span className="absolute left-[15%] top-1/2 h-3 w-3 -translate-y-1/2 rounded-full border-2 border-white bg-[#28C76F] shadow" />
+        <span className="absolute right-[27%] top-1/2 h-3 w-3 -translate-y-1/2 rounded-full border-2 border-white bg-[#28C76F] shadow" />
+      </div>
+      <span className="shrink-0 whitespace-nowrap text-xs font-medium text-[#28C76F] sm:text-sm">$500</span>
+    </div>
+  );
+}
+
 export function LandingPage() {
   const { user } = useAuth();
 
@@ -68,8 +148,11 @@ export function LandingPage() {
         aria-hidden
         className="pointer-events-none absolute left-0 right-0 bottom-0 top-[4.75rem] z-0"
         style={{
-          background:
+          background: [
             'radial-gradient(980px 700px at 0% 0%, rgba(41,199,235,0.7) 0%, rgba(26,148,183,0.52) 24%, rgba(10,74,98,0.34) 44%, rgba(7,24,36,0.17) 58%, rgba(7,9,11,0.05) 72%, rgba(7,9,11,0) 86%)',
+            // Right-side wash (page-level, same paint as hero): avoids a separate section layer so the glow has no rectangular edge; vw/vh keep softness on different screens.
+            'radial-gradient(ellipse 125vw min(115vh, 1050px) at 92% 42%, rgba(41,199,235,0.12) 0%, rgba(26,148,183,0.05) 30%, rgba(0,204,203,0.035) 44%, rgba(7,9,11,0) 60%)',
+          ].join(', '),
         }}
       />
       <header className="fixed top-0 left-0 right-0 z-50 bg-[#0A0B0B]">
@@ -217,9 +300,9 @@ export function LandingPage() {
             </div>
           </section>
 
-          <section className="rounded-2xl bg-[radial-gradient(circle_at_80%_30%,rgba(0,204,203,0.25),transparent_42%),#050709] p-7 md:p-10">
-            <div className="grid gap-10 lg:grid-cols-[1fr_1.2fr] lg:items-center">
-              <div>
+          <section className="p-7 md:p-10">
+            <div className="grid gap-10 lg:grid-cols-[1fr_1.15fr] lg:items-center">
+              <div className="max-w-xl lg:max-w-none">
                 <h2 className="text-4xl md:text-6xl font-semibold leading-tight text-white">
                   Como contratar en {config.APP_NAME}?
                 </h2>
@@ -229,31 +312,48 @@ export function LandingPage() {
                 </p>
               </div>
 
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="aspect-[4/3] rounded-2xl bg-gradient-to-br from-[#0f1824] to-[#111827]" />
-                  <div className="aspect-[4/3] rounded-2xl bg-gradient-to-br from-[#093d4a] to-[#174467]" />
-                </div>
-                <div className="aspect-[7/2] rounded-2xl bg-gradient-to-r from-[#383838] via-[#505050] to-[#636363] px-6 flex items-center overflow-hidden">
-                  <div className="flex flex-wrap items-center gap-2 text-xs md:text-sm text-neutral-200">
-                    {filterItems.map((item) => (
-                      <span key={item} className="rounded-full border border-white/30 px-3 py-1.5">
-                        {item}
-                      </span>
-                    ))}
-                  </div>
-                </div>
+              <div className="relative mx-auto min-h-[300px] w-full max-w-[min(100%,440px)] sm:min-h-[360px] lg:mx-0 lg:ml-auto lg:mr-0 lg:min-h-[400px] lg:max-w-[480px]">
+                <img
+                  src={howHireConcertCrowd}
+                  alt="Publico en concierto con iluminacion de escenario"
+                  className="pointer-events-none absolute left-[8%] top-[14%] z-[1] w-[82%] rounded-[1.35rem] object-cover shadow-[0_28px_56px_-10px_rgba(0,0,0,0.8)] ring-1 ring-white/10 select-none"
+                  loading="lazy"
+                  decoding="async"
+                />
+                <img
+                  src={howHireTablet}
+                  alt="Mano usando lapiz en tableta digital"
+                  className="pointer-events-none absolute bottom-[2%] right-0 z-[2] w-[52%] rounded-[1.35rem] object-cover shadow-[0_22px_44px_-8px_rgba(0,0,0,0.72)] ring-1 ring-white/10 select-none"
+                  loading="lazy"
+                  decoding="async"
+                />
+                <img
+                  src={howHireBookingCard}
+                  alt="Interfaz de reserva de fecha de artista en la app"
+                  className="pointer-events-none absolute left-0 top-0 z-[3] w-[46%] max-w-[210px] rounded-[1.35rem] object-cover shadow-[0_22px_44px_-8px_rgba(0,0,0,0.78)] ring-1 ring-white/10 select-none sm:max-w-[240px] sm:w-[44%]"
+                  loading="lazy"
+                  decoding="async"
+                />
               </div>
             </div>
           </section>
 
-          <section className="rounded-2xl bg-[radial-gradient(circle_at_30%_30%,rgba(0,204,203,0.2),transparent_45%),#040507] p-7 md:p-10">
-            <div className="grid gap-8 lg:grid-cols-[1.05fr_1fr] lg:items-center">
+          <section className="flex flex-col items-stretch rounded-2xl bg-[radial-gradient(circle_at_30%_30%,rgba(0,204,203,0.2),transparent_45%),#040507] p-7 md:p-10">
+            <CatalogFilterBar />
+            <div className="grid w-full gap-8 lg:grid-cols-[1.05fr_1fr] lg:items-center">
               <div className="grid grid-cols-2 gap-4">
-                {['Ruben Blades', 'Marck Vibes', 'Andrea Echeverry', 'Dj Max'].map((artistName) => (
-                  <article key={artistName} className="rounded-2xl border border-white/20 bg-black/40 p-3">
-                    <div className="mb-2 aspect-square rounded-xl bg-gradient-to-br from-[#1f2937] to-[#0f172a]" />
-                    <h3 className="font-medium text-white">{artistName}</h3>
+                {catalogFeaturedArtists.map((artist) => (
+                  <article key={artist.name} className="rounded-2xl border border-white/20 bg-black/40 p-3">
+                    <div className="mb-2 aspect-square overflow-hidden rounded-xl bg-[#0f172a] ring-1 ring-white/10">
+                      <img
+                        src={artist.image}
+                        alt={artist.imageAlt}
+                        className="h-full w-full object-cover select-none"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    </div>
+                    <h3 className="font-medium text-white">{artist.name}</h3>
                     <p className="text-sm text-neutral-300">$ 450 USD</p>
                     <p className="text-xs text-[#00CCCB] mt-0.5">Desde</p>
                   </article>
