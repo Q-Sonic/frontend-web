@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import WorldIcon from '../../../public/icons/world';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { formatMoney } from '../../helpers/money';
 import { useAuth } from '../../contexts/AuthContext';
 import { isBackendRoleArtista } from '../../helpers/role';
@@ -8,6 +8,7 @@ import { withMinimumDelay } from '../../helpers/withMinimumDelay';
 import { api, ensureArtistProfileListedForDiscovery } from '../../api';
 import type { ApiResponse } from '../../types';
 import { Skeleton } from '../../components';
+import { WithdrawalModal } from '../../components/payments/WithdrawalModal';
 
 type DashboardStats = {
   totalEvents: number;
@@ -15,6 +16,14 @@ type DashboardStats = {
   totalBalance: number;
   profileVisitsTotal: number;
   visitsChartData: { day: string; count: number }[];
+};
+
+type WithdrawalRequest = {
+  id: string;
+  amount: number;
+  status: 'PENDING' | 'COMPLETED' | 'REJECTED';
+  createdAt: any;
+  reason?: string;
 };
 
 type CalendarEvent = {
@@ -57,6 +66,38 @@ export function HomeArtistaPage() {
   const [nextShowLoading, setNextShowLoading] = useState(true);
   const [nextShowError, setNextShowError] = useState('');
 
+  const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
+  const [withdrawals, setWithdrawals] = useState<WithdrawalRequest[]>([]);
+  const [withdrawalsLoading, setWithdrawalsLoading] = useState(false);
+
+  const loadWithdrawals = useCallback(async () => {
+    if (!user?.uid || !isArtista) return;
+    setWithdrawalsLoading(true);
+    try {
+      const res = await api<ApiResponse<WithdrawalRequest[]>>('payments/withdrawals');
+      setWithdrawals(res.data || []);
+    } catch (err) {
+      console.error('Error loading withdrawals:', err);
+    } finally {
+      setWithdrawalsLoading(false);
+    }
+  }, [user?.uid, isArtista]);
+
+  const loadStats = useCallback(async (cancelled = { current: false }) => {
+    setStatsLoading(true);
+    setStatsError('');
+    try {
+      const statsRes = await withMinimumDelay(1000, async () => {
+        return api<ApiResponse<DashboardStats>>('dashboard/stats');
+      });
+      if (!cancelled.current) setStats(statsRes.data);
+    } catch (err) {
+      if (!cancelled.current) setStatsError(err instanceof Error ? err.message : 'Error al cargar el resumen.');
+    } finally {
+      if (!cancelled.current) setStatsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (!user?.uid || !isArtista) return;
     void ensureArtistProfileListedForDiscovery(user.uid);
@@ -65,28 +106,17 @@ export function HomeArtistaPage() {
   useEffect(() => {
     if (!user?.uid || !isArtista) return;
 
-    let cancelled = false;
+    const cancelled = { current: false };
 
     async function load() {
-      setStatsLoading(true);
-      setStatsError('');
+      loadStats(cancelled);
+      loadWithdrawals();
+
       setNextShowLoading(true);
       setNextShowError('');
-
       const now = new Date();
       const end = new Date(now);
       end.setMonth(end.getMonth() + 3);
-
-      try {
-        const statsRes = await withMinimumDelay(1000, async () => {
-          return api<ApiResponse<DashboardStats>>('dashboard/stats');
-        });
-        if (!cancelled) setStats(statsRes.data);
-      } catch (err) {
-        if (!cancelled) setStatsError(err instanceof Error ? err.message : 'Error al cargar el resumen.');
-      } finally {
-        if (!cancelled) setStatsLoading(false);
-      }
 
       try {
         const nextShowRes = await withMinimumDelay(1000, async () => {
@@ -104,20 +134,20 @@ export function HomeArtistaPage() {
           return mapEventDetailToNextShow(detailRes.data);
         });
 
-        if (cancelled) return;
+        if (cancelled.current) return;
         setNextShow(nextShowRes);
       } catch (err) {
-        if (!cancelled) setNextShowError(err instanceof Error ? err.message : 'Error al cargar próximo show.');
+        if (!cancelled.current) setNextShowError(err instanceof Error ? err.message : 'Error al cargar próximo show.');
       } finally {
-        if (!cancelled) setNextShowLoading(false);
+        if (!cancelled.current) setNextShowLoading(false);
       }
     }
 
     load();
     return () => {
-      cancelled = true;
+      cancelled.current = true;
     };
-  }, [user?.uid, isArtista]);
+  }, [user?.uid, isArtista, loadStats, loadWithdrawals]);
 
   if (!user) {
     return (
@@ -149,6 +179,61 @@ export function HomeArtistaPage() {
         {/* Resumen */}
         <SummaryCard stats={stats} loading={statsLoading} error={statsError} />
 
+        {/* Retiros Recientes */}
+        <section className="mt-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold text-white">Retiros Recientes</h2>
+            <span className="text-muted text-sm">Historial</span>
+          </div>
+          <div className="bg-surface rounded-2xl overflow-hidden border border-white/5">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-white/5 text-muted text-xs uppercase tracking-wider">
+                  <th className="p-4 font-semibold text-white/50">Fecha</th>
+                  <th className="p-4 font-semibold text-white/50">Monto</th>
+                  <th className="p-4 font-semibold text-white/50">Estado</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {withdrawalsLoading ? (
+                  Array.from({ length: 3 }).map((_, i) => (
+                    <tr key={i}>
+                      <td className="p-4"><Skeleton className="h-4 w-24 rounded" /></td>
+                      <td className="p-4"><Skeleton className="h-4 w-16 rounded" /></td>
+                      <td className="p-4"><Skeleton className="h-6 w-20 rounded-full" /></td>
+                    </tr>
+                  ))
+                ) : withdrawals.length === 0 ? (
+                  <tr>
+                    <td colSpan={3} className="p-8 text-center text-muted">Aún no has solicitado retiros.</td>
+                  </tr>
+                ) : (
+                  withdrawals.map((w) => (
+                    <tr key={w.id} className="hover:bg-white/[0.02] transition-colors">
+                      <td className="p-4 text-sm text-white/80">
+                        {w.createdAt ? new Date(w.createdAt._seconds ? w.createdAt._seconds * 1000 : w.createdAt).toLocaleDateString() : '—'}
+                      </td>
+                      <td className="p-4 text-sm font-medium text-white">{formatMoney(w.amount)}</td>
+                      <td className="p-4">
+                        <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${
+                          w.status === 'COMPLETED' ? 'bg-green-500/20 text-green-400' :
+                          w.status === 'REJECTED' ? 'bg-red-500/20 text-red-400' :
+                          'bg-yellow-500/20 text-yellow-500'
+                        }`}>
+                          {w.status}
+                        </span>
+                        {w.reason && w.status === 'REJECTED' && (
+                          <p className="text-[10px] text-red-300 mt-1 italic">{w.reason}</p>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
         {/* Otros */}
         <section>
           <div className="flex items-center justify-between mb-4">
@@ -179,7 +264,11 @@ export function HomeArtistaPage() {
 
       {/* Right panel */}
       <aside className="w-72 shrink-0 space-y-4 hidden xl:block">
-        <BalanceCard balance={stats?.totalBalance ?? null} loading={statsLoading} />
+        <BalanceCard 
+          balance={stats?.totalBalance ?? null} 
+          loading={statsLoading} 
+          onWithdrawClick={() => setIsWithdrawModalOpen(true)}
+        />
 
         {/* Próximo Show */}
         <div className="rounded-xl p-5 border border-white/10 bg-card">
@@ -218,6 +307,16 @@ export function HomeArtistaPage() {
           </Link>
         </div>
       </aside>
+
+      <WithdrawalModal
+        isOpen={isWithdrawModalOpen}
+        onClose={() => setIsWithdrawModalOpen(false)}
+        availableBalance={stats?.totalBalance ?? 0}
+        onSuccess={() => {
+          loadWithdrawals();
+          loadStats();
+        }}
+      />
     </div>
   );
 }
@@ -324,7 +423,15 @@ function SummaryCard({
   );
 }
 
-function BalanceCard({ balance, loading }: { balance: number | null; loading: boolean }) {
+function BalanceCard({ 
+  balance, 
+  loading, 
+  onWithdrawClick 
+}: { 
+  balance: number | null; 
+  loading: boolean;
+  onWithdrawClick: () => void;
+}) {
   return (
     <div className="flex flex-col gap-2 items-center justify-center rounded-4xl p-5 text-white bg-linear-to-l from-accent to-[#3A9AF4]">
       <h3 className="font-medium opacity-90">My balance</h3>
@@ -333,6 +440,7 @@ function BalanceCard({ balance, loading }: { balance: number | null; loading: bo
       </p>
       <button
         type="button"
+        onClick={onWithdrawClick}
         className="mt-3 px-4 py-2 rounded-full flex items-center gap-2 font-medium bg-white/20 hover:bg-white/30 cursor-pointer"
       >
         Retirar{' '}
