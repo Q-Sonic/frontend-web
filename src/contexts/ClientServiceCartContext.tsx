@@ -11,8 +11,8 @@ import { useLocation } from 'react-router-dom';
 import { FiShoppingCart } from 'react-icons/fi';
 import { ClientBatchContractSigningModal } from '../components/client/ClientBatchContractSigningModal';
 import { useClientNotifications } from './ClientNotificationsContext';
+import { persistSignedClientContractsWithApiFallback } from '../helpers/clientContractPersistence';
 import {
-  appendSignedCartMockRecord,
   getServiceCartLines,
   getServiceCartStorageKey,
   removeServiceCartLine,
@@ -97,12 +97,9 @@ export function ClientServiceCartProvider({ children }: { children: ReactNode })
     async (payload: { dataUrl: string; signedLines: ServiceCartLine[] }) => {
       const { signedLines } = payload;
       if (signedLines.length === 0) return;
-      appendSignedCartMockRecord({
-        signedAt: new Date().toISOString(),
-        signatureDataUrl: payload.dataUrl,
+      await persistSignedClientContractsWithApiFallback(signedLines, {
+        dataUrl: payload.dataUrl,
         applyToAll: signedLines.length > 1,
-        artistSignatureComplete: false,
-        lines: signedLines,
       });
       pushSignedContractNotifications(signedLines);
       for (const line of signedLines) {

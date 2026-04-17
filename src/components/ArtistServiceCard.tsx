@@ -40,13 +40,13 @@ export function ArtistServiceCard({
   };
 
   return (
-    <article className={`flex h-full min-h-0 flex-col ${cardShell}`}>
-      <div className="relative aspect-[4/3] w-full shrink-0 overflow-hidden bg-neutral-950">
+    <article className={`flex h-full min-h-0 w-full min-w-0 flex-col ${cardShell}`}>
+      <div className="relative aspect-[4/3] w-full min-w-0 shrink-0 overflow-hidden bg-neutral-950">
         {coverPhotoUrl ? (
           <img
             src={coverPhotoUrl}
             alt=""
-            className="h-full w-full object-cover object-center"
+            className="h-full w-full min-h-0 min-w-0 object-cover object-center"
           />
         ) : (
           <div
@@ -59,12 +59,12 @@ export function ArtistServiceCard({
         <div className="pointer-events-none absolute inset-0 bg-linear-to-t from-neutral-950/40 to-transparent" />
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col p-5 sm:p-6">
-        <div className="flex flex-col gap-3">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col p-5 sm:p-6">
+        <div className="flex w-full min-w-0 flex-col gap-3">
           <h3 className="text-xl font-semibold leading-snug text-white break-words sm:text-2xl">
             {service.name}
           </h3>
-          <div className="flex flex-col items-end gap-0.5 self-end text-right">
+          <div className="flex w-full min-w-0 flex-col items-end gap-0.5 text-right">
             <span className="text-2xl font-semibold tabular-nums text-accent whitespace-nowrap sm:text-3xl">
               ${formatMoney(service.price)}
             </span>

@@ -25,6 +25,10 @@ export function getProfilePath(role: string | undefined): string {
       return '/artist/profile';
     case 'cliente':
       return '/client/profile';
+    case 'admin':
+      return '/admin/profile';
+    case 'organizacion':
+      return '/organization/profile';
     default:
       return '/profile';
   }
@@ -38,6 +42,10 @@ export function getProfileEditPath(role: string | undefined): string {
       return '/artist/profile';
     case 'cliente':
       return '/client/profile/edit';
+    case 'admin':
+      return '/admin/profile/edit';
+    case 'organizacion':
+      return '/organization/profile/edit';
     default:
       return '/profile/edit';
   }

@@ -15,7 +15,10 @@ export class ApiError extends Error {
 function messageFromErrorBody(err: unknown, fallback: string): string {
   if (err && typeof err === 'object') {
     const o = err as Record<string, unknown>;
-    if (typeof o.error === 'string' && o.error.trim()) return o.error.trim();
+    if (o.error) {
+      if (typeof o.error === 'string' && o.error.trim()) return o.error.trim();
+      if (typeof o.error === 'object') return JSON.stringify(o.error);
+    }
     if (typeof o.message === 'string' && o.message.trim()) return o.message.trim();
   }
   return fallback;

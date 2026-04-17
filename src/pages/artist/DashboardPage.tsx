@@ -9,6 +9,7 @@ import { api, ensureArtistProfileListedForDiscovery } from '../../api';
 import type { ApiResponse } from '../../types';
 import { Skeleton } from '../../components';
 import { WithdrawalModal } from '../../components/payments/WithdrawalModal';
+import { paymentService } from '../../api/paymentService';
 
 type DashboardStats = {
   totalEvents: number;
@@ -65,6 +66,64 @@ export function HomeArtistaPage() {
   const [nextShow, setNextShow] = useState<NextShow | null>(null);
   const [nextShowLoading, setNextShowLoading] = useState(true);
   const [nextShowError, setNextShowError] = useState('');
+  
+  const [withdrawing, setWithdrawing] = useState(false);
+
+  const loadStats = async (cancelled = false) => {
+    setStatsLoading(true);
+    setStatsError('');
+    try {
+      const statsRes = await withMinimumDelay(1000, async () => {
+        return api<ApiResponse<DashboardStats>>('dashboard/stats');
+      });
+      if (!cancelled) setStats(statsRes.data);
+    } catch (err) {
+      if (!cancelled) setStatsError(err instanceof Error ? err.message : 'Error al cargar el resumen.');
+    } finally {
+      if (!cancelled) setStatsLoading(false);
+    }
+  };
+
+  const handleWithdraw = async () => {
+    if (!stats || stats.totalBalance <= 0) {
+      alert('No tienes saldo suficiente para retirar.');
+      return;
+    }
+
+    const inputAmount = window.prompt(
+      `Saldo disponible: $${stats.totalBalance}\n¿Cuánto deseas retirar?`,
+      stats.totalBalance.toString()
+    );
+
+    if (inputAmount === null) return; // Cancelado
+
+    const amountToWithdraw = parseFloat(inputAmount);
+
+    if (isNaN(amountToWithdraw) || amountToWithdraw <= 0) {
+      alert('Por favor, ingresa un monto válido.');
+      return;
+    }
+
+    if (amountToWithdraw > stats.totalBalance) {
+      alert('No puedes retirar más de lo que tienes en tu saldo.');
+      return;
+    }
+
+    if (!window.confirm(`¿Estás seguro que deseas retirar $${amountToWithdraw}?`)) {
+      return;
+    }
+
+    setWithdrawing(true);
+    try {
+      await paymentService.withdraw(amountToWithdraw);
+      alert('Retiro solicitado con éxito. El administrador lo procesará en breve.');
+      loadStats(); // Refresh stats after withdrawal
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Error al procesar el retiro.');
+    } finally {
+      setWithdrawing(false);
+    }
+  };
 
   const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
   const [withdrawals, setWithdrawals] = useState<WithdrawalRequest[]>([]);
@@ -111,6 +170,8 @@ export function HomeArtistaPage() {
     async function load() {
       loadStats(cancelled);
       loadWithdrawals();
+    async function initialLoad() {
+      loadStats(cancelled);
 
       setNextShowLoading(true);
       setNextShowError('');
@@ -143,7 +204,7 @@ export function HomeArtistaPage() {
       }
     }
 
-    load();
+    initialLoad();
     return () => {
       cancelled.current = true;
     };
@@ -151,7 +212,7 @@ export function HomeArtistaPage() {
 
   if (!user) {
     return (
-      <div className="w-full max-w-[1600px] mx-auto p-6">
+      <div className="w-full max-w-[1600px] mx-auto px-6 pb-6 pt-8 md:pt-10">
         <div className="flex-1 min-w-0 space-y-6 bg-card h-fit rounded-2xl p-6 animate-pulse">
           <div className="h-8 w-48 rounded-lg bg-white/10" />
           <div className="h-40 rounded-xl bg-white/5" />
@@ -162,7 +223,7 @@ export function HomeArtistaPage() {
 
   if (!isArtista) {
     return (
-      <div className="w-full max-w-[1600px] mx-auto flex gap-6">
+      <div className="w-full max-w-[1600px] mx-auto flex gap-6 px-6 pb-6 pt-8 md:pt-10">
         <div className="flex-1 min-w-0 space-y-6 bg-card h-fit rounded-2xl p-6">
           <section>
             <h1 className="text-2xl font-semibold text-white mb-2">Dashboard del artista</h1>
@@ -174,7 +235,7 @@ export function HomeArtistaPage() {
   }
 
   return (
-    <div className="w-full max-w-[1600px] mx-auto flex gap-6 p-6">
+    <div className="w-full max-w-[1600px] mx-auto flex gap-6 px-6 pb-6 pt-8 md:pt-10">
       <div className="flex-1 min-w-0 space-y-6 bg-card h-fit rounded-2xl p-6">
         {/* Resumen */}
         <SummaryCard stats={stats} loading={statsLoading} error={statsError} />
@@ -268,6 +329,9 @@ export function HomeArtistaPage() {
           balance={stats?.totalBalance ?? null} 
           loading={statsLoading} 
           onWithdrawClick={() => setIsWithdrawModalOpen(true)}
+            balance={stats?.totalBalance ?? null} 
+            loading={statsLoading || withdrawing} 
+            onWithdraw={handleWithdraw} 
         />
 
         {/* Próximo Show */}
@@ -431,6 +495,13 @@ function BalanceCard({
   balance: number | null; 
   loading: boolean;
   onWithdrawClick: () => void;
+    balance, 
+    loading, 
+    onWithdraw 
+}: { 
+    balance: number | null; 
+    loading: boolean;
+    onWithdraw: () => void;
 }) {
   return (
     <div className="flex flex-col gap-2 items-center justify-center rounded-4xl p-5 text-white bg-linear-to-l from-accent to-[#3A9AF4]">
@@ -442,21 +513,26 @@ function BalanceCard({
         type="button"
         onClick={onWithdrawClick}
         className="mt-3 px-4 py-2 rounded-full flex items-center gap-2 font-medium bg-white/20 hover:bg-white/30 cursor-pointer"
+        onClick={onWithdraw}
+        disabled={loading || balance === null || balance <= 0}
+        className="mt-3 px-4 py-2 rounded-full flex items-center gap-2 font-medium bg-white/20 hover:bg-white/30 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        Retirar{' '}
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden
-        >
-          <path d="m9 18 6-6-6-6" />
-        </svg>
+        {loading ? 'Procesando...' : 'Retirar'}{' '}
+        {!loading && (
+            <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden
+            >
+            <path d="m9 18 6-6-6-6" />
+            </svg>
+        )}
       </button>
     </div>
   );

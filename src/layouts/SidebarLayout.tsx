@@ -30,7 +30,7 @@ interface SidebarLayoutProps {
  */
 export function SidebarLayout({ sidebar, children }: SidebarLayoutProps) {
   return (
-    <div className="h-screen max-h-screen flex overflow-hidden bg-surface">
+    <div className="h-full max-h-full flex overflow-hidden bg-surface">
       <AppSidebar
         menuItems={sidebar.menuItems}
         sectionTitle={sidebar.sectionTitle}

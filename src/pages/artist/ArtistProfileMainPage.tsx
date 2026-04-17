@@ -160,6 +160,13 @@ export function ArtistProfileMainPage() {
     [duration],
   );
 
+  const scrollToServicesSection = useCallback(() => {
+    document.getElementById('documents')?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start',
+    });
+  }, []);
+
   if (!effectiveId) {
     return (
       <div className="min-h-screen bg-neutral-950 p-4">
@@ -287,6 +294,7 @@ export function ArtistProfileMainPage() {
               variant="primary"
               className="rounded-3xl px-8 py-3.5 text-xl font-bold"
               disabled={isSelfArtist}
+              onClick={isSelfArtist ? undefined : scrollToServicesSection}
             >
               Reservar Fecha
             </Button>
@@ -511,7 +519,7 @@ export function ArtistProfileMainPage() {
         {localServices.length === 0 ? (
           <p className="text-neutral-500 text-sm">Sin servicios.</p>
         ) : (
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid w-full grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
             {(servicesExpanded ? localServices : localServices.slice(0, 4)).map((s) => {
               const serviceFeatures = Array.isArray(s.features) ? s.features : [];
               const features =
@@ -519,7 +527,7 @@ export function ArtistProfileMainPage() {
                   ? [`Duración: ${s.duration.trim()}`, ...serviceFeatures]
                   : serviceFeatures;
               return (
-                <div key={s.id} className="min-w-0 flex h-full">
+                <div key={s.id} className="flex h-full min-w-0 w-full">
                   <ArtistServiceCard
                     service={s}
                     coverPhotoUrl={s.imageUrl || coverPhoto}

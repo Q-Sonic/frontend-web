@@ -1,12 +1,33 @@
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { ProtectedRoute, PublicOnlyRoute, AdminOnlyRoute, ClienteOnlyRoute } from '../components';
-import { AppLayout, SidebarLayout } from '../layouts';
+import { SidebarLayout, AuthenticatedLayout } from '../layouts';
 import { artistSidebarMenus } from '../constants/menus';
-import { EditProfilePage, HomeRedirectPage, ProfileRedirectPage } from '../pages/redirects';
+import { LandingPage } from '../pages/landing';
+import { LoginPage } from '../pages/LoginPage';
+import { RegisterPage } from '../pages/RegisterPage';
+import { ForgotPasswordPage } from '../pages/ForgotPasswordPage';
+import PaymentResultPage from '../pages/payment/PaymentResultPage';
+import { EditProfilePage } from '../pages/EditProfilePage';
+import { 
+  HomeAdminPage, 
+  HomeOrganizacionPage, 
+  HomeRedirectPage, 
+  HomeClientePage, 
+  HomeArtistaPage 
+} from '../pages/home';
+import { 
+  ProfileAdminPage, 
+  ProfileOrganizacionPage, 
+  ProfileRedirectPage, 
+  ProfileClientePage 
+} from '../pages/profile';
+import { 
+  AdminEditScreen, 
+  OrganizacionEditScreen, 
+  ClientEditScreen, 
+  ArtistEditScreen 
+} from '../pages/profileEdit';
 import {
-  ClientEditScreen,
-  ProfileClientePage,
-  DashboardPage,
   ClientEventsPage,
   ClientContractsPage,
   ClientArtistProfileLayout,
@@ -26,14 +47,8 @@ import {
   ArtistProfileLayout,
   ArtistProfileMainPage,
   ArtistServicesPage,
-  HomeArtistaPage,
 } from '../pages/artist';
-import { LandingPage } from '../pages/landing';
-import { LoginPage } from '../pages/LoginPage';
-import { RegisterPage } from '../pages/RegisterPage';
-import { ForgotPasswordPage } from '../pages/ForgotPasswordPage';
-import { CreateArtistPage, HomeAdminPage } from '../pages/admin';
-import { HomeOrganizacionPage } from '../pages/organization';
+import { CreateArtistPage } from '../pages/admin';
 import { clientSidebarMenus } from '../constants/menus/clientMenus';
 
 const artistSidebar = {
@@ -49,233 +64,130 @@ const clientSidebar = {
 export function AppRoutes() {
   return (
     <Routes>
+      {/* Public Routes */}
       <Route path="/" element={<LandingPage />} />
+      <Route path="/payment/success" element={<PaymentResultPage />} />
+      <Route path="/payment/failure" element={<PaymentResultPage />} />
+      <Route path="/payment/pending" element={<PaymentResultPage />} />
+      <Route path="/payment/review" element={<PaymentResultPage />} />
+
+      <Route element={<PublicOnlyRoute />}>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      </Route>
+
+      {/* Protected Routes (Shell) */}
       <Route
-        path="/login"
-        element={
-          <PublicOnlyRoute>
-            <LoginPage />
-          </PublicOnlyRoute>
-        }
-      />
-      <Route
-        path="/register"
-        element={
-          <PublicOnlyRoute>
-            <RegisterPage />
-          </PublicOnlyRoute>
-        }
-      />
-      <Route
-        path="/forgot-password"
-        element={
-          <PublicOnlyRoute>
-            <ForgotPasswordPage />
-          </PublicOnlyRoute>
-        }
-      />
-      <Route
-        path="/dashboard"
         element={
           <ProtectedRoute>
-            <AppLayout>
-              <HomeRedirectPage />
-            </AppLayout>
+            <AuthenticatedLayout />
           </ProtectedRoute>
         }
-      />
-      <Route
-        path="/client"
-        element={
-          <ProtectedRoute>
-            <ClienteOnlyRoute>
+      >
+        {/* Redirects */}
+        <Route path="/dashboard" element={<HomeRedirectPage />} />
+        <Route path="/profile" element={<ProfileRedirectPage />} />
+        <Route path="/profile/edit" element={<EditProfilePage />} />
+
+        {/* Client Routes */}
+        <Route element={<ClienteOnlyRoute />}>
+          <Route
+            path="/client"
+            element={
               <SidebarLayout sidebar={clientSidebar}>
-                <DashboardPage />
+                <HomeClientePage />
               </SidebarLayout>
-            </ClienteOnlyRoute>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/client/events"
-        element={
-          <ProtectedRoute>
-            <ClienteOnlyRoute>
+            }
+          />
+          <Route
+            path="/client/events"
+            element={
               <SidebarLayout sidebar={clientSidebar}>
                 <ClientEventsPage />
               </SidebarLayout>
-            </ClienteOnlyRoute>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/client/contracts"
-        element={
-          <ProtectedRoute>
-            <ClienteOnlyRoute>
+            }
+          />
+          <Route
+            path="/client/contracts"
+            element={
               <SidebarLayout sidebar={clientSidebar}>
                 <ClientContractsPage />
               </SidebarLayout>
-            </ClienteOnlyRoute>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/client/artists/:id"
-        element={
-          <ProtectedRoute>
-            <ClienteOnlyRoute>
-              <ClientArtistProfileLayout />
-            </ClienteOnlyRoute>
-          </ProtectedRoute>
-        }
-      >
-        <Route index element={<ArtistProfileMainPage />} />
-        <Route path="gallery" element={<ArtistProfileGalleryPage />} />
-        <Route path="calendar" element={<ArtistProfileCalendarPage />} />
-        <Route path="services/:serviceId" element={<ClientArtistServiceDetailPage />} />
-        <Route path="contracts" element={<ClientArtistContractsSubPage />} />
-        <Route path="rider" element={<ClientArtistRiderSubPage />} />
-      </Route>
+            }
+          />
+          <Route path="/client/profile" element={<ProfileClientePage />} />
+          <Route path="/client/profile/edit" element={<ClientEditScreen />} />
+          
+          <Route path="/client/artists/:id" element={<ClientArtistProfileLayout />}>
+            <Route index element={<ArtistProfileMainPage />} />
+            <Route path="gallery" element={<ArtistProfileGalleryPage />} />
+            <Route path="calendar" element={<ArtistProfileCalendarPage />} />
+            <Route path="services/:serviceId" element={<ClientArtistServiceDetailPage />} />
+            <Route path="contracts" element={<ClientArtistContractsSubPage />} />
+            <Route path="rider" element={<ClientArtistRiderSubPage />} />
+          </Route>
+        </Route>
 
-      <Route
-        path="/artist"
-        element={
-          <ProtectedRoute>
+        {/* Artist Routes */}
+        <Route
+          path="/artist"
+          element={
             <SidebarLayout sidebar={artistSidebar}>
               <HomeArtistaPage />
             </SidebarLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/artist/calendario"
-        element={
-          <ProtectedRoute>
-            <AppLayout>
-              <ArtistCalendarPage />
-            </AppLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/artist/services"
-        element={
-          <ProtectedRoute>
+          }
+        />
+        <Route path="/artist/calendario" element={<ArtistCalendarPage />} />
+        <Route
+          path="/artist/services"
+          element={
             <SidebarLayout sidebar={artistSidebar}>
               <ArtistServicesPage />
             </SidebarLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/artist/media"
-        element={
-          <ProtectedRoute>
-            <ArtistMediaLegacyRedirect />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/artist/profile"
-        element={
-          <ProtectedRoute>
-            <ArtistProfileIdRedirect />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/artist/:id"
-        element={
-          <ProtectedRoute>
-            <ArtistProfileLayout />
-          </ProtectedRoute>
-        }
-      >
-        <Route index element={<ArtistProfileMainPage />} />
-        <Route path="gallery/edit" element={<ArtistMediaPage />} />
-        <Route path="gallery" element={<ArtistProfileGalleryPage />} />
-        <Route path="documents" element={<ArtistProfileDocumentsPage />} />
-        <Route path="calendar" element={<ArtistProfileCalendarPage />} />
-        <Route path="services/:serviceId" element={<ClientArtistServiceDetailPage />} />
-        <Route path="settings" element={<ArtistAccessSettingsPage />} />
+          }
+        />
+        <Route path="/artist/media" element={<ArtistMediaLegacyRedirect />} />
+        <Route path="/artist/profile" element={<ArtistProfileIdRedirect />} />
+        <Route path="/artist/:id" element={<ArtistProfileLayout />}>
+          <Route index element={<ArtistProfileMainPage />} />
+          <Route path="gallery/edit" element={<ArtistMediaPage />} />
+          <Route path="gallery" element={<ArtistProfileGalleryPage />} />
+          <Route path="documents" element={<ArtistProfileDocumentsPage />} />
+          <Route path="calendar" element={<ArtistProfileCalendarPage />} />
+          <Route path="services/:serviceId" element={<ClientArtistServiceDetailPage />} />
+          <Route path="settings" element={<ArtistAccessSettingsPage />} />
+        </Route>
+
+        {/* Admin Routes */}
+        <Route element={<AdminOnlyRoute />}>
+          <Route path="/admin" element={<HomeAdminPage />} />
+          <Route path="/admin/create-artist" element={<CreateArtistPage />} />
+          <Route path="/admin/profile" element={<ProfileAdminPage />} />
+          <Route path="/admin/profile/edit" element={<AdminEditScreen />} />
+        </Route>
+
+        {/* Organization Routes */}
+        <Route path="/organization" element={<HomeOrganizacionPage />} />
+        <Route path="/organization/profile" element={<ProfileOrganizacionPage />} />
+        <Route path="/organization/profile/edit" element={<OrganizacionEditScreen />} />
+
+        {/* Direct /home and /profile sub-routes with role segments */}
+        <Route path="/home/cliente" element={<Navigate to="/client" replace />} />
+        <Route path="/home/artista" element={<Navigate to="/artist" replace />} />
+        <Route path="/home/admin" element={<Navigate to="/admin" replace />} />
+        <Route path="/home/organizacion" element={<Navigate to="/organization" replace />} />
+        
+        <Route path="/profile/cliente" element={<Navigate to="/client/profile" replace />} />
+        <Route path="/profile/artista" element={<Navigate to="/artist/profile" replace />} />
+        <Route path="/profile/admin" element={<Navigate to="/admin/profile" replace />} />
+        <Route path="/profile/organizacion" element={<Navigate to="/organization/profile" replace />} />
+
+        <Route path="/profile/edit/cliente" element={<Navigate to="/client/profile/edit" replace />} />
+        <Route path="/profile/edit/artista" element={<Navigate to="/artist/settings" replace />} />
+        <Route path="/profile/edit/admin" element={<Navigate to="/admin/profile/edit" replace />} />
+        <Route path="/profile/edit/organizacion" element={<Navigate to="/organization/profile/edit" replace />} />
       </Route>
-      <Route
-        path="/client/profile"
-        element={
-          <ProtectedRoute>
-            <ClienteOnlyRoute>
-              <AppLayout>
-                <ProfileClientePage />
-              </AppLayout>
-            </ClienteOnlyRoute>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/client/profile/edit"
-        element={
-          <ProtectedRoute>
-            <ClienteOnlyRoute>
-              <AppLayout>
-                <ClientEditScreen />
-              </AppLayout>
-            </ClienteOnlyRoute>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/admin"
-        element={
-          <ProtectedRoute>
-            <AppLayout>
-              <HomeAdminPage />
-            </AppLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/admin/create-artist"
-        element={
-          <ProtectedRoute>
-            <AdminOnlyRoute>
-              <AppLayout>
-                <CreateArtistPage />
-              </AppLayout>
-            </AdminOnlyRoute>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/organization"
-        element={
-          <ProtectedRoute>
-            <AppLayout>
-              <HomeOrganizacionPage />
-            </AppLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/profile"
-        element={
-          <ProtectedRoute>
-            <AppLayout>
-              <ProfileRedirectPage />
-            </AppLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/profile/edit"
-        element={
-          <ProtectedRoute>
-            <AppLayout>
-              <EditProfilePage />
-            </AppLayout>
-          </ProtectedRoute>
-        }
-      />
     </Routes>
   );
 }

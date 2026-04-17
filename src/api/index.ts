@@ -41,3 +41,14 @@ export {
   deleteArtistSong,
 } from './artistSongService';
 export { uploadFile, deleteStorageFile } from './storageService';
+export { paymentService } from './paymentService';
+export {
+  fetchMyContractHistory,
+  fetchMyContractHistorySafe,
+  fetchSignedCartMockRecordsFromApi,
+  createContract,
+  createContractsForSignedLines,
+  contractRecordsToSignedMockRecords,
+  dispatchContractsApiRefresh,
+  STAGEGO_CLIENT_CONTRACTS_API_REFRESH_EVENT,
+} from './contractService';
