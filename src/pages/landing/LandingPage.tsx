@@ -1,7 +1,11 @@
+import { useState } from 'react';
+import type { FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '../../components';
 import { useAuth } from '../../contexts/AuthContext';
 import { config } from '../../config';
+import { submitLandingLead } from '../../api/landingLeadsService';
+import { ApiError } from '../../api/client';
 import headerLogoIcon from '../../assets/icons/Logo small - Login.svg';
 import heroConcertScreen from '../../assets/images/landing/Concierto Pantalla LadingPage.svg';
 import howHireBookingCard from '../../assets/images/landing/how-hire-booking-card.png';
@@ -141,6 +145,42 @@ function CatalogFilterBar() {
 
 export function LandingPage() {
   const { user } = useAuth();
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
+  const [inquiryType, setInquiryType] = useState<'artist' | 'client' | ''>('');
+  const [leadLoading, setLeadLoading] = useState(false);
+  const [leadError, setLeadError] = useState('');
+  const [leadSuccess, setLeadSuccess] = useState(false);
+
+  async function handleLeadSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setLeadError('');
+    setLeadSuccess(false);
+
+    if (!inquiryType) {
+      setLeadError('Indica si eres artista o buscas talento.');
+      return;
+    }
+
+    setLeadLoading(true);
+    try {
+      await submitLandingLead({
+        fullName,
+        email,
+        inquiryType,
+      });
+      setLeadSuccess(true);
+      setFullName('');
+      setEmail('');
+      setInquiryType('');
+    } catch (err) {
+      const message =
+        err instanceof ApiError ? err.message : 'No se pudo enviar. Intenta de nuevo en unos minutos.';
+      setLeadError(message);
+    } finally {
+      setLeadLoading(false);
+    }
+  }
 
   return (
     <div className="relative isolate min-h-screen overflow-x-hidden bg-[#07090b] text-neutral-100">
@@ -209,7 +249,7 @@ export function LandingPage() {
                   todo en un solo lugar
                 </p>
                 <Link to={user ? '/dashboard' : '/register'} className="inline-block mt-8">
-                  <Button variant="primary" className="h-13 rounded-full px-8 text-base">
+                  <Button variant="primary" className="h-13 rounded-full px-8 text-base cursor-pointer">
                     Explorar catalogo
                   </Button>
                 </Link>
@@ -277,11 +317,47 @@ export function LandingPage() {
                 </p>
               </div>
 
-              <form className="space-y-4">
+              <form className="space-y-4" onSubmit={handleLeadSubmit}>
+                <fieldset className="space-y-3">
+                  <legend className="sr-only">Tipo de consulta</legend>
+                  <span className="mb-2 block text-xl text-neutral-100 md:text-2xl">Yo soy</span>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                    <label className="inline-flex cursor-pointer items-center gap-2 rounded-2xl border border-white/20 bg-black/30 px-4 py-3 text-neutral-100 has-[:checked]:border-[#00CCCB] has-[:checked]:bg-[#00CCCB]/10">
+                      <input
+                        type="radio"
+                        name="inquiryType"
+                        value="artist"
+                        checked={inquiryType === 'artist'}
+                        onChange={() => setInquiryType('artist')}
+                        className="h-4 w-4 accent-[#00CCCB]"
+                      />
+                      <span>Artista</span>
+                    </label>
+                    <label className="inline-flex cursor-pointer items-center gap-2 rounded-2xl border border-white/20 bg-black/30 px-4 py-3 text-neutral-100 has-[:checked]:border-[#00CCCB] has-[:checked]:bg-[#00CCCB]/10">
+                      <input
+                        type="radio"
+                        name="inquiryType"
+                        value="client"
+                        checked={inquiryType === 'client'}
+                        onChange={() => setInquiryType('client')}
+                        className="h-4 w-4 accent-[#00CCCB]"
+                      />
+                      <span>Busco talento</span>
+                    </label>
+                  </div>
+                </fieldset>
+
                 <label className="block">
                   <span className="mb-2 block text-3xl text-neutral-100">Nombre Completo</span>
                   <input
                     type="text"
+                    name="fullName"
+                    autoComplete="name"
+                    required
+                    minLength={2}
+                    maxLength={120}
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
                     className="h-13 w-full rounded-2xl border border-[#00CCCB] bg-transparent px-4 text-white outline-none transition focus:border-[#15ebe9]"
                   />
                 </label>
@@ -289,11 +365,32 @@ export function LandingPage() {
                   <span className="mb-2 block text-3xl text-neutral-100">Correo electronico</span>
                   <input
                     type="email"
+                    name="email"
+                    autoComplete="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     className="h-13 w-full rounded-2xl border border-[#00CCCB] bg-transparent px-4 text-white outline-none transition focus:border-[#15ebe9]"
                   />
                 </label>
 
-                <Button type="button" variant="primary" className="mt-2 h-13 rounded-full px-8 text-lg">
+                {leadError ? (
+                  <p className="text-sm text-red-400" role="alert">
+                    {leadError}
+                  </p>
+                ) : null}
+                {leadSuccess ? (
+                  <p className="text-sm text-[#28C76F]" role="status">
+                    Listo. Te contactaremos en menos de 24 horas.
+                  </p>
+                ) : null}
+
+                <Button
+                  type="submit"
+                  variant="primary"
+                  className="mt-2 h-13 rounded-full px-8 text-lg cursor-pointer"
+                  loading={leadLoading}
+                >
                   Solicitar acceso gratuito
                 </Button>
               </form>
@@ -369,7 +466,7 @@ export function LandingPage() {
                   forma segura y transparente. El proximo gran show comienza aqui.
                 </p>
                 <Link to={user ? '/dashboard' : '/register'} className="inline-block mt-8">
-                  <Button variant="primary" className="h-13 rounded-full px-8 text-base">
+                  <Button variant="primary" className="h-13 rounded-full px-8 text-base cursor-pointer">
                     Explorar catalogo
                   </Button>
                 </Link>
@@ -382,7 +479,7 @@ export function LandingPage() {
               Haz que tu evento sea inolvidable
             </h2>
             <Link to={user ? '/dashboard' : '/register'} className="inline-block mt-8">
-              <Button variant="primary" className="h-13 rounded-full px-8 text-2xl">
+              <Button variant="primary" className="h-13 rounded-full px-8 text-2xl cursor-pointer">
                 Empieza ahora
               </Button>
             </Link>
