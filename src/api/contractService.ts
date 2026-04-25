@@ -9,7 +9,34 @@ export function dispatchContractsApiRefresh(): void {
   window.dispatchEvent(new CustomEvent(STAGEGO_CLIENT_CONTRACTS_API_REFRESH_EVENT));
 }
 
-function normalizeContractListPayload(body: unknown): ContractRecord[] {
+function stringFromUnknown(v: unknown): string | undefined {
+  if (typeof v !== 'string') return undefined;
+  const t = v.trim();
+  return t || undefined;
+}
+
+/**
+ * Merges snake_case / legacy keys from the API into `ContractRecord` so the client UI can show
+ * artist name and photo without further changes when the backend adds them.
+ */
+function enrichContractRecord(row: ContractRecord): ContractRecord {
+  const x = row as ContractRecord & Record<string, unknown>;
+  const artistDisplayName =
+    stringFromUnknown(x.artistDisplayName) ||
+    stringFromUnknown(x.artist_display_name) ||
+    stringFromUnknown(x['artistName']);
+  const artistPhotoUrl =
+    stringFromUnknown(x.artistPhotoUrl) ||
+    stringFromUnknown(x.artist_photo_url) ||
+    stringFromUnknown(x.image_url) ||
+    stringFromUnknown(x.artistImageUrl);
+  const out: ContractRecord = { ...row };
+  if (artistDisplayName) out.artistDisplayName = artistDisplayName;
+  if (artistPhotoUrl) out.artistPhotoUrl = artistPhotoUrl;
+  return out;
+}
+
+function rawContractArrayFromPayload(body: unknown): ContractRecord[] {
   if (Array.isArray(body)) {
     return body as ContractRecord[];
   }
@@ -32,6 +59,10 @@ function normalizeContractListPayload(body: unknown): ContractRecord[] {
     }
   }
   return [];
+}
+
+function normalizeContractListPayload(body: unknown): ContractRecord[] {
+  return rawContractArrayFromPayload(body).map(enrichContractRecord);
 }
 
 /**
@@ -164,7 +195,7 @@ export function contractRecordsToSignedMockRecords(contracts: ContractRecord[]):
           price: typeof c.financials?.totalAmount === 'number' ? c.financials.totalAmount : 0,
           selectedDateKeys: [dateKey],
           addedAt: signedAt,
-          artistDisplayName: 'Artista',
+          artistDisplayName: c.artistDisplayName?.trim() || 'Artista',
           locationLabel: c.eventDetails?.location?.trim(),
         },
       ],
