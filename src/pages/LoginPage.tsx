@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Button, Input } from '../components';
 import { AuthLayout } from '../components/AuthLayout';
@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { login, loginWithGoogleBackend } from '../api/authService';
 import { normalizeRole } from '../helpers/role';
 import { loginErrorMessage } from '../helpers/authErrors';
+import { SESSION_KEY_POST_REGISTER_LOGIN } from '../constants/sessionStorageKeys';
 import { signInWithPopup, signInWithCustomToken } from 'firebase/auth';
 import { auth as firebaseAuth, googleProvider } from '../config/firebase';
 
@@ -71,16 +72,36 @@ export function LoginPage() {
   } | undefined;
   // Use '/dashboard' as default redirected from main branch logic
   const from = locationState?.from?.pathname ?? '/dashboard';
-  const [showRegisterSuccess, setShowRegisterSuccess] = useState(
-    () => locationState?.registerSuccess === true
-  );
+  const [showRegisterSuccess, setShowRegisterSuccess] = useState(() => {
+    try {
+      if (sessionStorage.getItem(SESSION_KEY_POST_REGISTER_LOGIN) === '1') return true;
+    } catch {
+      /* ignore */
+    }
+    return locationState?.registerSuccess === true;
+  });
   const [showPasswordRelogin, setShowPasswordRelogin] = useState(
     () => locationState?.passwordChangedRelogin === true
   );
 
   function clearRegisterSuccess() {
+    try {
+      sessionStorage.removeItem(SESSION_KEY_POST_REGISTER_LOGIN);
+    } catch {
+      /* ignore */
+    }
     setShowRegisterSuccess(false);
   }
+
+  useEffect(() => {
+    return () => {
+      try {
+        sessionStorage.removeItem(SESSION_KEY_POST_REGISTER_LOGIN);
+      } catch {
+        /* ignore */
+      }
+    };
+  }, []);
 
   function clearPasswordRelogin() {
     setShowPasswordRelogin(false);
@@ -138,7 +159,7 @@ export function LoginPage() {
   }
 
   return (
-    <AuthLayout>
+    <AuthLayout backLink={{ to: '/', label: 'Inicio' }}>
       {/* Header */}
       <div className="mb-8">
         <h2 className="text-3xl font-bold text-white tracking-tight" style={{ height: 39 }}>
@@ -149,11 +170,19 @@ export function LoginPage() {
 
       {/* Success banner */}
       {showRegisterSuccess && (
-        <div className="mb-6 flex items-start gap-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg px-4 py-3">
-          <CheckCircleIcon />
+        <div
+          role="status"
+          aria-live="polite"
+          className="mb-6 flex items-start gap-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3"
+        >
+          <span className="mt-0.5 shrink-0 text-emerald-400">
+            <CheckCircleIcon />
+          </span>
           <div>
-            <p className="text-emerald-400 text-sm font-medium">¡Registro exitoso!</p>
-            <p className="text-emerald-400/70 text-xs mt-0.5">Ahora inicia sesión con tu nueva cuenta.</p>
+            <p className="text-sm font-medium text-emerald-400">Registro exitoso</p>
+            <p className="mt-0.5 text-xs text-emerald-400/80">
+              Ya puedes iniciar sesión con tu correo y contraseña.
+            </p>
           </div>
         </div>
       )}

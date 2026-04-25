@@ -7,6 +7,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { normalizeRole } from '../helpers/role';
 import type { RegistrationRole } from '../types/auth';
 import { registerErrorMessage } from '../helpers/authErrors';
+import { SESSION_KEY_POST_REGISTER_LOGIN } from '../constants/sessionStorageKeys';
 import { signInWithPopup, signInWithCustomToken } from 'firebase/auth';
 import { auth as firebaseAuth, googleProvider } from '../config/firebase';
 
@@ -136,6 +137,11 @@ export function RegisterPage() {
         displayName: trim(displayName),
         role: accountRole,
       });
+      try {
+        sessionStorage.setItem(SESSION_KEY_POST_REGISTER_LOGIN, '1');
+      } catch {
+        /* ignore private mode */
+      }
       navigate('/login', { state: { registerSuccess: true }, replace: true });
     } catch (err) {
       setSubmitError(registerErrorMessage(err));
@@ -172,7 +178,7 @@ export function RegisterPage() {
   }
 
   return (
-    <AuthLayout>
+    <AuthLayout backLink={{ to: '/login', label: 'Volver atrás' }}>
       {/* Header */}
       <div className="mb-8">
         <h2 className="text-3xl font-bold text-white tracking-tight" style={{ height: 39 }}>
@@ -303,7 +309,12 @@ export function RegisterPage() {
           </div>
           <span className="text-sm text-white/55 group-hover:text-white/75 transition-colors leading-5">
             Acepto los{' '}
-            <Link to="/terms" className="text-[#00d4c8] hover:text-[#00ece0] font-medium transition-colors">
+            <Link
+              to="/terms"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[#00d4c8] hover:text-[#00ece0] font-medium transition-colors"
+            >
               términos y condiciones
             </Link>
           </span>
