@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { FiArrowRight } from 'react-icons/fi';
+import { FaThumbtack } from 'react-icons/fa6';
 import type { ArtistServiceRecord } from '../types';
 import { formatMoney } from '../helpers/money';
 
@@ -20,6 +21,7 @@ export type ArtistServiceCardProps = {
   features?: string[];
   isSelfArtist?: boolean;
   hireLinkTo?: string;
+  isPinned?: boolean;
 };
 
 export function ArtistServiceCard({
@@ -28,6 +30,7 @@ export function ArtistServiceCard({
   features = [],
   isSelfArtist = false,
   hireLinkTo = '/artist/services',
+  isPinned = false,
 }: ArtistServiceCardProps) {
 
   const TextButton = () => {
@@ -57,6 +60,12 @@ export function ArtistServiceCard({
           />
         )}
         <div className="pointer-events-none absolute inset-0 bg-linear-to-t from-neutral-950/40 to-transparent" />
+        {isPinned && (
+          <div className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full border border-accent/55 bg-black/65 px-2.5 py-1 text-[11px] font-semibold text-accent backdrop-blur-sm">
+            <FaThumbtack size={11} className="-rotate-45" aria-hidden />
+            Fijado
+          </div>
+        )}
       </div>
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col p-5 sm:p-6">

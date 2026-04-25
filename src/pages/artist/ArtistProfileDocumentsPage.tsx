@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { UseArtistProfileByIdOptions } from '../../hooks/useArtistProfileById';
 import { Navigate, useParams } from 'react-router-dom';
 import {
@@ -10,7 +10,14 @@ import { useArtistProfileById } from '../../hooks/useArtistProfileById';
 import { useAuth } from '../../contexts/AuthContext';
 import { useArtistProfileNav } from '../../contexts/ArtistProfileNavContext';
 import { buildArtistRiderItems } from '../../helpers/artistRiderSections';
-import { contractPdfUrlForService, technicalRiderPdfFromProfile } from '../../helpers/artistDocumentUrls';
+import { contractPdfUrlForService } from '../../helpers/artistDocumentUrls';
+import {
+  MAX_PINNED_ITEMS,
+  getPinnedItemIds,
+  savePinnedItemIds,
+  sortPinnedFirst,
+  togglePinnedItemId,
+} from '../../helpers/pinnedItems';
 import { isBackendRoleArtista } from '../../helpers/role';
 import type { ArtistServiceRecord } from '../../types';
 
@@ -19,6 +26,7 @@ export function ArtistProfileDocumentsPage() {
   const { user } = useAuth();
   const { exitHomePath } = useArtistProfileNav();
   const [infoBanner, setInfoBanner] = useState('');
+  const [pinnedRiderIds, setPinnedRiderIds] = useState<string[]>([]);
   const isSelfArtist = !!user?.uid && isBackendRoleArtista(user.role) && user.uid === id;
   const profileLoadOptions: UseArtistProfileByIdOptions | undefined = useMemo(
     () =>
@@ -38,6 +46,33 @@ export function ArtistProfileDocumentsPage() {
   };
 
   const riderItems = useMemo(() => buildArtistRiderItems(services, profile), [profile, services]);
+  const orderedRiderItems = useMemo(
+    () => sortPinnedFirst(riderItems, pinnedRiderIds),
+    [riderItems, pinnedRiderIds],
+  );
+
+  useEffect(() => {
+    if (!id) {
+      setPinnedRiderIds([]);
+      return;
+    }
+    const validIds = new Set(riderItems.map((item) => item.id));
+    const storedPinned = getPinnedItemIds(id, 'riders');
+    const sanitizedPinned = storedPinned.filter((itemId) => validIds.has(itemId));
+    const savedPinned = savePinnedItemIds(id, 'riders', sanitizedPinned);
+    setPinnedRiderIds(savedPinned);
+  }, [id, riderItems]);
+
+  const handleToggleRiderPin = (riderId: string) => {
+    const { nextPinnedIds, exceededLimit } = togglePinnedItemId(pinnedRiderIds, riderId);
+    if (exceededLimit) {
+      setInfoBanner(`Solo puedes fijar hasta ${MAX_PINNED_ITEMS} riders técnicos.`);
+      return;
+    }
+    setInfoBanner('');
+    const savedPinned = savePinnedItemIds(id, 'riders', nextPinnedIds);
+    setPinnedRiderIds(savedPinned);
+  };
 
   if (!id) return <Navigate to={exitHomePath} replace />;
 
@@ -83,6 +118,7 @@ export function ArtistProfileDocumentsPage() {
           services={services}
           getDocumentUrl={getDocumentUrl}
           onMissingDocumentClick={handleMissingDocumentClick}
+          showPaymentColumn={false}
         />
       </section>
 
@@ -93,7 +129,13 @@ export function ArtistProfileDocumentsPage() {
             {infoBanner}
           </p>
         )}
-        <ArtistProfileRidersGrid items={riderItems} onMissingDocumentClick={handleMissingDocumentClick} />
+        <ArtistProfileRidersGrid
+          items={orderedRiderItems}
+          pinnedIds={pinnedRiderIds}
+          onMissingDocumentClick={handleMissingDocumentClick}
+          canTogglePin={isSelfArtist}
+          onTogglePin={isSelfArtist ? handleToggleRiderPin : undefined}
+        />
       </section>
     </div>
   );

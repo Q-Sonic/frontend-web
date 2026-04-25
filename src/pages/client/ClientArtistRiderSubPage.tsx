@@ -1,17 +1,35 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Navigate, useParams } from 'react-router-dom';
 import { ArtistProfileRidersGrid, Skeleton } from '../../components';
 import { ClientArtistSectionHeader } from '../../components/client/ClientArtistSectionHeader';
 import { useArtistProfileById } from '../../hooks/useArtistProfileById';
 import { buildArtistRiderItems } from '../../helpers/artistRiderSections';
 import { useArtistProfileNav } from '../../contexts/ArtistProfileNavContext';
+import { getPinnedItemIds, savePinnedItemIds, sortPinnedFirst } from '../../helpers/pinnedItems';
 
 export function ClientArtistRiderSubPage() {
   const { id } = useParams<{ id: string }>();
   const { basePath } = useArtistProfileNav();
   const { profile, services, artistDisplayName, loading, error } = useArtistProfileById(id);
+  const [pinnedRiderIds, setPinnedRiderIds] = useState<string[]>([]);
 
   const riderItems = useMemo(() => buildArtistRiderItems(services, profile), [profile, services]);
+  const orderedRiderItems = useMemo(
+    () => sortPinnedFirst(riderItems, pinnedRiderIds),
+    [riderItems, pinnedRiderIds],
+  );
+
+  useEffect(() => {
+    if (!id) {
+      setPinnedRiderIds([]);
+      return;
+    }
+    const validIds = new Set(riderItems.map((item) => item.id));
+    const storedPinned = getPinnedItemIds(id, 'riders');
+    const sanitizedPinned = storedPinned.filter((itemId) => validIds.has(itemId));
+    const savedPinned = savePinnedItemIds(id, 'riders', sanitizedPinned);
+    setPinnedRiderIds(savedPinned);
+  }, [id, riderItems]);
 
   if (!id) return <Navigate to="/client" replace />;
 
@@ -56,8 +74,8 @@ export function ClientArtistRiderSubPage() {
         <h2 className="text-xl md:text-2xl font-bold tracking-tight text-white">
           Requisitos técnicos por tipo de show
         </h2>
-        {riderItems.length > 0 ? (
-          <ArtistProfileRidersGrid items={riderItems} />
+        {orderedRiderItems.length > 0 ? (
+          <ArtistProfileRidersGrid items={orderedRiderItems} />
         ) : (
           <p className="text-sm text-neutral-400 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-8 text-center">
             Este artista aún no tiene rider técnico disponible.
