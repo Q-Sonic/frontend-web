@@ -8,7 +8,6 @@ import { DiscoverFilterBar } from '../../components/shared/DiscoverFilterBar';
 import { artistListItemToDiscoverCard } from '../../helpers/discoverArtistCard';
 import type { DiscoverArtistCardDisplay } from '../../helpers/discoverArtistCard';
 import { useArtistDiscoveryList } from '../../hooks/useArtistDiscoveryList';
-import { discoverFictionalArtists } from '../../mocks/client/discoverFictionalArtists';
 
 export function DashboardPage() {
   const [filters, setFilters] = useState<ArtistProfileListFilters>({});
@@ -24,7 +23,7 @@ export function DashboardPage() {
 
   const gridItems: DiscoverArtistCardDisplay[] = useMemo(() => {
     const fromApi = artists.map((item) => artistListItemToDiscoverCard(item));
-    return [...fromApi, ...discoverFictionalArtists];
+    return fromApi;
   }, [artists]);
 
   return (
