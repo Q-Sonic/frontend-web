@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { Navigate, useParams } from 'react-router-dom';
 import { ArtistProfileRidersGrid, Skeleton } from '../../components';
 import { ClientArtistSectionHeader } from '../../components/client/ClientArtistSectionHeader';
@@ -10,13 +10,8 @@ export function ClientArtistRiderSubPage() {
   const { id } = useParams<{ id: string }>();
   const { basePath } = useArtistProfileNav();
   const { profile, services, artistDisplayName, loading, error } = useArtistProfileById(id);
-  const [infoBanner, setInfoBanner] = useState('');
 
   const riderItems = useMemo(() => buildArtistRiderItems(services, profile), [profile, services]);
-
-  const handleMissingDocumentClick = () => {
-    setInfoBanner('Este artista aún no tiene el rider técnico en PDF.');
-  };
 
   if (!id) return <Navigate to="/client" replace />;
 
@@ -61,12 +56,13 @@ export function ClientArtistRiderSubPage() {
         <h2 className="text-xl md:text-2xl font-bold tracking-tight text-white">
           Requisitos técnicos por tipo de show
         </h2>
-        {infoBanner && (
-          <p className="text-xs text-[#00d4c8] bg-[#00d4c8]/10 border border-[#00d4c8]/30 rounded-lg px-3 py-2">
-            {infoBanner}
+        {riderItems.length > 0 ? (
+          <ArtistProfileRidersGrid items={riderItems} />
+        ) : (
+          <p className="text-sm text-neutral-400 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-8 text-center">
+            Este artista aún no tiene rider técnico disponible.
           </p>
         )}
-        <ArtistProfileRidersGrid items={riderItems} onMissingDocumentClick={handleMissingDocumentClick} />
       </section>
     </div>
   );

@@ -44,6 +44,7 @@ export function buildArtistRiderItems(
   profile: ArtistProfile | null,
 ): ArtistRiderItem[] {
   const riderPdfUrl = technicalRiderPdfFromProfile(profile);
+  if (!riderPdfUrl) return [];
   return DEFAULT_RIDER_SECTIONS.map((section, index) => {
     const matchingService = services.find((service) =>
       service.name.toLowerCase().includes(section.title.toLowerCase().split(' ')[0]),
