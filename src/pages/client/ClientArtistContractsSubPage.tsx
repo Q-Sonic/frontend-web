@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Navigate, useParams } from 'react-router-dom';
 import { ArtistProfileDocumentsServicesTable, Skeleton } from '../../components';
 import { ClientArtistSectionHeader } from '../../components/client/ClientArtistSectionHeader';
@@ -11,12 +10,8 @@ export function ClientArtistContractsSubPage() {
   const { id } = useParams<{ id: string }>();
   const { basePath } = useArtistProfileNav();
   const { profile, services, artistDisplayName, loading, error } = useArtistProfileById(id);
-  const [infoBanner, setInfoBanner] = useState('');
 
   const getDocumentUrl = (service: ArtistServiceRecord) => contractPdfUrlForService(service, profile);
-  const handleMissingDocumentClick = () => {
-    setInfoBanner('Este artista aún no tiene un PDF cargado para este servicio.');
-  };
 
   if (!id) return <Navigate to="/client" replace />;
 
@@ -57,15 +52,11 @@ export function ClientArtistContractsSubPage() {
         <h2 className="text-xl md:text-2xl font-bold tracking-tight text-white">
           Listado de contratos por servicio
         </h2>
-        {infoBanner && (
-          <p className="text-xs text-[#00d4c8] bg-[#00d4c8]/10 border border-[#00d4c8]/30 rounded-lg px-3 py-2">
-            {infoBanner}
-          </p>
-        )}
         <ArtistProfileDocumentsServicesTable
           services={services}
           getDocumentUrl={getDocumentUrl}
-          onMissingDocumentClick={handleMissingDocumentClick}
+          showPaymentColumn={false}
+          disableDownloadWhenMissing
         />
       </section>
     </div>

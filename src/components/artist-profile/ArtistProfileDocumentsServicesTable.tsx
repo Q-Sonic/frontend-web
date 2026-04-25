@@ -7,6 +7,8 @@ interface ArtistProfileDocumentsServicesTableProps {
   services: ArtistServiceRecord[];
   getDocumentUrl: (service: ArtistServiceRecord) => string | undefined;
   onMissingDocumentClick?: () => void;
+  showPaymentColumn?: boolean;
+  disableDownloadWhenMissing?: boolean;
 }
 
 function formatPrice(value: number): string {
@@ -18,6 +20,8 @@ export function ArtistProfileDocumentsServicesTable({
   services,
   getDocumentUrl,
   onMissingDocumentClick,
+  showPaymentColumn = true,
+  disableDownloadWhenMissing = false,
 }: ArtistProfileDocumentsServicesTableProps) {
   if (services.length === 0) {
     return (
@@ -41,7 +45,7 @@ export function ArtistProfileDocumentsServicesTable({
                   PDF <span className="text-[10px] font-normal text-neutral-500">(descarga)</span>
                 </span>
               </th>
-              <th>Pago</th>
+              {showPaymentColumn ? <th>Pago</th> : null}
             </tr>
           </thead>
           <tbody className="divide-y divide-white/5">
@@ -63,6 +67,17 @@ export function ArtistProfileDocumentsServicesTable({
                         <FiDownload size={14} aria-hidden />
                         Descargar
                       </a>
+                    ) : disableDownloadWhenMissing ? (
+                      <button
+                        type="button"
+                        disabled
+                        aria-disabled="true"
+                        className="inline-flex cursor-not-allowed items-center gap-2 rounded-full border border-white/15 px-3 py-1 text-white/35"
+                        title="Este servicio no tiene PDF disponible"
+                      >
+                        <FiDownload size={14} aria-hidden />
+                        Descargar
+                      </button>
                     ) : (
                       <button
                         type="button"
@@ -74,16 +89,18 @@ export function ArtistProfileDocumentsServicesTable({
                       </button>
                     )}
                   </td>
-                  <td>
-                    <NuveiPaymentButton
-                      amount={service.price || 1}
-                      description={`Pago por servicio: ${service.name}`}
-                      dev_reference={service.id || `order-${Date.now()}`}
-                      className="!py-1 !px-3 !rounded-full !text-xs"
-                    >
-                      Pagar
-                    </NuveiPaymentButton>
-                  </td>
+                  {showPaymentColumn ? (
+                    <td>
+                      <NuveiPaymentButton
+                        amount={service.price || 1}
+                        description={`Pago por servicio: ${service.name}`}
+                        dev_reference={service.id || `order-${Date.now()}`}
+                        className="!py-1 !px-3 !rounded-full !text-xs"
+                      >
+                        Pagar
+                      </NuveiPaymentButton>
+                    </td>
+                  ) : null}
                 </tr>
               );
             })}

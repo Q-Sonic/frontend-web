@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { FiShoppingCart } from 'react-icons/fi';
+import { FiCheck, FiChevronDown, FiShoppingCart } from 'react-icons/fi';
 import { getArtistServiceById } from '../../api';
 import { ARTIST_SERVICE_LINK_STATE_KEY, Skeleton } from '../../components';
 import { ClientContractSigningModal } from '../../components/client/ClientContractSigningModal';
@@ -19,6 +19,17 @@ import type { ArtistProfile, ArtistServiceRecord } from '../../types';
 const ACCENT_HEX = '#00d4c8';
 
 function formatDateKeyEs(key: string): string {
+  const [y, m, d] = key.split('-').map(Number);
+  if (!y || !m || !d) return key;
+  const dt = new Date(y, m - 1, d);
+  return dt.toLocaleDateString('es', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+  });
+}
+
+function formatDateKeyEsVeryShort(key: string): string {
   const [y, m, d] = key.split('-').map(Number);
   if (!y || !m || !d) return key;
   const dt = new Date(y, m - 1, d);
@@ -95,6 +106,8 @@ type ServiceDetailArticleProps = {
   artistId: string;
   artistDisplayName: string;
   svc: ArtistServiceRecord;
+  availableServices: ArtistServiceRecord[];
+  onSelectService: (serviceId: string) => void;
   profile: (ArtistProfile & { uid: string }) | null;
   basePath: string;
 };
@@ -103,6 +116,8 @@ function ServiceDetailArticle({
   artistId,
   artistDisplayName,
   svc,
+  availableServices,
+  onSelectService,
   profile,
   basePath,
 }: ServiceDetailArticleProps) {
@@ -111,11 +126,45 @@ function ServiceDetailArticle({
   const [selectedDateKeys, setSelectedDateKeys] = useState<Set<string>>(() => new Set());
   const [cartAddedFlash, setCartAddedFlash] = useState(false);
   const [contractModalOpen, setContractModalOpen] = useState(false);
+  const [isContractDatesExpanded, setIsContractDatesExpanded] = useState(false);
+  const [isServiceMenuOpen, setIsServiceMenuOpen] = useState(false);
+  const serviceMenuRef = useRef<HTMLDivElement | null>(null);
 
   const coverPhoto = svc.imageUrl?.trim() || profile?.photo?.trim() || undefined;
   const featureItems = Array.isArray(svc.features) ? svc.features : [];
   const featureLines =
     svc.duration?.trim() ? [`Duración: ${svc.duration.trim()}`, ...featureItems] : featureItems;
+  const serviceOptions = useMemo(() => {
+    const list = availableServices.length > 0 ? availableServices : [svc];
+    const uniqueById = new Map<string, ArtistServiceRecord>();
+    list.forEach((service) => uniqueById.set(service.id, service));
+    if (!uniqueById.has(svc.id)) uniqueById.set(svc.id, svc);
+    return [...uniqueById.values()];
+  }, [availableServices, svc]);
+
+  useEffect(() => {
+    setIsServiceMenuOpen(false);
+  }, [svc.id]);
+
+  useEffect(() => {
+    const handlePointerDownOutside = (event: MouseEvent) => {
+      if (!serviceMenuRef.current) return;
+      const target = event.target;
+      if (target instanceof Node && !serviceMenuRef.current.contains(target)) {
+        setIsServiceMenuOpen(false);
+      }
+    };
+    const handleEscapeKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsServiceMenuOpen(false);
+    };
+
+    document.addEventListener('mousedown', handlePointerDownOutside);
+    document.addEventListener('keydown', handleEscapeKey);
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDownOutside);
+      document.removeEventListener('keydown', handleEscapeKey);
+    };
+  }, []);
 
   const toggleDateKey = useCallback((key: string) => {
     setSelectedDateKeys((prev) => {
@@ -128,17 +177,63 @@ function ServiceDetailArticle({
 
   const openContractModal = useCallback(() => {
     if (selectedDateKeys.size === 0) return;
+    setIsContractDatesExpanded(false);
     setContractModalOpen(true);
   }, [selectedDateKeys.size]);
 
   const contractSummary = useMemo(() => {
     const sortedKeys = [...selectedDateKeys].sort();
+    const visibleDateKeys = isContractDatesExpanded ? sortedKeys : sortedKeys.slice(0, 3);
+    const remainingDateCount = Math.max(0, sortedKeys.length - visibleDateKeys.length);
     const dateLabel =
-      sortedKeys.length === 0
-        ? '—'
-        : sortedKeys.length === 1
-          ? formatDateKeyEsLong(sortedKeys[0]!)
-          : sortedKeys.map(formatDateKeyEsLong).join(' · ');
+      sortedKeys.length === 0 ? (
+        '—'
+      ) : sortedKeys.length === 1 ? (
+        <div className="space-y-2">
+          <p className="text-sm text-white/70">1 fecha seleccionada</p>
+          <ul className="flex flex-wrap gap-1.5">
+            <li className="rounded-md border border-[#00d4c8]/30 bg-[#00d4c8]/10 px-2 py-1 text-xs font-medium text-[#8ff6ef]">
+              {formatDateKeyEsVeryShort(sortedKeys[0]!)}
+            </li>
+          </ul>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <p className="text-sm text-white/70">{sortedKeys.length} fechas seleccionadas</p>
+          <ul className="flex flex-wrap gap-1.5">
+            {visibleDateKeys.map((key) => (
+              <li
+                key={key}
+                className="rounded-md border border-[#00d4c8]/30 bg-[#00d4c8]/10 px-2 py-1 text-xs font-medium text-[#8ff6ef]"
+              >
+                {formatDateKeyEsVeryShort(key)}
+              </li>
+            ))}
+            {remainingDateCount > 0 ? (
+              <li>
+                <button
+                  type="button"
+                  onClick={() => setIsContractDatesExpanded(true)}
+                  className="rounded-md border border-white/20 bg-white/5 px-2 py-1 text-xs font-medium text-white/75 transition hover:border-[#00d4c8]/45 hover:text-[#b8fffa]"
+                >
+                  +{remainingDateCount} más
+                </button>
+              </li>
+            ) : null}
+            {isContractDatesExpanded && sortedKeys.length > 3 ? (
+              <li>
+                <button
+                  type="button"
+                  onClick={() => setIsContractDatesExpanded(false)}
+                  className="rounded-md border border-white/20 bg-white/5 px-2 py-1 text-xs font-medium text-white/70 transition hover:border-white/35 hover:text-white"
+                >
+                  Ver menos
+                </button>
+              </li>
+            ) : null}
+          </ul>
+        </div>
+      );
     const featureBits = Array.isArray(svc.features) ? svc.features.filter(Boolean).slice(0, 4) : [];
     const serviceLine =
       featureBits.length > 0 ? `${svc.name} (${featureBits.join(', ')})` : svc.name;
@@ -153,7 +248,7 @@ function ServiceDetailArticle({
       duration: durationPerPresentationLabel(svc.duration),
       service: serviceLine,
     };
-  }, [selectedDateKeys, svc, profile?.city]);
+  }, [isContractDatesExpanded, selectedDateKeys, svc, profile?.city]);
 
   const artistParty = useMemo(() => {
     const photo = resolveArtistProfileMediaUrl(profile?.photo);
@@ -305,14 +400,26 @@ function ServiceDetailArticle({
             onToggleKey={toggleDateKey}
             selectedSummary={
               selectedDateKeys.size > 0 ? (
-                <p className="text-sm sm:text-base leading-relaxed text-neutral-300">
-                  <span className="font-semibold text-[#00d4c8]">
-                    {selectedDateKeys.size === 1 ? 'Fecha elegida: ' : 'Fechas elegidas: '}
-                  </span>
-                  <span className="text-neutral-200">
-                    {[...selectedDateKeys].sort().map(formatDateKeyEs).join(' · ')}
-                  </span>
-                </p>
+                <div className="space-y-2 rounded-xl border border-white/10 bg-black/25 px-3 py-3 sm:px-4">
+                  <p className="text-sm sm:text-base leading-relaxed text-neutral-300">
+                    <span className="font-semibold text-[#00d4c8]">
+                      {selectedDateKeys.size === 1 ? 'Fecha elegida' : 'Fechas elegidas'}
+                    </span>
+                    <span className="ml-1 text-neutral-400">({selectedDateKeys.size})</span>
+                  </p>
+                  <ul className="flex flex-wrap gap-1.5">
+                    {[...selectedDateKeys]
+                      .sort()
+                      .map((key) => (
+                        <li
+                          key={key}
+                          className="rounded-md border border-[#00d4c8]/25 bg-[#00d4c8]/10 px-2 py-1 text-xs font-medium text-[#98f8f1] sm:text-sm"
+                        >
+                          {formatDateKeyEs(key)}
+                        </li>
+                      ))}
+                  </ul>
+                </div>
               ) : undefined
             }
           />
@@ -326,13 +433,70 @@ function ServiceDetailArticle({
               'shadow-[0_0_40px_rgba(0,212,200,0.06),inset_0_1px_0_rgba(255,255,255,0.06)]'
             }
           >
-            <div className="space-y-1">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#00d4c8]/90">
-                Servicio
-              </p>
-              <h1 className="text-3xl sm:text-4xl font-bold text-white tracking-tight leading-tight">
-                {svc.name}
-              </h1>
+            <div className="space-y-4">
+              <div className="space-y-1">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#00d4c8]/90">
+                  Cambiar servicio
+                </p>
+                <div className="relative mt-2" ref={serviceMenuRef}>
+                  <button
+                    type="button"
+                    onClick={() => setIsServiceMenuOpen((prev) => !prev)}
+                    className="flex w-full items-center justify-between rounded-xl border border-white/15 bg-black/40 px-3.5 py-2.5 text-left text-sm font-medium text-white outline-none transition hover:border-[#00d4c8]/40 focus:border-[#00d4c8]/60 focus:ring-2 focus:ring-[#00d4c8]/25"
+                    aria-haspopup="listbox"
+                    aria-expanded={isServiceMenuOpen}
+                    aria-label="Cambiar servicio"
+                  >
+                    <span className="truncate pr-3">{svc.name}</span>
+                    <FiChevronDown
+                      size={17}
+                      className={`shrink-0 text-neutral-300 transition-transform ${isServiceMenuOpen ? 'rotate-180 text-[#00d4c8]' : ''}`}
+                      aria-hidden
+                    />
+                  </button>
+                  {isServiceMenuOpen ? (
+                    <div
+                      role="listbox"
+                      aria-label="Opciones de servicio"
+                      className="absolute left-0 right-0 z-20 mt-2 max-h-56 overflow-y-auto rounded-xl border border-[#00d4c8]/25 bg-[#0a0c10]/95 p-1.5 shadow-[0_16px_40px_rgba(0,0,0,0.45)] backdrop-blur"
+                    >
+                      {serviceOptions.map((service) => {
+                        const isSelected = service.id === svc.id;
+                        return (
+                          <button
+                            key={service.id}
+                            type="button"
+                            role="option"
+                            aria-selected={isSelected}
+                            onClick={() => {
+                              setIsServiceMenuOpen(false);
+                              onSelectService(service.id);
+                            }}
+                            className={
+                              'flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-left text-sm transition ' +
+                              (isSelected
+                                ? 'bg-[#00d4c8]/15 text-[#00d4c8]'
+                                : 'text-neutral-100 hover:bg-white/8 hover:text-white')
+                            }
+                          >
+                            <span className="truncate">{service.name}</span>
+                            {isSelected ? <FiCheck size={15} className="shrink-0" aria-hidden /> : null}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+              <div className="h-px w-full bg-white/10" aria-hidden />
+              <div className="space-y-1">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#00d4c8]/90">
+                  Servicio actual
+                </p>
+                <h1 className="text-3xl sm:text-4xl font-bold text-white tracking-tight leading-tight">
+                  {svc.name}
+                </h1>
+              </div>
             </div>
             <div className="rounded-2xl border border-white/10 bg-black/35 px-5 py-4">
               <p className="text-xs font-medium uppercase tracking-wider text-neutral-500">Precio</p>
@@ -438,6 +602,7 @@ function readServiceFromLocationState(
 export function ClientArtistServiceDetailPage() {
   const { id: artistId, serviceId } = useParams<{ id: string; serviceId: string }>();
   const location = useLocation();
+  const navigate = useNavigate();
   const { basePath } = useArtistProfileNav();
   const {
     profile,
@@ -498,6 +663,17 @@ export function ClientArtistServiceDetailPage() {
     return validFetched ?? base ?? null;
   }, [fetched, fromState, serviceFromList, artistId]);
 
+  const handleSelectService = useCallback(
+    (nextServiceId: string) => {
+      if (!artistId || !serviceId || !nextServiceId || nextServiceId === serviceId) return;
+      const nextService = services.find((service) => service.id === nextServiceId);
+      navigate(`${basePath}/services/${nextServiceId}`, {
+        state: nextService ? { [ARTIST_SERVICE_LINK_STATE_KEY]: nextService } : undefined,
+      });
+    },
+    [artistId, basePath, navigate, serviceId, services],
+  );
+
   if (!artistId || !serviceId) return <Navigate to="/client" replace />;
 
   if (profileError) {
@@ -540,9 +716,12 @@ export function ClientArtistServiceDetailPage() {
         </div>
       ) : displayService ? (
         <ServiceDetailArticle
+          key={displayService.id}
           artistId={artistId}
           artistDisplayName={artistDisplayName}
           svc={displayService}
+          availableServices={services}
+          onSelectService={handleSelectService}
           profile={profile}
           basePath={basePath}
         />

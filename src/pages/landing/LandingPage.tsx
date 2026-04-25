@@ -202,7 +202,8 @@ export function LandingPage() {
             <span className="text-2xl font-semibold tracking-tight">{config.APP_NAME}</span>
           </Link>
 
-          <nav className="hidden lg:flex items-center gap-8 text-sm text-neutral-300">
+          {/* Restore desktop nav: add `lg:flex` after `hidden` (was: hidden lg:flex …). */}
+          <nav className="hidden items-center gap-8 text-sm text-neutral-300" aria-hidden>
             {topMenuItems.map((item) => (
               <a key={item} href="#" className="transition hover:text-white">
                 {item}
@@ -489,16 +490,33 @@ export function LandingPage() {
         <footer className="mt-12 border-t border-white/15 pt-8 pb-4">
           <h2 className="text-6xl font-semibold text-white">{config.APP_NAME}</h2>
           <div className="mt-6 flex flex-wrap items-center gap-4 text-4xl text-neutral-200">
-            {['Facebook', 'YouTube', 'Instagram', 'Tiktok'].map((item) => (
-              <a key={item} href="#" className="transition hover:text-white">
-                {item}
+            {[
+              { label: 'Facebook', href: 'https://www.facebook.com/share/186U37Mkek' },
+              { label: 'Instagram', href: 'https://www.instagram.com/stage_go_latam?igsh=ZXh4MWtrNmM0dXZ3' },
+              { label: 'Tiktok', href: 'https://www.tiktok.com/@stagego_latam?_r=1&_t=ZS-95n7jNGoBdP' },
+            ].map(({ label, href }) => (
+              <a
+                key={label}
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="transition hover:text-white"
+              >
+                {label}
               </a>
             ))}
           </div>
           <div className="mt-6 flex flex-wrap items-center justify-between gap-3 text-sm text-neutral-400">
             <div className="flex flex-wrap items-center gap-4">
               <a href="#" className="hover:text-neutral-200">Privacidad y Politicas</a>
-              <a href="#" className="hover:text-neutral-200">Terminos y Condiciones</a>
+              <Link
+                to="/terms"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-neutral-200"
+              >
+                Terminos y Condiciones
+              </Link>
             </div>
             <p>Copyright © {new Date().getFullYear()} {config.APP_NAME}</p>
           </div>

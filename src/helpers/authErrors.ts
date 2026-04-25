@@ -16,6 +16,9 @@ export function loginErrorMessage(err: unknown): string {
     if (err.status === 401 || err.status === 403) {
       return 'Correo o contraseña incorrectos. Verifica tus datos e intenta de nuevo.';
     }
+    if (/email and password are required/i.test(err.message)) {
+      return 'Ingrese su correo y contraseña.';
+    }
     return err.message || 'No se pudo iniciar sesión.';
   }
   return 'Correo o contraseña incorrectos. Verifica tus datos e intenta de nuevo.';

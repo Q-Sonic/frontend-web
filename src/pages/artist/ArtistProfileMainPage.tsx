@@ -23,6 +23,7 @@ import {
   weekdayShortEs,
 } from '../../components';
 import { ensureArtistProfileListedForDiscovery, getArtistSongsByArtistId } from '../../api';
+import { getPinnedItemIds, savePinnedItemIds, sortPinnedFirst } from '../../helpers/pinnedItems';
 import type { ArtistMediaItem, ArtistProfile, ArtistServiceRecord, ArtistSongRecord } from '../../types';
 import { FiPlay, FiPause, FiSkipBack, FiSkipForward } from 'react-icons/fi';
 import { useArtistProfileById } from '../../hooks/useArtistProfileById';
@@ -65,6 +66,7 @@ export function ArtistProfileMainPage() {
   const [modalError, setModalError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [servicesExpanded, setServicesExpanded] = useState(false);
+  const [pinnedServiceIds, setPinnedServiceIds] = useState<string[]>([]);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [playing, setPlaying] = useState(false);
@@ -89,6 +91,18 @@ export function ArtistProfileMainPage() {
       .then(setSongs)
       .catch(() => setSongs([]));
   }, [effectiveId]);
+
+  useEffect(() => {
+    if (!effectiveId) {
+      setPinnedServiceIds([]);
+      return;
+    }
+    const validIds = new Set(localServices.map((service) => service.id));
+    const storedPinned = getPinnedItemIds(effectiveId, 'services');
+    const sanitizedPinned = storedPinned.filter((id) => validIds.has(id));
+    const savedPinned = savePinnedItemIds(effectiveId, 'services', sanitizedPinned);
+    setPinnedServiceIds(savedPinned);
+  }, [effectiveId, localServices]);
 
   const availabilityDays = useMemo(() => {
     return Array.from({ length: 7 }, (_, idx) => {
@@ -167,6 +181,11 @@ export function ArtistProfileMainPage() {
     });
   }, []);
 
+  const orderedServices = useMemo(
+    () => sortPinnedFirst(localServices, pinnedServiceIds),
+    [localServices, pinnedServiceIds],
+  );
+
   if (!effectiveId) {
     return (
       <div className="min-h-screen bg-neutral-950 p-4">
@@ -229,8 +248,10 @@ export function ArtistProfileMainPage() {
     );
   }
 
-  const media = localProfile.media ?? [];
-  const imageMedia = media.filter((m) => m.type === 'image');
+  const media = Array.isArray(localProfile.media) ? localProfile.media : [];
+  const imageMedia = media.filter(
+    (m): m is ArtistMediaItem => !!m && typeof m === 'object' && m.type === 'image',
+  );
 
   const featuredTrack = songs.find((song) => song.isFeatured) ?? songs[0];
   const featuredSong = featuredTrack
@@ -503,7 +524,7 @@ export function ArtistProfileMainPage() {
           onClick={() => openModal('services')}
           isSelfArtist={isSelfArtist}
           asideContent={
-            localServices.length > 4 ? (
+            orderedServices.length > 4 ? (
               <button
                 type="button"
                 onClick={() => setServicesExpanded((prev) => !prev)}
@@ -511,16 +532,16 @@ export function ArtistProfileMainPage() {
               >
                 {servicesExpanded
                   ? 'Ver menos'
-                  : `Ver más (${localServices.length - 4} más)`}
+                  : `Ver más (${orderedServices.length - 4} más)`}
               </button>
             ) : null
           }
         />
-        {localServices.length === 0 ? (
+        {orderedServices.length === 0 ? (
           <p className="text-neutral-500 text-sm">Sin servicios.</p>
         ) : (
           <div className="grid w-full grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
-            {(servicesExpanded ? localServices : localServices.slice(0, 4)).map((s) => {
+            {(servicesExpanded ? orderedServices : orderedServices.slice(0, 4)).map((s) => {
               const serviceFeatures = Array.isArray(s.features) ? s.features : [];
               const features =
                 s.duration && s.duration.trim()
@@ -534,6 +555,7 @@ export function ArtistProfileMainPage() {
                     features={features}
                     isSelfArtist={isSelfArtist}
                     hireLinkTo={`${basePath}/services/${s.id}`}
+                    isPinned={pinnedServiceIds.includes(s.id)}
                   />
                 </div>
               );
@@ -582,9 +604,11 @@ export function ArtistProfileMainPage() {
       )}
       <ArtistServicesAdminModal
         isOpen={activeModal === 'services'}
+        artistId={effectiveId}
         services={localServices}
         onClose={closeModal}
         onServicesChange={setLocalServices}
+        onPinnedServicesChange={setPinnedServiceIds}
       />
       <ArtistProfileSettingsModal
         isOpen={activeModal === 'profile'}

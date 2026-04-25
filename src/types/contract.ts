@@ -33,6 +33,13 @@ export type ContractRecord = {
   /** Optional if backend adds them later (not in minimal OpenAPI). */
   artistId?: string;
   serviceId?: string;
+  /**
+   * Optional enrichment from API (e.g. joined profile). When set, the client contracts UI
+   * shows this as the card headline and uses `artistPhotoUrl` for the avatar.
+   */
+  artistDisplayName?: string;
+  /** Public URL for the artist avatar thumbnail on contract lists. */
+  artistPhotoUrl?: string;
 };
 
 export type CreateContractBody = {

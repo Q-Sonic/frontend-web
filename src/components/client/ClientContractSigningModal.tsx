@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   FiCheck,
   FiEdit3,
@@ -21,7 +21,7 @@ export type ContractSigningParty = {
 
 export type ContractSummaryFields = {
   event: string;
-  dateLabel: string;
+  dateLabel: ReactNode;
   location: string;
   totalValue: string;
   duration: string;
@@ -349,7 +349,7 @@ export function ClientContractSigningModal({
             </div>
             <div>
               <p className="text-sm text-white/45 md:text-base">Fecha</p>
-              <p className="mt-0.5 text-white">{summary.dateLabel}</p>
+              <div className="mt-0.5 text-white">{summary.dateLabel}</div>
             </div>
             <div>
               <p className="text-sm text-white/45 md:text-base">Ubicación</p>

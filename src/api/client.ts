@@ -1,6 +1,7 @@
 import { config } from '../config';
+import { readAuthStorage } from '../helpers/authStorage';
 
-export const getIdToken = (): string | null => localStorage.getItem('idToken');
+export const getIdToken = (): string | null => readAuthStorage('idToken');
 
 export class ApiError extends Error {
   readonly status: number;

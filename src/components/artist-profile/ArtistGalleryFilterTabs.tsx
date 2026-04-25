@@ -9,11 +9,8 @@ interface GalleryFilterTabsProps {
 
 const FILTER_OPTIONS: Array<{ key: GalleryFilterKey; label: string }> = [
   { key: 'all', label: 'Todos' },
-  { key: 'photos', label: 'Fotos' },
-  { key: 'videos', label: 'Videos' },
-  { key: 'concerts', label: 'Conciertos' },
-  { key: 'backstage', label: 'Backstage' },
-  { key: 'fans', label: 'Fans' },
+  { key: 'photos', label: 'Imágenes' },
+  { key: 'videos', label: 'Video' },
 ];
 
 export function ArtistGalleryFilterTabs({

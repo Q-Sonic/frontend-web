@@ -1,12 +1,19 @@
 import type { ReactNode } from 'react';
+import { Link } from 'react-router-dom';
 import leftBackgroundLogoUrl from '../assets/icons/Logo para fondo Izq -Login.svg';
 import loginSmallLogoUrl from '../assets/icons/Logo small - Login.svg';
 
-interface AuthLayoutProps {
-  children: ReactNode;
+export interface AuthLayoutBackLink {
+  to: string;
+  label: string;
 }
 
-export function AuthLayout({ children }: AuthLayoutProps) {
+interface AuthLayoutProps {
+  children: ReactNode;
+  backLink?: AuthLayoutBackLink;
+}
+
+export function AuthLayout({ children, backLink }: AuthLayoutProps) {
   return (
     <div className="min-h-screen flex bg-[#111318]">
       {/* Left panel — branded */}
@@ -62,6 +69,15 @@ export function AuthLayout({ children }: AuthLayoutProps) {
       {/* Right panel — form */}
       <div className="flex-1 flex items-center justify-center p-6 sm:p-10 mt-6 mr-6 mb-6 ml-5 rounded-3xl bg-card/80 text-muted">
         <div className="w-full max-w-[420px]">
+          {backLink ? (
+            <Link
+              to={backLink.to}
+              className="mb-6 inline-block text-sm font-medium text-[#00d4c8] no-underline transition-colors hover:text-[#00ece0]"
+            >
+              {'← '}
+              {backLink.label}
+            </Link>
+          ) : null}
           {children}
         </div>
       </div>

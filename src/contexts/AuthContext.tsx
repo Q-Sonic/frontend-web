@@ -3,15 +3,8 @@ import type { UserRecord } from '../types';
 import { getIdToken } from '../api';
 import { getMe } from '../api/authService';
 import { ensureArtistProfileListedForDiscovery } from '../api/artistProfileService';
+import { clearAuthStorage } from '../helpers/authStorage';
 import { isBackendRoleArtista, normalizeRole } from '../helpers/role';
-
-const AUTH_KEYS = ['idToken', 'refreshToken', 'uid', 'role'] as const;
-
-function clearAuthStorage(): void {
-  for (const key of AUTH_KEYS) {
-    localStorage.removeItem(key);
-  }
-}
 
 interface AuthState {
   user: UserRecord | null;
