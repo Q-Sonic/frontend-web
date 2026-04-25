@@ -61,6 +61,8 @@ interface AppSidebarProps {
   profileIntroRich?: ReactNode;
   profileIntroLoading?: boolean;
   onProfileIntroEdit?: () => void;
+  mobileOpen?: boolean;
+  onRequestCloseMobile?: () => void;
 }
 
 function Logo({ backHref }: { backHref?: string }) {
@@ -108,84 +110,94 @@ export function AppSidebar({
   profileIntroRich,
   profileIntroLoading,
   onProfileIntroEdit,
+  mobileOpen = false,
+  onRequestCloseMobile,
 }: AppSidebarProps) {
   const location = useLocation();
   const { user, logout } = useAuth();
 
   return (
     <aside
-      className="w-64 shrink-0 flex flex-col h-full max-h-screen min-h-0 p-4"
+      className={`fixed left-0 top-0 z-40 w-64 flex flex-col h-screen max-h-screen min-h-0 p-4 transform transition-transform duration-200 ease-out ${
+        mobileOpen ? 'translate-x-0' : '-translate-x-full'
+      } lg:translate-x-0 lg:z-30`}
       style={{
-        background: 'linear-gradient(180deg, var(--color-sidebar) 0%, rgba(10,10,10,0) 100%)',
+        backgroundColor: 'var(--color-sidebar)',
       }}
     >
-      <div className="shrink-0">
-        <Logo backHref={backHref} />
-      </div>
-      <nav className="flex-1 min-h-0 flex flex-col mt-6 overflow-hidden">
-        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-3 pb-4 [scrollbar-color:rgba(255,255,255,0.12)_transparent]">
-          <div className="mb-7">
-            {onProfileIntroEdit && (
-              <div className="flex items-center justify-end gap-2">
-                <button
-                  onClick={onProfileIntroEdit}
-                  className="text-xs font-medium text-accent hover:text-accent/80 hover:underline shrink-0 cursor-pointer"
-                >
-                  Editar
-                </button>
-              </div>
-            )}
-            {profileIntroRich ? (
-              <div className="pb-3 text-xs text-neutral-400 leading-relaxed">{profileIntroRich}</div>
-            ) : profileIntroLoading ? (
-              <div className="pb-3 space-y-2" aria-hidden>
-                <div className="h-2.5 rounded bg-white/10 w-full" />
-                <div className="h-2.5 rounded bg-white/10 w-[92%]" />
-                <div className="h-2.5 rounded bg-white/10 w-4/5" />
-              </div>
-            ) : profileIntro ? (
-              <p className="text-xs text-neutral-400 leading-relaxed pb-3">{profileIntro}</p>
-            ) : null}
-          </div>
-
-          {sectionTitle && (
-            <p className="text-muted font-bold tracking-wider pt-1 pb-2">{sectionTitle}</p>
-          )}
-          <ul className="space-y-0.5">
-            {menuItems.map((item) => {
-              const extraActive = item.additionalActivePaths?.includes(location.pathname) ?? false;
-              const isActive =
-                extraActive ||
-                isSidebarItemActive(location.pathname, location.hash, item.to, item.exactPath);
-              const useCustomActive = isActive && activeNavColor;
-              return (
-                <li key={item.to}>
-                  <Link
-                    to={item.to}
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                      useCustomActive
-                        ? ''
-                        : isActive
-                          ? 'bg-accent/20 text-accent'
-                          : 'text-muted hover:bg-white/5 hover:text-white'
-                    }`}
-                    style={useCustomActive ? activeNavStyle(activeNavColor) : undefined}
-                  >
-                    {item.icon && <span className="shrink-0 w-5 flex items-center justify-center [&>svg]:size-[18px]">{item.icon}</span>}
-                    <span>{item.label}</span>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
+      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden [scrollbar-color:rgba(255,255,255,0.12)_transparent]">
+        <div className="shrink-0 mt-10 lg:mt-0">
+          <Logo backHref={backHref} />
         </div>
-        {footer && <div className="shrink-0 pt-2 border-t border-white/10 px-3 pb-1">{footer}</div>}
-      </nav>
+        <nav className="flex flex-col mt-6">
+          <div className="px-3 pb-4">
+            <div className="mb-7">
+              {onProfileIntroEdit && (
+                <div className="flex items-center justify-end gap-2">
+                  <button
+                    onClick={onProfileIntroEdit}
+                    className="text-xs font-medium text-accent hover:text-accent/80 hover:underline shrink-0 cursor-pointer"
+                  >
+                    Editar
+                  </button>
+                </div>
+              )}
+              {profileIntroRich ? (
+                <div className="pb-3 text-xs text-neutral-400 leading-relaxed">{profileIntroRich}</div>
+              ) : profileIntroLoading ? (
+                <div className="pb-3 space-y-2" aria-hidden>
+                  <div className="h-2.5 rounded bg-white/10 w-full" />
+                  <div className="h-2.5 rounded bg-white/10 w-[92%]" />
+                  <div className="h-2.5 rounded bg-white/10 w-4/5" />
+                </div>
+              ) : profileIntro ? (
+                <p className="text-xs text-neutral-400 leading-relaxed pb-3">{profileIntro}</p>
+              ) : null}
+            </div>
+
+            {sectionTitle && (
+              <p className="text-muted font-bold tracking-wider pt-1 pb-2">{sectionTitle}</p>
+            )}
+            <ul className="space-y-0.5">
+              {menuItems.map((item) => {
+                const extraActive = item.additionalActivePaths?.includes(location.pathname) ?? false;
+                const isActive =
+                  extraActive ||
+                  isSidebarItemActive(location.pathname, location.hash, item.to, item.exactPath);
+                const useCustomActive = isActive && activeNavColor;
+                return (
+                  <li key={item.to}>
+                    <Link
+                      to={item.to}
+                      onClick={onRequestCloseMobile}
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                        useCustomActive
+                          ? ''
+                          : isActive
+                            ? 'bg-accent/20 text-accent'
+                            : 'text-muted hover:bg-white/5 hover:text-white'
+                      }`}
+                      style={useCustomActive ? activeNavStyle(activeNavColor) : undefined}
+                    >
+                      {item.icon && <span className="shrink-0 w-5 flex items-center justify-center [&>svg]:size-[18px]">{item.icon}</span>}
+                      <span>{item.label}</span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+          {footer && <div className="pt-2 border-t border-white/10 px-3 pb-1">{footer}</div>}
+        </nav>
+      </div>
       {user && (
         <div className="shrink-0 border-t border-white/10 px-3 pt-3 pb-2">
           <button
             type="button"
-            onClick={() => logout()}
+            onClick={() => {
+              onRequestCloseMobile?.();
+              logout();
+            }}
             className="flex w-full items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-muted hover:bg-white/5 hover:text-white transition-colors"
           >
             <span className="shrink-0 w-5 flex items-center justify-center [&>svg]:size-[18px]">

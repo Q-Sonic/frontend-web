@@ -1,6 +1,6 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
+import { FiMenu } from 'react-icons/fi';
 import { AppSidebar } from '../components/AppSidebar';
-import { UserMenu } from '../components/UserMenu';
 import type { SidebarMenuItem } from '../components/AppSidebar';
 
 export interface SidebarLayoutSidebar {
@@ -29,8 +29,27 @@ interface SidebarLayoutProps {
  * Layout with sidebar + header (UserMenu) for routes that need the main navigation menu.
  */
 export function SidebarLayout({ sidebar, children }: SidebarLayoutProps) {
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+
   return (
-    <div className="h-full max-h-full flex overflow-hidden bg-surface">
+    <div className="min-h-screen flex overflow-x-hidden bg-surface">
+      <button
+        type="button"
+        onClick={() => setIsMobileSidebarOpen(true)}
+        className="lg:hidden fixed left-4 top-4 z-50 inline-flex items-center justify-center w-10 h-10 rounded-lg bg-card text-accent border border-accent/30 hover:bg-[#272727] transition-colors"
+        aria-label="Abrir menú lateral"
+      >
+        <FiMenu size={20} />
+      </button>
+      {isMobileSidebarOpen && (
+        <button
+          type="button"
+          onClick={() => setIsMobileSidebarOpen(false)}
+          className="lg:hidden fixed inset-0 z-30 bg-transparent"
+          aria-label="Cerrar menú lateral"
+        />
+      )}
+      <div className="hidden lg:block w-64 shrink-0" aria-hidden />
       <AppSidebar
         menuItems={sidebar.menuItems}
         sectionTitle={sidebar.sectionTitle}
@@ -41,9 +60,11 @@ export function SidebarLayout({ sidebar, children }: SidebarLayoutProps) {
         profileIntroRich={sidebar.profileIntroRich}
         profileIntroLoading={sidebar.profileIntroLoading}
         onProfileIntroEdit={sidebar.onProfileIntroEdit}
+        mobileOpen={isMobileSidebarOpen}
+        onRequestCloseMobile={() => setIsMobileSidebarOpen(false)}
       />
       <div className="flex-1 flex flex-col min-w-0 min-h-0">
-        <main className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">{children}</main>
+        <main className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden pt-14 lg:pt-0">{children}</main>
       </div>
     </div>
   );

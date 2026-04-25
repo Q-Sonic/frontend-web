@@ -4,6 +4,7 @@ import { Button, Input } from '../components';
 import { AuthLayout } from '../components/AuthLayout';
 import { useAuth } from '../contexts/AuthContext';
 import { login, loginWithGoogleBackend } from '../api/authService';
+import { writeAuthStorage } from '../helpers/authStorage';
 import { normalizeRole } from '../helpers/role';
 import { loginErrorMessage } from '../helpers/authErrors';
 import { SESSION_KEY_POST_REGISTER_LOGIN } from '../constants/sessionStorageKeys';
@@ -116,10 +117,15 @@ export function LoginPage() {
     try {
       const res = await login({ email, password });
       const { idToken, refreshToken, uid, role } = res.data;
-      localStorage.setItem('idToken', idToken);
-      localStorage.setItem('refreshToken', refreshToken);
-      localStorage.setItem('uid', uid);
-      localStorage.setItem('role', normalizeRole(role));
+      writeAuthStorage(
+        {
+          idToken,
+          refreshToken,
+          uid,
+          role: normalizeRole(role),
+        },
+        rememberMe
+      );
       await refreshUser();
       navigate(from, { replace: true });
     } catch (err) {
@@ -143,10 +149,15 @@ export function LoginPage() {
       const { customToken, uid, role } = res.data;
       const userCred = await signInWithCustomToken(firebaseAuth, customToken);
       const finalIdToken = await userCred.user.getIdToken();
-      
-      localStorage.setItem('idToken', finalIdToken);
-      localStorage.setItem('uid', uid);
-      localStorage.setItem('role', normalizeRole(role));
+
+      writeAuthStorage(
+        {
+          idToken: finalIdToken,
+          uid,
+          role: normalizeRole(role),
+        },
+        rememberMe
+      );
       
       await refreshUser();
       navigate(from, { replace: true });
