@@ -104,7 +104,7 @@ export function ClientAreaHeader({
             <input
               type="search"
               placeholder="buscar artista, genero o ciudad"
-              className="w-full rounded-xl bg-black/40 border border-white/10 pl-11 pr-4 py-2.5 text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-accent/40"
+              className="w-full rounded-xl bg-black/40 border border-white/10 pl-11 pr-10 py-2.5 text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-accent/40"
               {...(controlledSearch
                 ? {
                     value: searchValue,
@@ -112,6 +112,16 @@ export function ClientAreaHeader({
                   }
                 : {})}
             />
+            {searchValue.length > 0 && onSearchChange && (
+              <button
+                type="button"
+                onClick={() => onSearchChange('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-neutral-500 hover:text-white transition-colors"
+                aria-label="Limpiar búsqueda"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+              </button>
+            )}
           </label>
         </div>
       ) : null}
