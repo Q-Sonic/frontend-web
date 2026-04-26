@@ -745,22 +745,36 @@ export function ClientBatchContractSigningModal({
           >
             Cancelar
           </Button>
-          <Button
-            type="button"
-            fullWidth
-            loading={signing}
-            disabled={
-              !hasSignature ||
-              !termsAccepted ||
-              pendingCount === 0 ||
-              !hasSelectedPending
-            }
-            className="py-3 text-base md:py-3.5 md:text-lg"
-            onClick={() => void handleSign()}
-            leftIcon={<FiEdit3 className="h-5 w-5" />}
-          >
-            Firma contratos
-          </Button>
+          <div className="relative flex-1 group">
+            <Button
+              type="button"
+              fullWidth
+              loading={signing}
+              disabled={
+                !hasSignature ||
+                !termsAccepted ||
+                pendingCount === 0 ||
+                !hasSelectedPending
+              }
+              className="py-3 text-base md:py-3.5 md:text-lg"
+              onClick={() => void handleSign()}
+              leftIcon={<FiEdit3 className="h-5 w-5" />}
+            >
+              Firma contratos
+            </Button>
+            
+            {(!hasSignature || !termsAccepted || !hasSelectedPending) && pendingCount > 0 && !signing && (
+              <div className="pointer-events-none absolute bottom-full left-0 mb-3 w-64 translate-y-2 rounded-xl bg-black border border-white/10 p-3 text-xs text-white opacity-0 shadow-2xl transition-all group-hover:translate-y-0 group-hover:opacity-100 z-50">
+                <p className="font-semibold text-amber-400 mb-1">Para continuar:</p>
+                <ul className="space-y-1 text-white/70">
+                  {!hasSelectedPending && <li>• Selecciona al menos un contrato</li>}
+                  {!hasSignature && <li>• Dibuja o sube tu firma</li>}
+                  {!termsAccepted && <li>• Acepta los términos y condiciones</li>}
+                </ul>
+                <div className="absolute -bottom-1 left-6 h-2 w-2 rotate-45 border-b border-r border-white/10 bg-black" />
+              </div>
+            )}
+          </div>
         </div>
 
         <p className="mt-5 flex items-center justify-center gap-2 text-center text-sm text-white/45 md:text-base">

@@ -83,6 +83,8 @@ export function ArtistServicesAdminModal({
   const [form, setForm] = useState<ServiceFormState>(emptyForm);
   const [newDetail, setNewDetail] = useState('');
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [contractFile, setContractFile] = useState<File | null>(null);
+  const [riderFile, setRiderFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
@@ -96,6 +98,8 @@ export function ArtistServicesAdminModal({
       setForm(emptyForm);
       setNewDetail('');
       setImageFile(null);
+      setContractFile(null);
+      setRiderFile(null);
       setPreviewUrl('');
       setError('');
       setIsSaving(false);
@@ -164,6 +168,8 @@ export function ArtistServicesAdminModal({
   const startCreate = () => {
     setForm(emptyForm);
     setImageFile(null);
+    setContractFile(null);
+    setRiderFile(null);
     setPreviewUrl('');
     setError('');
     setEditorMode('create');
@@ -186,6 +192,8 @@ export function ArtistServicesAdminModal({
       technicalRiderTemplateId: serviceWithTemplate.technicalRiderTemplateId ?? '',
     });
     setImageFile(null);
+    setContractFile(null);
+    setRiderFile(null);
     setPreviewUrl('');
     setError('');
     setEditorMode('edit');
@@ -227,6 +235,8 @@ export function ArtistServicesAdminModal({
     const createPayload: CreateArtistServiceBody = {
       name,
       price,
+      contractTemplateId: form.contractTemplateId || undefined,
+      technicalRiderTemplateId: form.technicalRiderTemplateId || undefined,
     };
     if (trimmedDescription) createPayload.description = trimmedDescription;
     if (sanitizedDetails.length > 0) createPayload.features = sanitizedDetails;
@@ -239,19 +249,19 @@ export function ArtistServicesAdminModal({
     setError('');
     try {
       if (editorMode === 'edit' && form.id) {
-        const updated = imageFile
-          ? await updateArtistServiceWithFormData(form.id, updatePayload, imageFile)
+        const updated = (imageFile || contractFile || riderFile)
+          ? await updateArtistServiceWithFormData(form.id, updatePayload, imageFile, contractFile, riderFile)
           : await updateArtistService(form.id, updatePayload);
         onServicesChange(services.map((item) => (item.id === updated.id ? updated : item)));
         startEdit(updated);
       } else {
-        // Create first with JSON (backend path is more stable), then upload image on update if present.
+        // Create first with JSON, then upload files on update if present.
         const created = await createArtistService(createPayload);
-        const createdWithImage = imageFile
-          ? await updateArtistServiceWithFormData(created.id, {}, imageFile)
+        const createdWithFiles = (imageFile || contractFile || riderFile)
+          ? await updateArtistServiceWithFormData(created.id, {}, imageFile, contractFile, riderFile)
           : created;
-        onServicesChange([createdWithImage, ...services]);
-        startEdit(createdWithImage);
+        onServicesChange([createdWithFiles, ...services]);
+        startEdit(createdWithFiles);
       }
       setIsEditorOpen(false);
       setEditorMode('create');
@@ -623,18 +633,57 @@ export function ArtistServicesAdminModal({
                 <div className="mt-2 space-y-3 border-t border-white/10 pt-4">
                   {renderCustomSelect(
                     'contract',
-                    'Contrato',
+                    'Contrato (Plantilla)',
                     form.contractTemplateId,
                     contractTemplateOptions,
                     (next) => setForm((prev) => ({ ...prev, contractTemplateId: next })),
                   )}
+                  
+                  {/* Real Contract PDF Upload */}
+                  <div className="space-y-1.5">
+                    <p className="text-sm font-medium text-neutral-300">Adjuntar PDF de Contrato</p>
+                    <div className="flex items-center gap-3">
+                      <label className="flex cursor-pointer items-center justify-center rounded-xl border border-white/20 bg-black/20 px-4 py-2.5 text-sm text-white transition hover:border-[#00d4c8]/50 hover:bg-[#00d4c8]/5">
+                        {contractFile ? 'Cambiar PDF' : 'Seleccionar PDF'}
+                        <input
+                          type="file"
+                          accept="application/pdf"
+                          className="hidden"
+                          onChange={(e) => setContractFile(e.target.files?.[0] ?? null)}
+                        />
+                      </label>
+                      <span className="truncate text-xs text-neutral-500">
+                        {contractFile ? contractFile.name : 'Ningún archivo seleccionado'}
+                      </span>
+                    </div>
+                  </div>
+
                   {renderCustomSelect(
                     'technicalRider',
-                    'Rider tecnico',
+                    'Rider tecnico (Plantilla)',
                     form.technicalRiderTemplateId,
                     technicalRiderOptions,
                     (next) => setForm((prev) => ({ ...prev, technicalRiderTemplateId: next })),
                   )}
+
+                  {/* Real Rider PDF Upload */}
+                  <div className="space-y-1.5">
+                    <p className="text-sm font-medium text-neutral-300">Adjuntar PDF de Rider</p>
+                    <div className="flex items-center gap-3">
+                      <label className="flex cursor-pointer items-center justify-center rounded-xl border border-white/20 bg-black/20 px-4 py-2.5 text-sm text-white transition hover:border-[#00d4c8]/50 hover:bg-[#00d4c8]/5">
+                        {riderFile ? 'Cambiar PDF' : 'Seleccionar PDF'}
+                        <input
+                          type="file"
+                          accept="application/pdf"
+                          className="hidden"
+                          onChange={(e) => setRiderFile(e.target.files?.[0] ?? null)}
+                        />
+                      </label>
+                      <span className="truncate text-xs text-neutral-500">
+                        {riderFile ? riderFile.name : 'Ningún archivo seleccionado'}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

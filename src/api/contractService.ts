@@ -111,7 +111,11 @@ function dateKeyFromLineFallback(line: ServiceCartLine): string {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 }
 
-function buildCreateBodiesForLine(line: ServiceCartLine): CreateContractBody[] {
+function buildCreateBodiesForLine(
+  line: ServiceCartLine,
+  signatureDataUrl?: string,
+  acceptedTerms?: boolean,
+): CreateContractBody[] {
   const location = line.locationLabel?.trim() || 'Por definir';
   const keys =
     line.selectedDateKeys.length > 0 ? [...line.selectedDateKeys].sort() : [dateKeyFromLineFallback(line)];
@@ -129,20 +133,29 @@ function buildCreateBodiesForLine(line: ServiceCartLine): CreateContractBody[] {
       date: `${dateKey}T12:00:00.000Z`,
       location,
     },
+    clientSignatureDataUrl: signatureDataUrl,
+    acceptedTerms: acceptedTerms,
   }));
 }
 
 /**
  * POST /contracts once per selected date per cart line. Throws if any request fails.
  */
-export async function createContractsForSignedLines(signedLines: ServiceCartLine[]): Promise<void> {
+export async function createContractsForSignedLines(
+  signedLines: ServiceCartLine[],
+  signatureDataUrl?: string,
+  acceptedTerms?: boolean,
+): Promise<ContractRecord[]> {
   const bodies: CreateContractBody[] = [];
   for (const line of signedLines) {
-    bodies.push(...buildCreateBodiesForLine(line));
+    bodies.push(...buildCreateBodiesForLine(line, signatureDataUrl, acceptedTerms));
   }
+  const results: ContractRecord[] = [];
   for (const body of bodies) {
-    await createContract(body);
+    const res = await createContract(body);
+    if (res) results.push(res);
   }
+  return results;
 }
 
 function dateKeyFromContractEvent(dateRaw: unknown): string | null {

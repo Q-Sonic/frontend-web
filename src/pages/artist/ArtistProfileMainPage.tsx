@@ -26,10 +26,8 @@ import {
 import { ensureArtistProfileListedForDiscovery, getArtistSongsByArtistId } from '../../api';
 import { getPinnedItemIds, savePinnedItemIds, sortPinnedFirst } from '../../helpers/pinnedItems';
 import type { ArtistMediaItem, ArtistProfile, ArtistServiceRecord, ArtistSongRecord } from '../../types';
-import { FiPlay, FiPause, FiSkipBack, FiSkipForward } from 'react-icons/fi';
+import { FiPlay, FiPause, FiSkipBack, FiSkipForward, FiUser, FiAlertCircle } from 'react-icons/fi';
 import { useArtistProfileById } from '../../hooks/useArtistProfileById';
-
-type ArtistModalType = 'profile' | 'songs' | 'featured-song' | 'services' | null;
 
 export function ArtistProfileMainPage() {
   const { id } = useParams<{ id: string }>();
@@ -60,16 +58,15 @@ export function ArtistProfileMainPage() {
     void ensureArtistProfileListedForDiscovery(user.uid);
   }, [isSelfArtist, user?.uid]);
 
-  const [artistDisplayName, setArtistDisplayName] = useState('Artista');
-  const [localProfile, setLocalProfile] = useState<(ArtistProfile & { uid: string }) | null>(null);
-  const [localServices, setLocalServices] = useState<ArtistServiceRecord[]>([]);
-  const [activeModal, setActiveModal] = useState<ArtistModalType>(null);
   const [songs, setSongs] = useState<ArtistSongRecord[]>([]);
   const [playingSongId, setPlayingSongId] = useState<string | null>(null);
-  const [modalError, setModalError] = useState('');
-  const [isSaving, setIsSaving] = useState(false);
   const [servicesExpanded, setServicesExpanded] = useState(false);
   const [pinnedServiceIds, setPinnedServiceIds] = useState<string[]>([]);
+
+  // Missing state for build fix
+  const [artistDisplayName, setArtistDisplayName] = useState('');
+  const [localProfile, setLocalProfile] = useState<any>(null);
+  const [localServices, setLocalServices] = useState<any[]>([]);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const songPreviewRef = useRef<HTMLAudioElement | null>(null);
@@ -117,7 +114,7 @@ export function ArtistProfileMainPage() {
   }, []);
 
   const blockedSet = useMemo(
-    () => new Set(localProfile?.blockedDates ?? []),
+    () => new Set<string>(localProfile?.blockedDates ?? []),
     [localProfile?.blockedDates],
   );
 
@@ -146,15 +143,6 @@ export function ArtistProfileMainPage() {
     setDuration(0);
     setPlayingSongId(null);
   }, [effectiveId, localProfile?.featuredSong, localProfile?.media]);
-
-  useEffect(() => {
-    if (!activeModal) return;
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !isSaving) setActiveModal(null);
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [activeModal, isSaving]);
 
   const onTimeUpdate = useCallback(() => {
     const el = audioRef.current;
@@ -206,44 +194,49 @@ export function ArtistProfileMainPage() {
 
   if (!effectiveId) {
     return (
-      <div className="min-h-screen bg-neutral-950 p-4">
-        <BackButton className="text-neutral-400 hover:text-white" />
-        <p className="text-neutral-500 mt-4">Artista no especificado.</p>
+      <div className="min-h-screen bg-[#07090b] flex flex-col items-center justify-center p-6 text-center">
+        <FiUser size={64} className="text-neutral-800 mb-6" />
+        <h1 className="text-3xl font-bold text-white mb-2">Perfil Inaccesible</h1>
+        <p className="text-neutral-500 max-w-sm mb-10">
+          No se especificó un ID de artista válido o el enlace está roto.
+        </p>
+        <BackButton className="rounded-full bg-accent px-8 py-3 text-sm font-bold text-black" label="Volver al inicio" />
       </div>
     );
   }
 
   if (loading) {
     return (
-      <div
-        className={
-          isSelfArtist
-            ? 'text-neutral-100 w-full max-w-6xl mx-auto p-4 space-y-8'
-            : 'min-h-screen bg-neutral-950'
-        }
-      >
+      <div className={isSelfArtist ? 'text-neutral-100 w-full max-w-6xl mx-auto p-4 space-y-8' : 'min-h-screen bg-[#07090b]'}>
         {!isSelfArtist && (
-          <div className="p-4 pb-0">
+          <div className="max-w-6xl mx-auto p-4 md:px-8 mt-4">
             <BackButton className="text-neutral-400 hover:text-white" />
           </div>
         )}
-        <div className={isSelfArtist ? 'space-y-8' : 'p-4 space-y-8'}>
-        <div className="rounded-3xl border border-white/10 bg-neutral-900/40 p-8 min-h-[280px]">
-          <div className="grid lg:grid-cols-2 gap-8">
-            <div className="space-y-4">
-              <Skeleton className="h-4 w-32 rounded" />
-              <Skeleton className="h-12 w-3/4 max-w-md rounded-lg" />
-              <Skeleton className="h-4 w-48 rounded" />
-              <Skeleton className="h-12 w-40 rounded-full" />
+        <div className={isSelfArtist ? 'space-y-8' : 'max-w-6xl mx-auto p-4 md:px-8 space-y-8 mt-2'}>
+          {/* Header Skeleton */}
+          <div className="rounded-[2.5rem] border border-white/5 bg-neutral-900/40 p-8 md:p-12 min-h-[320px]">
+            <div className="grid lg:grid-cols-2 gap-12 items-center">
+              <div className="space-y-6">
+                <Skeleton className="h-6 w-32 rounded-full" />
+                <div className="space-y-3">
+                  <Skeleton className="h-14 w-full md:w-[12ch] rounded-2xl" />
+                  <Skeleton className="h-4 w-3/4 rounded-lg" />
+                </div>
+                <div className="flex gap-3">
+                  <Skeleton className="h-12 w-48 rounded-full" />
+                  <Skeleton className="h-12 w-12 rounded-full" />
+                </div>
+              </div>
+              <Skeleton className="aspect-square md:aspect-video w-full rounded-[2rem]" />
             </div>
-            <Skeleton className="h-64 rounded-2xl" />
           </div>
-        </div>
-        <div className="grid lg:grid-cols-3 gap-4">
-          <Skeleton className="h-40 rounded-2xl" />
-          <Skeleton className="h-40 rounded-2xl" />
-          <Skeleton className="h-48 rounded-2xl" />
-        </div>
+          {/* Grid Skeleton */}
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <Skeleton className="h-56 rounded-3xl" />
+            <Skeleton className="h-56 rounded-3xl" />
+            <Skeleton className="h-56 rounded-3xl" />
+          </div>
         </div>
       </div>
     );
@@ -251,24 +244,20 @@ export function ArtistProfileMainPage() {
 
   if (error || !localProfile) {
     return (
-      <div
-        className={
-          isSelfArtist
-            ? 'text-neutral-100 max-w-2xl mx-auto p-4'
-            : 'min-h-screen bg-neutral-950 p-4'
-        }
-      >
-        {!isSelfArtist && <BackButton className="text-neutral-400 hover:text-white" />}
-        <p className={isSelfArtist ? 'text-red-400 mt-2' : 'text-red-400 mt-4'}>
-          {error || 'Perfil no encontrado.'}
+      <div className="min-h-screen bg-[#07090b] flex flex-col items-center justify-center p-6 text-center">
+        <FiAlertCircle size={64} className="text-red-500/30 mb-6" />
+        <h1 className="text-2xl font-bold text-white mb-2">¡Oops! Artista no encontrado</h1>
+        <p className="text-neutral-500 max-w-sm mb-10">
+          {error || 'El perfil que buscás no existe o fue desactivado.'}
         </p>
+        <BackButton className="rounded-full bg-white/5 border border-white/10 px-8 py-3 text-sm font-semibold text-white hover:bg-white/10" />
       </div>
     );
   }
 
   const media = Array.isArray(localProfile.media) ? localProfile.media : [];
   const imageMedia = media.filter(
-    (m): m is ArtistMediaItem => !!m && typeof m === 'object' && m.type === 'image',
+    (m: any): m is ArtistMediaItem => !!m && typeof m === 'object' && m.type === 'image',
   );
 
   const featuredSong = featuredTrack
@@ -284,17 +273,6 @@ export function ArtistProfileMainPage() {
   const coverPhoto = localProfile.photo?.trim() || '';
   const social = localProfile.socialNetworks ?? {};
   const heroSubtitle = localProfile.city?.trim() || 'Música en vivo';
-
-  const openModal = (modalType: Exclude<ArtistModalType, null>) => {
-    setModalError('');
-    setActiveModal(modalType);
-  };
-
-  const closeModal = () => {
-    if (isSaving) return;
-    setActiveModal(null);
-    setModalError('');
-  };
 
   return (
     <div className="w-full mx-auto space-y-10 pb-12 p-6">
@@ -318,7 +296,6 @@ export function ArtistProfileMainPage() {
               </h1>
               <p className="text-white/80 text-sm sm:text-base pt-1">{heroSubtitle}</p>
             </div>
-            <ArtistProfileEditButton show={isSelfArtist} onClick={() => openModal('profile')} />
           </div>
 
           <div className="flex flex-wrap items-center gap-3 mt-8">
@@ -333,9 +310,9 @@ export function ArtistProfileMainPage() {
               variant="primary"
               className="rounded-3xl px-8 py-3.5 text-xl font-bold"
               disabled={isSelfArtist || !reserveService}
-              onClick={isSelfArtist ? undefined : () => goToReservation()}
+              onClick={isSelfArtist ? () => navigate('/artist/settings') : () => goToReservation()}
             >
-              Reservar Fecha
+              {isSelfArtist ? 'Gestionar Perfil' : 'Reservar Fecha'}
             </Button>
           </div>
         </div>
@@ -395,7 +372,6 @@ export function ArtistProfileMainPage() {
           <div className="rounded-4xl bg-card/86 p-8 flex flex-col min-h-[200px]">
             <div className="flex items-center justify-between gap-2 mb-4">
               <h2 className="font-bold text-white tracking-wide">Música</h2>
-              <ArtistProfileEditButton show={isSelfArtist} onClick={() => openModal('songs')} />
             </div>
             {songs.length === 0 ? (
               <p className="text-neutral-500 text-sm mt-auto">Sin canciones.</p>
@@ -465,7 +441,6 @@ export function ArtistProfileMainPage() {
         <div className="rounded-4xl bg-card/86 p-8 flex flex-col">
           <div className="flex items-center justify-between gap-2 mb-4">
             <h2 className="font-bold text-white tracking-wide">Canción destacada</h2>
-            <ArtistProfileEditButton show={isSelfArtist} onClick={() => openModal('featured-song')} />
           </div>
           {featuredSong?.streamUrl ? (
             <>
@@ -566,8 +541,7 @@ export function ArtistProfileMainPage() {
       <section id="documents" className="space-y-5 scroll-mt-24">
         <ArtistProfileSectionTitle
           title="Servicios"
-          onClick={() => openModal('services')}
-          isSelfArtist={isSelfArtist}
+          isSelfArtist={false}
           asideContent={
             orderedServices.length > 4 ? (
               <button
@@ -615,7 +589,7 @@ export function ArtistProfileMainPage() {
       />
 
       <section id="gallery" className="space-y-5 scroll-mt-24">
-        <ArtistProfileSectionTitle title="Galería" onClick={() => {}} isSelfArtist={isSelfArtist} />
+        <ArtistProfileSectionTitle title="Galería" isSelfArtist={false} />
         {imageMedia.length === 0 ? (
           <p className="text-neutral-500 text-sm">Sin imágenes.</p>
         ) : (
@@ -623,64 +597,6 @@ export function ArtistProfileMainPage() {
         )}
       </section>
 
-      {activeModal && activeModal !== 'services' && activeModal !== 'profile' && activeModal !== 'songs' && activeModal !== 'featured-song' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-          <div className="w-full max-w-4xl rounded-3xl border border-[#00d4c8]/35 bg-[#111214] p-6 shadow-[0_0_40px_rgba(0,212,200,0.2)]">
-            <div className="mb-5 flex items-center justify-between">
-              <h3 className="text-2xl font-semibold text-white">
-              </h3>
-              <button
-                type="button"
-                onClick={closeModal}
-                className="rounded-full border border-white/20 px-3 py-1 text-white/70 transition hover:text-white"
-              >
-                X
-              </button>
-            </div>
-
-            {modalError && (
-              <p className="mb-4 rounded-lg border border-red-400/40 bg-red-500/10 px-3 py-2 text-sm text-red-300">
-                {modalError}
-              </p>
-            )}
-
-          </div>
-        </div>
-      )}
-      <ArtistServicesAdminModal
-        isOpen={activeModal === 'services'}
-        artistId={effectiveId}
-        services={localServices}
-        onClose={closeModal}
-        onServicesChange={setLocalServices}
-        onPinnedServicesChange={setPinnedServiceIds}
-      />
-      <ArtistProfileSettingsModal
-        isOpen={activeModal === 'profile'}
-        profile={localProfile}
-        artistDisplayName={artistDisplayName}
-        onClose={closeModal}
-        onSaved={(saved) => {
-          setLocalProfile((prev) => (prev ? { ...prev, ...saved } : prev));
-          setSidebarProfileIntro?.(saved.biography?.trim() ?? '');
-        }}
-        onArtistNameSaved={setArtistDisplayName}
-      />
-      <ArtistSongsModal
-        isOpen={activeModal === 'songs'}
-        profile={localProfile}
-        artistDisplayName={artistDisplayName}
-        onClose={closeModal}
-        onSongsChange={setSongs}
-      />
-      <ArtistFeaturedSongModal
-        isOpen={activeModal === 'featured-song'}
-        profile={localProfile}
-        artistDisplayName={artistDisplayName}
-        songs={songs}
-        onClose={closeModal}
-        onSongsChange={setSongs}
-      />
     </div>
   );
 }

@@ -118,11 +118,12 @@ export function AppSidebar({
 
   return (
     <aside
-      className={`fixed left-0 top-0 z-40 w-64 flex flex-col h-screen max-h-screen min-h-0 p-4 transform transition-transform duration-200 ease-out ${
+      className={`fixed left-0 top-0 z-40 w-64 flex flex-col h-full lg:h-screen p-4 transform transition-transform duration-200 ease-out ${
         mobileOpen ? 'translate-x-0' : '-translate-x-full'
       } lg:translate-x-0 lg:z-30`}
       style={{
         backgroundColor: 'var(--color-sidebar)',
+        height: '100dvh', // Modern mobile height
       }}
     >
       <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden [scrollbar-color:rgba(255,255,255,0.12)_transparent]">

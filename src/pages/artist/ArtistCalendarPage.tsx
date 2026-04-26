@@ -7,7 +7,8 @@ import { withMinimumDelay } from '../../helpers/withMinimumDelay';
 import { api } from '../../api';
 import { PageLayout } from '../../layouts';
 import { Button, Skeleton, UserMenu } from '../../components';
-import { FiArrowLeft, FiCalendar, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
+import { FiArrowLeft, FiCalendar, FiChevronLeft, FiChevronRight, FiLock } from 'react-icons/fi';
+import { getArtistProfile, toggleArtistBlockedDate } from '../../api/artistProfileService';
 
 type CalendarContractEvent = {
   id: string;
@@ -104,6 +105,7 @@ export function ArtistCalendarPage() {
   const [error, setError] = useState('');
 
   const [events, setEvents] = useState<CalendarContractEvent[]>([]);
+  const [blockedDates, setBlockedDates] = useState<string[]>([]);
 
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [isEventLoading, setIsEventLoading] = useState(false);
@@ -128,12 +130,16 @@ export function ArtistCalendarPage() {
         const startIso = range.start.toISOString();
         const endIso = range.end.toISOString();
 
-        const res = await withMinimumDelay(1000, () =>
-          api<ApiResponse<CalendarContractEvent[]>>(`events/calendar?start=${encodeURIComponent(startIso)}&end=${encodeURIComponent(endIso)}`)
-        );
+        const [res, profile] = await Promise.all([
+          withMinimumDelay(1000, () =>
+            api<ApiResponse<CalendarContractEvent[]>>(`events/calendar?start=${encodeURIComponent(startIso)}&end=${encodeURIComponent(endIso)}`)
+          ),
+          getArtistProfile()
+        ]);
 
         if (cancelled) return;
         setEvents(res.data ?? []);
+        setBlockedDates(profile.blockedDates || []);
       } catch (err) {
         if (cancelled) return;
         setError(err instanceof Error ? err.message : 'No se pudo cargar el calendario.');
@@ -148,6 +154,16 @@ export function ArtistCalendarPage() {
       cancelled = true;
     };
   }, [user?.uid, isArtista, range.start, range.end]);
+
+  const handleDayToggle = async (day: Date) => {
+    const key = day.toISOString().split('T')[0];
+    try {
+      const next = await toggleArtistBlockedDate(key);
+      setBlockedDates(next);
+    } catch (err) {
+      console.error('Error toggling blocked date:', err);
+    }
+  };
 
   async function openEvent(contractId: string) {
     setSelectedEventId(contractId);
@@ -298,14 +314,26 @@ export function ArtistCalendarPage() {
                   ) : (
                     <div className="flex h-full">
                       {weekDates.map((day, dayIdx) => {
+                        const dateKey = day.toISOString().split('T')[0];
+                        const isBlocked = blockedDates.includes(dateKey);
+
                         return (
-                          <div key={day.toISOString()} className="flex-1 border-r border-white/10 last:border-r-0 relative">
+                          <div key={day.toISOString()} className={`flex-1 border-r border-white/10 last:border-r-0 relative ${isBlocked ? 'bg-red-500/5' : ''}`}>
                             {/* Day header */}
-                            <div className="sticky top-0 z-10 bg-neutral-950/80 border-b border-white/10 px-3 h-10 flex flex-col justify-center">
-                              <div className="text-xs text-neutral-500">
-                                {['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'][dayIdx]}
+                            <div className="sticky top-0 z-10 bg-neutral-950/80 border-b border-white/10 px-3 h-10 flex items-center justify-between group">
+                              <div className="flex flex-col justify-center">
+                                <div className="text-xs text-neutral-500">
+                                  {['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'][dayIdx]}
+                                </div>
+                                <div className="text-sm text-white/90 font-medium">{day.getDate()}</div>
                               </div>
-                              <div className="text-sm text-white/90 font-medium">{day.getDate()}</div>
+                              <button 
+                                onClick={() => handleDayToggle(day)}
+                                className={`p-1.5 rounded-lg transition-colors ${isBlocked ? 'text-red-400 bg-red-400/10 hover:bg-neutral-800' : 'text-neutral-600 hover:text-white hover:bg-white/10'}`}
+                                title={isBlocked ? 'Desbloquear día' : 'Bloquear día'}
+                              >
+                                {isBlocked ? <FiLock size={14} /> : <FiLock size={14} className="opacity-0 group-hover:opacity-100" />}
+                              </button>
                             </div>
 
                             {/* Timeline grid lines */}
@@ -321,6 +349,13 @@ export function ArtistCalendarPage() {
                                 />
                               ))}
                             </div>
+
+                            {/* Blocked overlay text */}
+                            {isBlocked && (
+                              <div className="absolute inset-0 top-10 flex items-center justify-center pointer-events-none rotate-[-45deg] opacity-20">
+                                <span className="text-red-500 font-bold text-2xl uppercase tracking-widest whitespace-nowrap">BLOQUEADO</span>
+                              </div>
+                            )}
 
                             {/* Event blocks */}
                             <div className="absolute left-0 right-0 top-10 bottom-0 overflow-hidden">

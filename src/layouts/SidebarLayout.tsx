@@ -45,7 +45,7 @@ export function SidebarLayout({ sidebar, children }: SidebarLayoutProps) {
         <button
           type="button"
           onClick={() => setIsMobileSidebarOpen(false)}
-          className="lg:hidden fixed inset-0 z-30 bg-transparent"
+          className="lg:hidden fixed inset-0 z-30 bg-black/40 backdrop-blur-sm transition-opacity"
           aria-label="Cerrar menú lateral"
         />
       )}

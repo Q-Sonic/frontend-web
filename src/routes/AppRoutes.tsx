@@ -7,6 +7,7 @@ import { LoginPage } from '../pages/LoginPage';
 import { RegisterPage } from '../pages/RegisterPage';
 import { ForgotPasswordPage } from '../pages/ForgotPasswordPage';
 import { TermsPage } from '../pages/TermsPage';
+import { PrivacyPage } from '../pages/PrivacyPage';
 import { TermsContractPage } from '../pages/TermsContractPage';
 import PaymentResultPage from '../pages/payment/PaymentResultPage';
 import { EditProfilePage } from '../pages/EditProfilePage';
@@ -44,11 +45,11 @@ import {
   ArtistProfileDocumentsPage,
   ArtistProfileGalleryPage,
   ArtistProfileCalendarPage,
-  ArtistAccessSettingsPage,
-  ArtistProfileIdRedirect,
-  ArtistProfileLayout,
   ArtistProfileMainPage,
   ArtistServicesPage,
+  ArtistSettingsHubPage,
+  ArtistProfileIdRedirect,
+  ArtistProfileLayout,
 } from '../pages/artist';
 import { CreateArtistPage } from '../pages/admin';
 import { clientSidebarMenus } from '../constants/menus/clientMenus';
@@ -69,6 +70,7 @@ export function AppRoutes() {
       {/* Public Routes */}
       <Route path="/" element={<LandingPage />} />
       <Route path="/terms" element={<TermsPage />} />
+      <Route path="/privacy" element={<PrivacyPage />} />
       <Route path="/terms-contract" element={<TermsContractPage />} />
       <Route path="/payment/success" element={<PaymentResultPage />} />
       <Route path="/payment/failure" element={<PaymentResultPage />} />
@@ -171,7 +173,7 @@ export function AppRoutes() {
           path="/artist/settings"
           element={
             <SidebarLayout sidebar={artistSidebar}>
-              <ArtistAccessSettingsPage />
+              <ArtistSettingsHubPage />
             </SidebarLayout>
           }
         />

@@ -106,6 +106,16 @@ export function DiscoverFilterBar({ filters, onChange }: DiscoverFilterBarProps)
         />
         Disponible hoy
       </label>
+
+      {Object.keys(filters).length > 0 && (
+        <button
+          type="button"
+          onClick={() => onChange({})}
+          className="text-xs font-medium text-neutral-500 hover:text-white transition-colors px-2 underline decoration-neutral-700 underline-offset-4"
+        >
+          Limpiar filtros
+        </button>
+      )}
     </div>
   );
 }

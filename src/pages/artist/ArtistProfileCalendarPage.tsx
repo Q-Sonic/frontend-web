@@ -11,6 +11,9 @@ import { localDateKey } from '../../helpers/artistProfile';
 import { isBackendRoleArtista, isBackendRoleCliente } from '../../helpers/role';
 import { useArtistProfileById } from '../../hooks/useArtistProfileById';
 import type { ArtistServiceRecord } from '../../types';
+import { Button, Card } from '../../components';
+import { formatMoney } from '../../helpers/money';
+import { FiX } from 'react-icons/fi';
 
 const WEEKDAYS_ES_LONG = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
@@ -56,6 +59,7 @@ export function ArtistProfileCalendarPage() {
     const n = new Date();
     return { y: n.getFullYear(), m: n.getMonth() };
   });
+  const [selectedDateKey, setSelectedDateKey] = useState<string | null>(null);
 
   const blockedSet = useMemo(() => new Set(profile?.blockedDates ?? []), [profile?.blockedDates]);
   const availableServices = useMemo(
@@ -83,13 +87,13 @@ export function ArtistProfileCalendarPage() {
 
   const currentKey = `${view.y}-${view.m}`;
   const goToReservation = useCallback(
-    (preselectedDateKey?: string) => {
-      if (!reservationService || !isClientArtistCalendar) return;
-      navigate(`${basePath}/services/${reservationService.id}`, {
-        state: buildReservationNavigationState(reservationService, preselectedDateKey),
+    (service: ArtistServiceRecord, dateKey?: string) => {
+      if (!isClientArtistCalendar) return;
+      navigate(`${basePath}/services/${service.id}`, {
+        state: buildReservationNavigationState(service, dateKey),
       });
     },
-    [basePath, isClientArtistCalendar, navigate, reservationService],
+    [basePath, isClientArtistCalendar, navigate],
   );
 
   if (!id) return <Navigate to={exitHomePath} replace />;
@@ -142,7 +146,7 @@ export function ArtistProfileCalendarPage() {
           profile={profile}
           basePath={basePath}
           reserveHref={reserveHref}
-          onReserveClick={() => goToReservation()}
+          onReserveClick={() => reservationService && goToReservation(reservationService)}
         />
       ) : (
         <div>
@@ -234,7 +238,7 @@ export function ArtistProfileCalendarPage() {
                   disabled={!selectable}
                   onClick={() => {
                     if (!selectable) return;
-                    goToReservation(key);
+                    setSelectedDateKey(key);
                   }}
                   className={`min-h-[88px] p-2 flex flex-col bg-[#0f141c] ${
                     inMonth ? '' : 'opacity-45'
@@ -258,6 +262,91 @@ export function ArtistProfileCalendarPage() {
               );
             })}
           </div>
+        </div>
+      </div>
+
+      {selectedDateKey && (
+        <ServiceSelectionModal
+          isOpen={!!selectedDateKey}
+          onClose={() => setSelectedDateKey(null)}
+          services={availableServices}
+          onSelect={(s) => {
+            goToReservation(s, selectedDateKey);
+            setSelectedDateKey(null);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function ServiceSelectionModal({
+  isOpen,
+  onClose,
+  services,
+  onSelect,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  services: ArtistServiceRecord[];
+  onSelect: (s: ArtistServiceRecord) => void;
+}) {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-2xl max-h-[90vh] overflow-hidden rounded-3xl border border-white/10 bg-[#121820] shadow-[0_0_40px_rgba(0,0,0,0.5)] flex flex-col">
+        <div className="p-6 border-b border-white/10 flex items-center justify-between">
+          <div>
+            <h2 className="text-xl md:text-2xl font-bold text-white">Selecciona un servicio</h2>
+            <p className="text-sm text-neutral-400 mt-1">Elige el servicio que deseas contratar para esta fecha</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 rounded-full hover:bg-white/10 text-neutral-400 hover:text-white transition"
+          >
+            <FiX size={24} />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-6 space-y-4 scrollbar-thin [scrollbar-color:rgba(255,255,255,0.1)_transparent]">
+          {services.map((service) => (
+            <Card
+              key={service.id}
+              className="group cursor-pointer border border-white/5 bg-white/[0.03] hover:border-accent/40 hover:bg-white/[0.05] transition-all p-4"
+              onClick={() => onSelect(service)}
+            >
+              <div className="flex items-center justify-between gap-4">
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-lg font-semibold text-white group-hover:text-accent transition">{service.name}</h3>
+                  <p className="text-sm text-neutral-400 line-clamp-2 mt-1">{service.description}</p>
+                </div>
+                <div className="text-right shrink-0">
+                  <div className="text-xl font-bold text-accent">${formatMoney(service.price)}</div>
+                  <div className="text-[10px] text-neutral-500 uppercase tracking-wider">por hora</div>
+                </div>
+              </div>
+              
+              {/* Validation message if no contract is linked - as per Stage Go requirement */}
+              {(!service.contractTemplateId && !service.contractPdfUrl && !service.documentUrl) && (
+                <div className="mt-3 py-1 px-2 rounded-lg bg-red-500/10 border border-red-500/20 text-[10px] text-red-300 inline-block">
+                  ⚠️ Este servicio requiere configurar un contrato para ser contratado.
+                </div>
+              )}
+            </Card>
+          ))}
+          
+          {services.length === 0 && (
+            <div className="py-12 text-center">
+              <p className="text-neutral-500 italic">No hay servicios disponibles para reserva directa.</p>
+            </div>
+          )}
+        </div>
+        
+        <div className="p-4 bg-white/5 flex justify-end">
+          <Button variant="outline" onClick={onClose} className="rounded-full">
+            Cancelar
+          </Button>
         </div>
       </div>
     </div>

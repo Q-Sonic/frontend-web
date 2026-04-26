@@ -66,6 +66,8 @@ export interface ArtistProfileListItem extends ArtistProfile {
   displayName: string;
   /** When provided by list/filters API (discovery). */
   genre?: string;
+  /** Primary service price (if provided by discovery API). */
+  price?: number;
 }
 
 export interface ArtistProfileUpdate {

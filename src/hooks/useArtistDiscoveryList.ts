@@ -16,7 +16,30 @@ export function useArtistDiscoveryList(filters: ArtistProfileListFilters) {
 
     listArtistProfiles(filters)
       .then((rows) => {
-        if (!cancelled) setData(rows);
+        if (cancelled) return;
+
+        // Frontend safety filtering as fallback if backend didn't filter
+        let filtered = [...rows];
+
+        if (filters.genre) {
+          const g = filters.genre.toLowerCase();
+          filtered = filtered.filter((a) => a.genre?.toLowerCase().includes(g));
+        }
+
+        if (filters.city) {
+          const c = filters.city.toLowerCase();
+          filtered = filtered.filter((a) => a.city?.toLowerCase().includes(c));
+        }
+
+        if (filters.minPrice != null) {
+          filtered = filtered.filter((a) => (a.price ?? 0) >= filters.minPrice!);
+        }
+
+        if (filters.maxPrice != null) {
+          filtered = filtered.filter((a) => (a.price ?? 0) <= filters.maxPrice!);
+        }
+
+        setData(filtered);
       })
       .catch((err) => {
         if (!cancelled) {

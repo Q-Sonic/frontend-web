@@ -317,3 +317,20 @@ export async function removeArtistProfileGalleryItem(fileUrl: string): Promise<A
   }
   return profile;
 }
+
+/**
+ * Toggles a date (YYYY-MM-DD) in the artist's blockedDates list.
+ */
+export async function toggleArtistBlockedDate(dateKey: string): Promise<string[]> {
+  const profile = await getArtistProfile();
+  const current = profile.blockedDates || [];
+  const exists = current.includes(dateKey);
+  const next = exists ? current.filter((d) => d !== dateKey) : [...current, dateKey];
+
+  await updateArtistProfile({
+    ...profile,
+    blockedDates: next,
+  });
+
+  return next;
+}

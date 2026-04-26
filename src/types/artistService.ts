@@ -17,6 +17,8 @@ export interface ArtistServiceRecord {
   documentUrl?: string;
   riderPdfUrl?: string;
   contractDocumentUrl?: string;
+  contractTemplateId?: string;
+  technicalRiderTemplateId?: string;
 }
 
 export interface CreateArtistServiceBody {
@@ -25,6 +27,8 @@ export interface CreateArtistServiceBody {
   description?: string;
   duration?: string;
   features?: string[];
+  contractTemplateId?: string;
+  technicalRiderTemplateId?: string;
 }
 
 export interface UpdateArtistServiceBody {
@@ -33,6 +37,8 @@ export interface UpdateArtistServiceBody {
   description?: string;
   duration?: string;
   features?: string[];
+  contractTemplateId?: string;
+  technicalRiderTemplateId?: string;
 }
 
 export type ArtistServiceResponse = ApiResponse<ArtistServiceRecord>;
