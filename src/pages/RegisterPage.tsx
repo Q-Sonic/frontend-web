@@ -45,6 +45,14 @@ const GoogleIcon = () => (
   </svg>
 );
 
+const CheckCircleIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+    strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+    <polyline points="22 4 12 14.01 9 11.01" />
+  </svg>
+);
+
 const AlertIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
     strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -121,6 +129,8 @@ export function RegisterPage() {
     return isSubmitted || touched[field] ? error : undefined;
   }
 
+  const [showSuccess, setShowSuccess] = useState(false);
+
   /* ── Submit ── */
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -137,12 +147,15 @@ export function RegisterPage() {
         displayName: trim(displayName),
         role: accountRole,
       });
+      setShowSuccess(true);
       try {
         sessionStorage.setItem(SESSION_KEY_POST_REGISTER_LOGIN, '1');
       } catch {
         /* ignore private mode */
       }
-      navigate('/login', { state: { registerSuccess: true }, replace: true });
+      setTimeout(() => {
+        navigate('/login', { state: { registerSuccess: true }, replace: true });
+      }, 2000);
     } catch (err) {
       setSubmitError(registerErrorMessage(err));
     } finally {
@@ -186,6 +199,25 @@ export function RegisterPage() {
         </h2>
         <p className="mt-1 text-muted text-sm">Crea tu cuenta</p>
       </div>
+
+      {/* Success banner */}
+      {showSuccess && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="mb-6 flex items-start gap-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3"
+        >
+          <span className="mt-0.5 shrink-0 text-emerald-400">
+            <CheckCircleIcon />
+          </span>
+          <div>
+            <p className="text-sm font-medium text-emerald-400">Registro exitoso</p>
+            <p className="mt-0.5 text-xs text-emerald-400/80">
+              Tu cuenta ha sido creada. Redirigiendo al inicio de sesión...
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Error banner */}
       {submitError && (

@@ -12,6 +12,7 @@ import { formatMoney } from '../../helpers/money';
 import { isBackendRoleArtista } from '../../helpers/role';
 import { withMinimumDelay } from '../../helpers/withMinimumDelay';
 import type { ApiResponse } from '../../types';
+import { fetchArtistDashboardStats, fetchArtistCalendarEvents, fetchArtistWithdrawals } from '../../api/firestoreDashboardService';
 
 type DashboardStats = {
   totalEvents: number;
@@ -76,29 +77,30 @@ export function HomeArtistaPage() {
 
   const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
 
-  const loadStats = useCallback(async (cancelled?: CancelFlag) => {
-    setStatsLoading(true);
-    setStatsError('');
+  const loadStats = useCallback(
+    async (cancelled?: CancelFlag) => {
+      if (!user?.uid) return;
+      setStatsLoading(true);
+      setStatsError('');
 
-    try {
-      const statsRes = await withMinimumDelay(1000, () =>
-        api<ApiResponse<DashboardStats>>('dashboard/stats'),
-      );
-
-      if (!cancelled?.current) {
-        setStats(statsRes.data);
+      try {
+        const data = await withMinimumDelay(1000, () => fetchArtistDashboardStats(user.uid));
+        if (!cancelled?.current) {
+          setStats(data);
+        }
+      } catch (err) {
+        if (!cancelled?.current) {
+          setStatsError(err instanceof Error ? err.message : 'Error al cargar el resumen.');
+          setStats(null);
+        }
+      } finally {
+        if (!cancelled?.current) {
+          setStatsLoading(false);
+        }
       }
-    } catch (err) {
-      if (!cancelled?.current) {
-        setStatsError(err instanceof Error ? err.message : 'Error al cargar el resumen.');
-        setStats(null);
-      }
-    } finally {
-      if (!cancelled?.current) {
-        setStatsLoading(false);
-      }
-    }
-  }, []);
+    },
+    [user?.uid],
+  );
 
   const loadWithdrawals = useCallback(
     async (cancelled?: CancelFlag) => {
@@ -113,9 +115,9 @@ export function HomeArtistaPage() {
       setWithdrawalsLoading(true);
 
       try {
-        const res = await api<ApiResponse<WithdrawalRequest[]>>('payments/withdrawals');
+        const data = await fetchArtistWithdrawals(user.uid);
         if (!cancelled?.current) {
-          setWithdrawals(res.data ?? []);
+          setWithdrawals(data);
         }
       } catch {
         if (!cancelled?.current) {
@@ -145,27 +147,19 @@ export function HomeArtistaPage() {
       setNextShowError('');
 
       const now = new Date();
-      const end = new Date(now);
-      end.setMonth(end.getMonth() + 3);
 
       try {
-        const nextShowRes = await withMinimumDelay(1000, async () => {
-          const startIso = now.toISOString();
-          const endIso = end.toISOString();
-
-          const calendarRes = await api<ApiResponse<CalendarEvent[]>>(
-            `events/calendar?start=${encodeURIComponent(startIso)}&end=${encodeURIComponent(endIso)}`,
-          );
-
-          const nextContract = pickNextUpcomingEvent(calendarRes.data ?? [], now);
+        const data = await withMinimumDelay(1000, async () => {
+          const events = await fetchArtistCalendarEvents(user.uid);
+          const nextContract = pickNextUpcomingEvent(events, now);
           if (!nextContract) return null;
 
-          const detailRes = await api<ApiResponse<ExtendedEventDetail>>(`events/${nextContract.id}`);
-          return mapEventDetailToNextShow(detailRes.data);
+          // For detail, we also map it directly from the contract record we already have
+          return mapEventDetailToNextShow(nextContract as ExtendedEventDetail);
         });
 
         if (!cancelled?.current) {
-          setNextShow(nextShowRes);
+          setNextShow(data);
         }
       } catch (err) {
         if (!cancelled?.current) {

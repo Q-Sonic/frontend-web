@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { FiCheck, FiChevronDown, FiShoppingCart } from 'react-icons/fi';
+import { paymentService } from '../../api/paymentService';
 import { getArtistServiceById } from '../../api';
 import { ARTIST_SERVICE_LINK_STATE_KEY, Skeleton } from '../../components';
 import { ClientContractSigningModal } from '../../components/client/ClientContractSigningModal';
@@ -601,10 +602,30 @@ function ServiceDetailArticle({
               serviceFeatures: Array.isArray(svc.features) ? [...svc.features] : undefined,
               serviceDetails: serviceDetails.trim() || undefined,
             };
-            await persistSignedClientContractsWithApiFallback([line], {
+            const contracts = await persistSignedClientContractsWithApiFallback([line], {
               dataUrl,
               applyToAll: false,
             });
+
+            // "Cerrar el círculo": Si se generó el contrato, vamos al pago
+            if (contracts && contracts.length > 0) {
+              const contract = contracts[0];
+              try {
+                const total = contract?.financials?.totalAmount ?? svc.price;
+                const payLink = await paymentService.createLinkToPay({
+                  amount: total,
+                  description: `Reserva Servicio: ${svc.name} - ${artistDisplayName}`,
+                  dev_reference: contract?.id || line.id,
+                });
+                if (payLink?.data?.payment_url) {
+                  window.location.href = payLink.data.payment_url;
+                  return;
+                }
+              } catch (payErr) {
+                console.error('Error generando link de pago:', payErr);
+              }
+            }
+
             appendContractSignedPendingArtistNotifications([
               {
                 artistId,

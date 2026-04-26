@@ -1,4 +1,4 @@
-export type GalleryFilterKey = 'all' | 'photos' | 'videos' | 'concerts' | 'backstage' | 'fans';
+export type GalleryFilterKey = 'all' | 'photos' | 'videos';
 
 interface GalleryFilterTabsProps {
   activeFilter: GalleryFilterKey;

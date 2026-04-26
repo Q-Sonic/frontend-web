@@ -8,6 +8,8 @@ import { DiscoverFilterBar } from '../../components/shared/DiscoverFilterBar';
 import { artistListItemToDiscoverCard } from '../../helpers/discoverArtistCard';
 import type { DiscoverArtistCardDisplay } from '../../helpers/discoverArtistCard';
 import { useArtistDiscoveryList } from '../../hooks/useArtistDiscoveryList';
+import { DiscoverArtistCardSkeleton } from '../../components/Skeleton';
+import { FiSearch } from 'react-icons/fi';
 
 export function DashboardPage() {
   const [filters, setFilters] = useState<ArtistProfileListFilters>({});
@@ -43,37 +45,53 @@ export function DashboardPage() {
         <DiscoverFilterBar filters={filters} onChange={setFilters} />
 
         {error ? (
-          <p className="text-sm text-red-400 pb-6" role="alert">
-            {error}
-          </p>
-        ) : null}
-
-        {loading ? (
-          <p className="text-sm text-neutral-500 pb-8">Cargando artistas…</p>
+          <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-6 mb-8 text-center">
+            <p className="text-sm text-red-400 font-medium">
+              Ups! Hubo un problema al cargar los artistas: {error}
+            </p>
+          </div>
         ) : null}
 
         <ul
           className="grid w-full list-none p-0 m-0 gap-5 md:gap-6 items-stretch justify-items-stretch"
           style={{
-            gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 260px), 1fr))',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))',
           }}
         >
-          {gridItems.map((display, index) => {
-            const cardKey = `${display.id}-${index}`;
-            const isDemo = display.profileDisabled === true;
-            return (
-              <li key={cardKey} className="min-w-0 h-full min-h-0">
-                <DiscoverArtistCard
-                  artist={display}
-                  cardKey={cardKey}
-                  isPlaying={playingCardKey === cardKey}
-                  onPlayRequest={() => setPlayingCardKey(cardKey)}
-                  onStopRequest={() => setPlayingCardKey((k) => (k === cardKey ? null : k))}
-                  profileHref={isDemo ? undefined : `/client/artists/${display.id}`}
-                />
+          {loading ? (
+            Array.from({ length: 8 }).map((_, i) => (
+              <li key={`skel-${i}`}>
+                <DiscoverArtistCardSkeleton />
               </li>
-            );
-          })}
+            ))
+          ) : gridItems.length > 0 ? (
+            gridItems.map((display, index) => {
+              const cardKey = `${display.id}-${index}`;
+              const isDemo = display.profileDisabled === true;
+              return (
+                <li key={cardKey} className="min-w-0 h-full min-h-0">
+                  <DiscoverArtistCard
+                    artist={display}
+                    cardKey={cardKey}
+                    isPlaying={playingCardKey === cardKey}
+                    onPlayRequest={() => setPlayingCardKey(cardKey)}
+                    onStopRequest={() => setPlayingCardKey((k) => (k === cardKey ? null : k))}
+                    profileHref={isDemo ? undefined : `/client/artists/${display.id}`}
+                  />
+                </li>
+              );
+            })
+          ) : (
+            <li className="col-span-full py-20 text-center">
+              <div className="inline-flex flex-col items-center">
+                <FiSearch size={48} className="text-neutral-700 mb-4" />
+                <h3 className="text-xl font-semibold text-white">No encontramos artistas</h3>
+                <p className="text-neutral-500 mt-2 max-w-sm">
+                  Probá ajustando los filtros o buscando otra ciudad/género. ¡Seguro hay alguien cerca!
+                </p>
+              </div>
+            </li>
+          )}
         </ul>
       </div>
       <ClientFloatingChatButton />

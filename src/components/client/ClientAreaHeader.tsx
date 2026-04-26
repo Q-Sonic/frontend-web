@@ -1,10 +1,11 @@
 import type { ChangeEvent } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { FiBell, FiSearch, FiShoppingCart } from 'react-icons/fi';
+import { FiBell, FiSearch, FiShoppingCart, FiAlertCircle } from 'react-icons/fi';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { useClientNotificationsOptional } from '../../contexts/ClientNotificationsContext';
+import { useClientNotifications } from '../../contexts/ClientNotificationsContext';
 import { useClientServiceCartOptional } from '../../contexts/ClientServiceCartContext';
+import { Skeleton } from '../Skeleton';
 import {
   formatClientNotificationTimeEs,
   type ClientNotificationRecord,
@@ -47,16 +48,13 @@ export function ClientAreaHeader({
 }: ClientAreaHeaderProps) {
   const { user } = useAuth();
   const serviceCart = useClientServiceCartOptional();
-  const notifications = useClientNotificationsOptional();
+  const { notifications: list, unreadCount: unread, loading: notificationsLoading, markAllRead } = useClientNotifications();
   const initials = getInitials(user?.displayName ?? null, user?.email ?? null);
 
   const [panelOpen, setPanelOpen] = useState(false);
   const bellWrapRef = useRef<HTMLDivElement>(null);
 
   const controlledSearch = typeof onSearchChange === 'function';
-
-  const unread = notifications?.unreadCount ?? 0;
-  const list = notifications?.notifications ?? [];
 
   const closePanel = useCallback(() => setPanelOpen(false), []);
 
@@ -132,122 +130,84 @@ export function ClientAreaHeader({
             : 'flex items-center justify-end gap-2 sm:gap-3 shrink-0'
         }
       >
+        {/* Notifications Bell */}
         <div className="relative" ref={bellWrapRef}>
           <button
             type="button"
-            className="relative p-2 rounded-lg text-neutral-300 hover:bg-white/5 hover:text-white transition-colors"
-            aria-label="Notificaciones"
-            aria-expanded={panelOpen}
-            aria-haspopup="true"
             onClick={togglePanel}
+            className="flex items-center justify-center w-10 h-10 rounded-full border border-white/10 bg-black/40 text-neutral-400 transition hover:bg-white/10 hover:text-white"
+            aria-label={`Ver ${unread} notificaciones`}
+            aria-expanded={panelOpen}
           >
             <FiBell size={20} />
-            {unread > 0 ? (
-              <span className="absolute top-1 right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-danger text-[10px] font-semibold text-white flex items-center justify-center tabular-nums">
-                {unread > 9 ? '9+' : unread}
+            {unread > 0 && (
+              <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-black ring-2 ring-black">
+                {unread > 9 ? '+9' : unread}
               </span>
-            ) : null}
+            )}
           </button>
-          {panelOpen ? (
-            <div
-              className="absolute right-0 top-[calc(100%+0.5rem)] z-60 w-[min(100vw-2rem,22rem)] overflow-hidden rounded-2xl border border-white/10 bg-[#111214] shadow-[0_16px_48px_rgba(0,0,0,0.55)]"
-              role="dialog"
-              aria-label="Notificaciones"
-            >
-              <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
-                <p className="text-sm font-semibold text-white">Notificaciones</p>
-                {unread > 0 && notifications ? (
+
+          {panelOpen && (
+            <div className="absolute right-0 top-full z-40 mt-3 w-80 rounded-2xl border border-white/10 bg-[#0c0e12] p-1.5 shadow-[0_16px_48px_rgba(0,0,0,0.6)] backdrop-blur-xl">
+              <div className="flex items-center justify-between px-3 py-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-neutral-500">
+                  Notificaciones
+                </span>
+                {unread > 0 && markAllRead && (
                   <button
                     type="button"
-                    className="text-xs font-medium text-[#00d4c8] hover:underline"
-                    onClick={() => notifications.markAllRead()}
+                    onClick={() => markAllRead()}
+                    className="text-[11px] font-medium text-accent hover:underline"
                   >
-                    Marcar todo leído
+                    Marcar todo como leído
                   </button>
-                ) : null}
+                )}
               </div>
-              <div className="max-h-[min(70vh,20rem)] overflow-y-auto scrollbar-thin [scrollbar-color:rgba(255,255,255,0.2)_transparent]">
-                {list.length === 0 ? (
-                  <p className="px-4 py-8 text-center text-sm text-white/45">Sin notificaciones por ahora</p>
+              <div className="h-px bg-white/5 mx-1" />
+              <div className="max-h-80 overflow-y-auto pt-1">
+                {notificationsLoading ? (
+                  <div className="space-y-1 px-1">
+                    {Array.from({ length: 3 }).map((_, i) => (
+                      <div key={i} className="px-3 py-3 space-y-2">
+                        <Skeleton className="h-4 w-3/4 rounded" />
+                        <Skeleton className="h-3 w-20 rounded" />
+                      </div>
+                    ))}
+                  </div>
+                ) : list.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-8 text-center">
+                    <p className="text-sm text-neutral-500">Sin notificaciones nuevas</p>
+                  </div>
                 ) : (
-                  <ul className="divide-y divide-white/6">
-                    {list.map((n) => {
-                      const body = notificationBody(n);
-                      const timeLabel = formatClientNotificationTimeEs(n.createdAt);
-                      const unreadRow = !n.read;
-                      const rowClass = unreadRow
-                        ? 'bg-[#00d4c8]/[0.07] hover:bg-[#00d4c8]/[0.11]'
-                        : 'hover:bg-white/[0.04]';
-
-                      const inner = (
-                        <>
-                          <p
-                            className={`text-sm leading-snug ${unreadRow ? 'text-white' : 'text-white/85'}`}
-                          >
-                            {body}
+                  <ul className="space-y-1">
+                    {list.map((n) => (
+                      <li key={n.id}>
+                        <button
+                          type="button"
+                          className="w-full rounded-xl px-3 py-3 text-left transition hover:bg-white/5 group"
+                        >
+                          <div className="flex justify-between items-start gap-2">
+                            <p className="text-sm font-medium text-neutral-100 group-hover:text-white leading-snug">
+                              {notificationBody(n)}
+                            </p>
+                            {!n.read && (
+                              <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
+                            )}
+                          </div>
+                          <p className="mt-1 text-[11px] text-neutral-500">
+                            {formatClientNotificationTimeEs(n.createdAt)}
                           </p>
-                          {n.serviceName ? (
-                            <p className="mt-1 text-xs text-white/40 truncate">{n.serviceName}</p>
-                          ) : null}
-                          <p className="mt-1.5 text-[11px] text-white/35">{timeLabel}</p>
-                        </>
-                      );
-
-                      if (n.artistId) {
-                        return (
-                          <li key={n.id}>
-                            <Link
-                              to={`/client/artists/${n.artistId}`}
-                              className={`block px-4 py-3 transition-colors ${rowClass}`}
-                              onClick={() => {
-                                notifications?.markRead(n.id);
-                                closePanel();
-                              }}
-                            >
-                              {inner}
-                            </Link>
-                          </li>
-                        );
-                      }
-
-                      return (
-                        <li key={n.id}>
-                          <button
-                            type="button"
-                            className={`w-full text-left px-4 py-3 transition-colors ${rowClass}`}
-                            onClick={() => {
-                              notifications?.markRead(n.id);
-                              closePanel();
-                            }}
-                          >
-                            {inner}
-                          </button>
-                        </li>
-                      );
-                    })}
+                        </button>
+                      </li>
+                    ))}
                   </ul>
                 )}
               </div>
             </div>
-          ) : null}
+          )}
         </div>
-        <button
-          type="button"
-          onClick={() => serviceCart?.openSigningModal()}
-          className="relative p-2 rounded-lg text-neutral-300 hover:bg-white/5 hover:text-white transition-colors"
-          aria-label={
-            serviceCart && serviceCart.lineCount > 0
-              ? `Carrito de reservas, ${serviceCart.lineCount} ítems`
-              : 'Carrito de reservas'
-          }
-        >
-          <FiShoppingCart size={20} />
-          {serviceCart && serviceCart.lineCount > 0 ? (
-            <span className="absolute top-0.5 right-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[#00d4c8] px-1 text-[10px] font-bold text-[#0a0c10] tabular-nums">
-              {serviceCart.lineCount > 9 ? '9+' : serviceCart.lineCount}
-            </span>
-          ) : null}
-        </button>
+
+        {/* User Profile Link */}
         <Link
           to="/client/profile"
           className="flex items-center justify-center w-10 h-10 rounded-full bg-accent text-white text-sm font-semibold shrink-0"

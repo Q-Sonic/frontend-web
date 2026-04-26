@@ -18,13 +18,10 @@ import { useArtistProfileById } from '../../hooks/useArtistProfileById';
 import type { ArtistMediaItem } from '../../types';
 
 function filterMedia(items: ArtistMediaItem[], filter: GalleryFilterKey): ArtistMediaItem[] {
-  const normalized = (value: string | undefined) => (value ?? '').toLowerCase();
   if (filter === 'all') return items;
   if (filter === 'photos') return items.filter((item) => item.type === 'image');
   if (filter === 'videos') return items.filter((item) => item.type === 'video');
-  if (filter === 'concerts') return items.filter((item) => /show|concert|live|stage/.test(normalized(item.name)));
-  if (filter === 'backstage') return items.filter((item) => /backstage|setup|ensayo|rehearsal/.test(normalized(item.name)));
-  return items.filter((item) => /fan|audience|crowd|publico/.test(normalized(item.name)));
+  return items;
 }
 
 export function ArtistProfileGalleryPage() {

@@ -45,11 +45,11 @@ import {
   ArtistProfileDocumentsPage,
   ArtistProfileGalleryPage,
   ArtistProfileCalendarPage,
-  ArtistAccessSettingsPage,
-  ArtistProfileIdRedirect,
-  ArtistProfileLayout,
   ArtistProfileMainPage,
   ArtistServicesPage,
+  ArtistSettingsHubPage,
+  ArtistProfileIdRedirect,
+  ArtistProfileLayout,
 } from '../pages/artist';
 import { CreateArtistPage } from '../pages/admin';
 import { clientSidebarMenus } from '../constants/menus/clientMenus';
@@ -173,7 +173,7 @@ export function AppRoutes() {
           path="/artist/settings"
           element={
             <SidebarLayout sidebar={artistSidebar}>
-              <ArtistAccessSettingsPage />
+              <ArtistSettingsHubPage />
             </SidebarLayout>
           }
         />

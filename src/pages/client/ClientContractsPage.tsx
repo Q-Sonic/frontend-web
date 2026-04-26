@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { FiCheck, FiChevronRight, FiClock, FiShield, FiXCircle } from 'react-icons/fi';
 import { Link } from 'react-router-dom';
-import { Skeleton } from '../../components';
+import { Skeleton, ContractCardSkeleton } from '../../components/Skeleton';
 import { ClientAreaHeader } from '../../components/client/ClientAreaHeader';
 import { ClientFloatingChatButton } from '../../components/client/ClientFloatingChatButton';
 import { ClientAreaPageShell } from '../../components/shared/ClientAreaPageShell';
@@ -11,6 +11,12 @@ import type {
   ContractLifecycleStatus,
   ContractRecord,
 } from '../../types/contract';
+import { ClientContractSigningModal } from '../../components/client/ClientContractSigningModal';
+import { persistSignedClientContractsWithApiFallback } from '../../helpers/clientContractPersistence';
+import { appendContractSignedPendingArtistNotifications } from '../../helpers/clientNotifications';
+import { useAuth } from '../../contexts/AuthContext';
+import { isBackendRoleCliente } from '../../helpers/role';
+import { FiAlertCircle, FiInbox } from 'react-icons/fi';
 
 const PAGE_SIZE = 6;
 
@@ -199,7 +205,15 @@ function FilterTab({
   );
 }
 
-function ContractCard({ c }: { c: ContractRecord }) {
+function ContractCard({
+  c,
+  isSelected,
+  onToggle,
+}: {
+  c: ContractRecord;
+  isSelected?: boolean;
+  onToggle?: (id: string, val: boolean) => void;
+}) {
   const name = displayNameForContract(c);
   const ui = statusUi(c);
   const location = c.eventDetails?.location?.trim() || '—';
@@ -233,8 +247,25 @@ function ContractCard({ c }: { c: ContractRecord }) {
               Tu firma ya consta en el sistema. Pendiente la confirmación del artista para marcarlo como firmado al
               100%.
             </p>
-          ) : null}
+          ) : (
+            <p className="pt-1 text-xs leading-relaxed text-accent/80">
+              Requiere tu firma electrónica para formalizar la reserva.
+            </p>
+          )}
         </div>
+      </div>
+
+      <div className="flex shrink-0 flex-col items-center justify-center gap-3 pr-2 sm:gap-4">
+        {onToggle && isPendingStatus(c.status) && (
+          <label className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl border border-accent/30 bg-accent/5 hover:bg-accent/10">
+            <input
+              type="checkbox"
+              checked={isSelected}
+              onChange={(e) => onToggle(c.id, e.target.checked)}
+              className="h-5 w-5 rounded border-accent/40 bg-transparent accent-accent"
+            />
+          </label>
+        )}
       </div>
 
       <div className="flex shrink-0 flex-col items-stretch gap-3 border-t border-white/[0.06] pt-4 sm:w-[10rem] sm:border-0 sm:pt-0">
@@ -270,9 +301,22 @@ function ContractCard({ c }: { c: ContractRecord }) {
 }
 
 export function ClientContractsPage() {
+  const { user } = useAuth();
   const { contracts, loading, error, refetch } = useClientMyContracts();
   const [filter, setFilter] = useState<StatusFilter>('all');
   const [page, setPage] = useState(1);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [signModalOpen, setSignModalOpen] = useState(false);
+  const [isSigning, setIsSigning] = useState(false);
+
+  const toggleSelection = (id: string, val: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (val) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  };
 
   const counts = useMemo(() => {
     let pending = 0;
@@ -306,7 +350,7 @@ export function ClientContractsPage() {
   const contentBlock = (
     <>
       <header className="mx-auto max-w-xl text-center">
-        <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">Mis Contratos</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">Mis Reservas</h1>
         <div className="mx-auto mt-5 h-px w-full max-w-xs bg-gradient-to-r from-transparent via-white/20 to-transparent" />
         <p className="mx-auto mt-5 max-w-md text-sm leading-relaxed text-neutral-400 sm:text-[0.9375rem]">
           Revisa el estado y abre tus contratos de manera sencilla.
@@ -364,21 +408,32 @@ export function ClientContractsPage() {
           <div className="h-px min-w-[2rem] flex-1 bg-neutral-600/50" />
         </div>
 
-        {filtered.length === 0 ? (
-          <p className="mx-auto max-w-2xl py-10 text-center text-sm leading-relaxed text-neutral-500">
-            Esta vista quedará vacía hasta que el backend devuelva datos reales. El front ya llama a{' '}
-            <span className="font-mono text-[0.8rem] text-neutral-400">GET /contracts/my-history</span> (contrato del
-            cliente autenticado): cuando ese endpoint responda con una lista de contratos (id, estado, evento, importe,
-            <span className="text-neutral-400"> contractUrl</span>, y opcionalmente nombre y foto del artista), los verás
-            aquí y en las pestañas según su estado. Si la respuesta es un array vacío o el endpoint aún no está
-            implementado, seguirás viendo este mensaje. Los PDF por servicio del catálogo siguen en el perfil del artista
-            → Contratos.
-          </p>
+        {loading ? (
+          <ul className="space-y-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <li key={`contract-skel-${i}`}>
+                <ContractCardSkeleton />
+              </li>
+            ))}
+          </ul>
+        ) : filtered.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 px-6 text-center rounded-3xl border border-white/5 bg-white/3">
+             <FiInbox size={48} className="text-neutral-600 mb-4" />
+             <h3 className="text-lg font-semibold text-white">No hay contratos para mostrar</h3>
+             <p className="text-neutral-500 mt-2 max-w-sm">
+                En esta pestaña verás los contratos con estado "{filter === 'all' ? 'cualquiera' : filter}". 
+                Si crees que falta algo, consultalo con el artista.
+             </p>
+          </div>
         ) : (
           <ul className="space-y-4">
             {pageSlice.map((c) => (
               <li key={c.id}>
-                <ContractCard c={c} />
+                <ContractCard
+                  c={c}
+                  isSelected={selectedIds.has(c.id)}
+                  onToggle={toggleSelection}
+                />
               </li>
             ))}
           </ul>
@@ -422,20 +477,106 @@ export function ClientContractsPage() {
         </div>
       ) : null}
 
+      {selectedIds.size > 0 && filter === 'pending' && (
+        <div className="sticky bottom-6 z-30 mt-8 rounded-3xl border border-accent/40 bg-[#0a0c10]/95 p-6 shadow-[0_0_40px_rgba(0,204,203,0.15)] backdrop-blur-md">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-1">
+              <p className="text-lg font-bold text-white">Firma Masiva Seleccionada</p>
+              <p className="text-sm text-neutral-400">
+                Has seleccionado <span className="font-semibold text-accent">{selectedIds.size}</span> reservas para
+                firmar.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setSignModalOpen(true)}
+              disabled={isSigning}
+              className="rounded-full bg-accent px-8 py-3.5 text-sm font-bold text-black shadow-[0_0_24px_rgba(0,204,203,0.4)] transition hover:bg-[#33e8dc] disabled:opacity-50"
+            >
+              {isSigning ? 'Firmando...' : 'Firmar seleccionados'}
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className={`space-y-3 ${filtered.length > 0 ? 'mt-10' : 'mt-12'}`}>
         <button
           type="button"
           onClick={() => void refetch()}
           title="Volver a cargar tus contratos desde el servidor"
-          className="w-full rounded-2xl border border-accent/40 bg-accent py-3.5 text-sm font-semibold text-white shadow-[0_0_22px_rgba(0,204,203,0.22)] transition hover:bg-accent/90"
+          className="w-full rounded-2xl border border-accent/40 bg-white/5 py-3.5 text-sm font-semibold text-white transition hover:bg-white/10"
         >
-          Actualizar Firma
+          Actualizar Lista
         </button>
         <p className="flex items-center justify-center gap-2 text-center text-xs text-neutral-400">
           <FiShield className="shrink-0 text-emerald-500" aria-hidden />
           Tus datos serán registrados de forma segura.
         </p>
       </div>
+
+      <ClientContractSigningModal
+        isOpen={signModalOpen}
+        onClose={() => setSignModalOpen(false)}
+        artistParty={{
+          name: 'Múltiples Artistas',
+          roleLabel: 'Artistas',
+          signed: true, // assume base confirmation
+          initials: 'MA',
+        }}
+        clientParty={{
+          name: user?.displayName || user?.email || 'Cliente',
+          roleLabel: 'Tu firma',
+          signed: false,
+          avatarUrl: user?.photoURL || undefined,
+        }}
+        summary={{
+          event: `Bloque de ${selectedIds.size} contratos`,
+          dateLabel: 'Varias fechas',
+          location: 'Varios destinos',
+          totalValue: 'Según selección',
+          duration: 'Múltiple',
+          service: 'Varios servicios',
+        }}
+        onSign={async ({ dataUrl }) => {
+          if (!user || !isBackendRoleCliente(user.role)) return;
+          setIsSigning(true);
+          try {
+            const selectedRows = contracts.filter((c) => selectedIds.has(c.id));
+            const lines = selectedRows.map((c) => ({
+              id: c.id,
+              artistId: c.artistId || '',
+              serviceId: c.serviceId || '',
+              serviceName: c.eventDetails?.name || 'Servicio',
+              price: c.financials?.totalAmount || 0,
+              selectedDateKeys: [], // will be handled by backend usually
+              addedAt: new Date().toISOString(),
+              artistDisplayName: c.artistDisplayName || 'Artista',
+            }));
+
+            await persistSignedClientContractsWithApiFallback(lines, {
+              dataUrl,
+              applyToAll: true,
+            });
+
+            appendContractSignedPendingArtistNotifications(
+              selectedRows.map((c) => ({
+                artistId: c.artistId || '',
+                artistDisplayName: c.artistDisplayName || 'Artista',
+                serviceName: c.eventDetails?.name || 'Servicio',
+                lineId: c.id,
+              })),
+            );
+
+            setSelectedIds(new Set());
+            await refetch();
+          } catch (err) {
+            console.error('Bulk sign error:', err);
+          } finally {
+            setIsSigning(false);
+            setSignModalOpen(false);
+          }
+        }}
+      />
     </>
   );
 
@@ -444,21 +585,20 @@ export function ClientContractsPage() {
       <ClientAreaHeader showSearch={false} className="mb-2" />
 
       <div className="mx-auto w-full max-w-6xl pb-12 sm:pb-16">
-        {loading ? (
-          <div className="mt-6 space-y-4">
-            <Skeleton className="mx-auto h-9 w-52 rounded-lg" />
-            <Skeleton className="mx-auto h-px w-48 max-w-full" />
-            <Skeleton className="mx-auto h-4 w-72 max-w-full rounded-md" />
-            <div className="flex gap-2 overflow-hidden pt-4">
-              <Skeleton className="h-10 w-28 shrink-0 rounded-full" />
-              <Skeleton className="h-10 w-32 shrink-0 rounded-full" />
-              <Skeleton className="h-10 w-28 shrink-0 rounded-full" />
-              <Skeleton className="h-10 w-32 shrink-0 rounded-full" />
+        {error ? (
+          <div className="mt-6 flex flex-col items-center gap-4 py-12 rounded-3xl border border-red-500/20 bg-red-500/5 text-center">
+            <FiAlertCircle size={40} className="text-red-500" />
+            <div className="space-y-1">
+              <h3 className="text-lg font-bold text-white">Error de carga</h3>
+              <p className="text-sm text-red-300/80 max-w-md mx-auto">{error}</p>
             </div>
-            <Skeleton className="h-36 rounded-2xl" />
+            <button 
+              onClick={() => void refetch()}
+              className="mt-2 rounded-full border border-red-500/30 bg-red-500/10 px-6 py-2 text-xs font-semibold text-red-300 hover:bg-red-500/20"
+            >
+              Reintentar
+            </button>
           </div>
-        ) : error ? (
-          <p className="mt-6 text-sm text-red-300/95">{error}</p>
         ) : (
           <div className="mt-6">{contentBlock}</div>
         )}

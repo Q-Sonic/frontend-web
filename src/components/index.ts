@@ -35,6 +35,7 @@ export {
   ArtistProfileRidersGrid,
   ArtistProfileSectionTitle,
   ArtistProfileSocialNetworkLink,
+  ArtistCalendarSettings,
   type GalleryFilterKey,
   type ArtistRiderItem,
 } from './artist-profile';

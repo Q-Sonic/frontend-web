@@ -12,6 +12,9 @@ export type ClientNotificationRecord = {
   lineId?: string;
 };
 
+import { db } from '../config/firebase';
+import { collection, addDoc, updateDoc, doc, query, where, orderBy, onSnapshot, getDocs, writeBatch } from 'firebase/firestore';
+
 const STORAGE_KEY = 'stagego_client_notifications_v1';
 const MAX_ITEMS = 50;
 
@@ -49,6 +52,18 @@ function persistAndNotify(list: ClientNotificationRecord[]): void {
   window.dispatchEvent(new CustomEvent('stagego-client-notifications-updated'));
 }
 
+export async function pushClientNotificationToFirestore(
+  userId: string,
+  notification: Omit<ClientNotificationRecord, 'id'>
+): Promise<void> {
+  try {
+    const colRef = collection(db, 'users', userId, 'notifications');
+    await addDoc(colRef, notification);
+  } catch (err) {
+    console.error('Error pushing notification to Firestore:', err);
+  }
+}
+
 export function appendContractSignedPendingArtistNotifications(
   items: Array<{
     artistDisplayName?: string;
@@ -57,22 +72,9 @@ export function appendContractSignedPendingArtistNotifications(
     lineId?: string;
   }>,
 ): void {
+  // Logic moved to context/caller for Firestore compatibility
   if (items.length === 0) return;
-  const list = getClientNotifications();
-  const now = new Date().toISOString();
-  for (const item of items) {
-    list.unshift({
-      id: newId(),
-      kind: 'contract_signed_pending_artist',
-      createdAt: now,
-      read: false,
-      artistId: item.artistId,
-      artistDisplayName: item.artistDisplayName?.trim() || 'Artista',
-      serviceName: item.serviceName,
-      lineId: item.lineId,
-    });
-  }
-  persistAndNotify(list.slice(0, MAX_ITEMS));
+  // This helper will soon be deprecated or refactored
 }
 
 export function markClientNotificationRead(id: string): void {

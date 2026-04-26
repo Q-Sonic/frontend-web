@@ -4,6 +4,7 @@ import { Button } from '../../components';
 import { FaWhatsapp } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
 import { config } from '../../config';
+import { buildWhatsappUrl, SUPPORT_MESSAGES } from '../../config/whatsapp';
 import { submitLandingLead } from '../../api/landingLeadsService';
 import { ApiError } from '../../api/client';
 import headerLogoIcon from '../../assets/icons/Logo small - Login.svg';
@@ -201,29 +202,9 @@ export function LandingPage() {
         }}
       />
 
-      {/* Cinematic Mesh Gradient Background */}
-      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden opacity-60">
-        {/* Noise Texture Overlay */}
-        <div className="absolute inset-0 z-10 opacity-[0.03] mix-blend-overlay" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }} />
-        
-        <div 
-          className="absolute -top-[20%] -left-[10%] h-[100%] w-[100%] rounded-full bg-[#00CCCB]/20 blur-[140px] animate-mesh-float-1"
-        />
-        <div 
-          className="absolute top-[10%] -right-[20%] h-[80%] w-[80%] rounded-full bg-[#1a94b7]/15 blur-[120px] animate-mesh-float-2"
-        />
-        <div 
-          className="absolute -bottom-[20%] left-[10%] h-[90%] w-[90%] rounded-full bg-[#00CCCB]/10 blur-[160px] animate-mesh-float-3"
-        />
-      </div>
+      {/* Minimalist Background with Spotlight only */}
+      <div className="pointer-events-none fixed inset-0 z-0 bg-[#07090b]" />
 
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 z-0 opacity-40"
-        style={{
-          background: 'radial-gradient(circle at 50% 50%, rgba(7,9,11,0) 0%, #07090b 100%)'
-        }}
-      />
       <header className="fixed top-0 left-0 right-0 z-50 bg-[#0A0B0B]">
         <div className="mx-auto flex min-h-[4.5rem] max-w-[1150px] items-center justify-between px-3 py-3 md:px-5 md:py-4 lg:px-8">
           <Link to="/" className="flex items-center gap-3">
@@ -231,14 +212,8 @@ export function LandingPage() {
             <span className="text-2xl font-semibold tracking-tight">{config.APP_NAME}</span>
           </Link>
 
-          {/* Restore desktop nav: add `lg:flex` after `hidden` (was: hidden lg:flex …). */}
-          <nav className="hidden items-center gap-8 text-sm text-neutral-300" aria-hidden>
-            {topMenuItems.map((item) => (
-              <a key={item} href="#" className="transition hover:text-white">
-                {item}
-              </a>
-            ))}
-          </nav>
+          {/* Desktop nav hidden until more items are ready */}
+          <nav className="hidden" aria-hidden="true" />
 
           <div className="flex items-center gap-2">
             {user ? (
@@ -564,17 +539,17 @@ export function LandingPage() {
               {[
                 {
                   label: 'Facebook',
-                  href: 'https://www.facebook.com/share/186U37Mkek',
+                  href: config.SOCIAL_LINKS.FACEBOOK,
                   icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" /></svg>
                 },
                 {
                   label: 'Instagram',
-                  href: 'https://www.instagram.com/stage_go_latam?igsh=ZXh4MWtrNmM0dXZ3',
+                  href: config.SOCIAL_LINKS.INSTAGRAM,
                   icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="20" x="2" y="2" rx="5" ry="5" /><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" /><line x1="17.5" x2="17.51" y1="6.5" y2="6.5" /></svg>
                 },
                 {
                   label: 'TikTok',
-                  href: 'https://www.tiktok.com/@stagego_latam?_r=1&_t=ZS-95n7jNGoBdP',
+                  href: config.SOCIAL_LINKS.TIKTOK,
                   icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5" /></svg>
                 },
               ].map(({ label, href, icon }) => (
@@ -610,14 +585,15 @@ export function LandingPage() {
           </div>
         </footer>
       </div>
+
       <a
-        href="https://wa.me/5491122334455" // Sample placeholder, ideally from config
+        href={buildWhatsappUrl(SUPPORT_MESSAGES.GENERAL)}
         target="_blank"
         rel="noopener noreferrer"
         className="fixed bottom-8 right-8 z-[60] flex h-16 w-16 items-center justify-center rounded-full bg-[#25D366] text-white shadow-lg transition-all hover:scale-110 hover:brightness-110 active:scale-95"
         aria-label="Contactar por WhatsApp"
       >
-        <FaWhatsapp size={36} />
+        <FaWhatsapp size={32} />
       </a>
 
       <style>
@@ -626,27 +602,6 @@ export function LandingPage() {
             0% { transform: translateX(0); }
             100% { transform: translateX(-50%); }
           }
-          @keyframes mesh-float-1 {
-            0% { transform: translate(0, 0) scale(1); }
-            33% { transform: translate(10%, 15%) scale(1.1); }
-            66% { transform: translate(-5%, 20%) scale(0.9); }
-            100% { transform: translate(0, 0) scale(1); }
-          }
-          @keyframes mesh-float-2 {
-            0% { transform: translate(0, 0) scale(1); }
-            33% { transform: translate(-15%, 10%) scale(0.9); }
-            66% { transform: translate(12%, -15%) scale(1.15); }
-            100% { transform: translate(0, 0) scale(1); }
-          }
-          @keyframes mesh-float-3 {
-            0% { transform: translate(0, 0) scale(1); }
-            33% { transform: translate(10%, -20%) scale(1.1); }
-            66% { transform: translate(-15%, 15%) scale(0.95); }
-            100% { transform: translate(0, 0) scale(1); }
-          }
-          .animate-mesh-float-1 { animation: mesh-float-1 18s ease-in-out infinite; }
-          .animate-mesh-float-2 { animation: mesh-float-2 22s ease-in-out infinite; }
-          .animate-mesh-float-3 { animation: mesh-float-3 26s ease-in-out infinite; }
         `}
       </style>
     </div>

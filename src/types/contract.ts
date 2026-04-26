@@ -52,4 +52,8 @@ export type CreateContractBody = {
     location: string;
     description?: string;
   };
+  /** Base64 original PNG signature from client. */
+  clientSignatureDataUrl?: string;
+  /** Legal confirmation. */
+  acceptedTerms?: boolean;
 };

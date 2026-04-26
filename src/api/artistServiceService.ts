@@ -52,7 +52,9 @@ export async function createArtistService(
 
 export async function createArtistServiceWithFormData(
   body: CreateArtistServiceBody,
-  imageFile?: File | null
+  imageFile?: File | null,
+  contractPdf?: File | null,
+  riderPdf?: File | null
 ): Promise<ArtistServiceRecord> {
   const formData = new FormData();
   formData.append('name', body.name);
@@ -63,6 +65,8 @@ export async function createArtistServiceWithFormData(
   if (body.contractTemplateId) formData.append('contractTemplateId', body.contractTemplateId);
   if (body.technicalRiderTemplateId) formData.append('technicalRiderTemplateId', body.technicalRiderTemplateId);
   if (imageFile) formData.append('image', imageFile);
+  if (contractPdf) formData.append('contractPdf', contractPdf);
+  if (riderPdf) formData.append('riderPdf', riderPdf);
   const res = await apiPostFormData<ApiResponse<ArtistServiceRecord>>('artist-services', formData);
   return res.data;
 }
@@ -81,7 +85,9 @@ export async function updateArtistService(
 export async function updateArtistServiceWithFormData(
   id: string,
   body: UpdateArtistServiceBody,
-  imageFile?: File | null
+  imageFile?: File | null,
+  contractPdf?: File | null,
+  riderPdf?: File | null
 ): Promise<ArtistServiceRecord> {
   const formData = new FormData();
   if (body.name != null) formData.append('name', body.name);
@@ -92,6 +98,8 @@ export async function updateArtistServiceWithFormData(
   if (body.contractTemplateId) formData.append('contractTemplateId', body.contractTemplateId);
   if (body.technicalRiderTemplateId) formData.append('technicalRiderTemplateId', body.technicalRiderTemplateId);
   if (imageFile) formData.append('image', imageFile);
+  if (contractPdf) formData.append('contractPdf', contractPdf);
+  if (riderPdf) formData.append('riderPdf', riderPdf);
   const res = await apiPutFormData<ApiResponse<ArtistServiceRecord>>(`artist-services/${id}`, formData);
   return res.data;
 }
