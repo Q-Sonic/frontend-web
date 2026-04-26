@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
-import { Link } from 'react-router-dom';
 import { Button } from '../../components';
+import { FaWhatsapp } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
 import { config } from '../../config';
 import { submitLandingLead } from '../../api/landingLeadsService';
@@ -15,8 +15,9 @@ import catalogArtistRubenBlades from '../../assets/images/landing/catalog-artist
 import catalogArtistMarckVibes from '../../assets/images/landing/catalog-artist-marck-vibes.png';
 import catalogArtistAndreaEcheverry from '../../assets/images/landing/catalog-artist-andrea-echeverry.png';
 import catalogArtistDjMax from '../../assets/images/landing/catalog-artist-dj-max.png';
+import { Link } from 'react-router-dom';
 
-const topMenuItems = ['Explora', 'Artistas', 'Como funciona', 'Precios', 'Contacto'];
+const topMenuItems = ['Artistas']; // Only keeping artistas for now as it's the main focus
 
 const catalogFeaturedArtists = [
   {
@@ -487,41 +488,77 @@ export function LandingPage() {
           </section>
         </main>
 
-        <footer className="mt-12 border-t border-white/15 pt-8 pb-4">
-          <h2 className="text-6xl font-semibold text-white">{config.APP_NAME}</h2>
-          <div className="mt-6 flex flex-wrap items-center gap-4 text-4xl text-neutral-200">
-            {[
-              { label: 'Facebook', href: 'https://www.facebook.com/share/186U37Mkek' },
-              { label: 'Instagram', href: 'https://www.instagram.com/stage_go_latam?igsh=ZXh4MWtrNmM0dXZ3' },
-              { label: 'Tiktok', href: 'https://www.tiktok.com/@stagego_latam?_r=1&_t=ZS-95n7jNGoBdP' },
-            ].map(({ label, href }) => (
-              <a
-                key={label}
-                href={href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="transition hover:text-white"
-              >
-                {label}
-              </a>
-            ))}
+        <footer className="mt-12 border-t border-white/15 pt-12 pb-10">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-10">
+            <div>
+              <h2 className="text-4xl md:text-5xl font-bold tracking-tighter text-white">
+                {config.APP_NAME}
+              </h2>
+              <p className="mt-4 max-w-xs text-sm text-neutral-400">
+                Llevando la música en vivo al siguiente nivel. Encuentra, reserva y disfruta.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-6">
+              {[
+                {
+                  label: 'Facebook',
+                  href: 'https://www.facebook.com/share/186U37Mkek',
+                  icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" /></svg>
+                },
+                {
+                  label: 'Instagram',
+                  href: 'https://www.instagram.com/stage_go_latam?igsh=ZXh4MWtrNmM0dXZ3',
+                  icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="20" x="2" y="2" rx="5" ry="5" /><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" /><line x1="17.5" x2="17.51" y1="6.5" y2="6.5" /></svg>
+                },
+                {
+                  label: 'TikTok',
+                  href: 'https://www.tiktok.com/@stagego_latam?_r=1&_t=ZS-95n7jNGoBdP',
+                  icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5" /></svg>
+                },
+              ].map(({ label, href, icon }) => (
+                <a
+                  key={label}
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex h-12 w-12 items-center justify-center rounded-full bg-white/5 text-neutral-400 transition-all hover:bg-[#00d4c8] hover:text-black hover:scale-110"
+                  aria-label={label}
+                >
+                  {icon}
+                </a>
+              ))}
+            </div>
           </div>
-          <div className="mt-6 flex flex-wrap items-center justify-between gap-3 text-sm text-neutral-400">
-            <div className="flex flex-wrap items-center gap-4">
-              <a href="#" className="hover:text-neutral-200">Privacidad y Politicas</a>
+
+          <div className="mt-12 flex flex-col sm:flex-row sm:items-center justify-between gap-6 border-t border-white/5 pt-8 text-sm">
+            <div className="flex items-center gap-8">
               <Link
                 to="/terms"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:text-neutral-200"
+                className="text-neutral-400 hover:text-[#00d4c8] transition-colors"
               >
-                Terminos y Condiciones
+                Términos y Condiciones
+              </Link>
+              <Link to="/privacy" className="text-neutral-400 hover:text-[#00d4c8] transition-colors">
+                Privacidad y Políticas
               </Link>
             </div>
-            <p>Copyright © {new Date().getFullYear()} {config.APP_NAME}</p>
+            <p className="text-neutral-500 tabular-nums">
+              © {new Date().getFullYear()} {config.APP_NAME}. Impulsando el ecosistema de la música en vivo.
+            </p>
           </div>
         </footer>
       </div>
+      <a
+        href="https://wa.me/5491122334455" // Sample placeholder, ideally from config
+        target="_blank"
+        rel="noopener noreferrer"
+        className="fixed bottom-8 right-8 z-[60] flex h-16 w-16 items-center justify-center rounded-full bg-[#25D366] text-white shadow-lg transition-all hover:scale-110 hover:brightness-110 active:scale-95"
+        aria-label="Contactar por WhatsApp"
+      >
+        <FaWhatsapp size={36} />
+      </a>
+
       <style>
         {`
           @keyframes trust-bar-marquee {
