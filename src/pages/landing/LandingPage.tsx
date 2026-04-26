@@ -202,18 +202,18 @@ export function LandingPage() {
       />
 
       {/* Cinematic Mesh Gradient Background */}
-      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden opacity-60">
+        {/* Noise Texture Overlay */}
+        <div className="absolute inset-0 z-10 opacity-[0.03] mix-blend-overlay" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }} />
+        
         <div 
-          className="absolute -top-[10%] -left-[10%] h-[70%] w-[70%] rounded-full bg-[#00CCCB]/20 blur-[120px] animate-pulse-slow"
-          style={{ animationDelay: '0s' }}
+          className="absolute -top-[20%] -left-[10%] h-[100%] w-[100%] rounded-full bg-[#00CCCB]/20 blur-[140px] animate-mesh-float-1"
         />
         <div 
-          className="absolute top-[20%] -right-[10%] h-[60%] w-[60%] rounded-full bg-[#1a94b7]/15 blur-[100px] animate-pulse-slow"
-          style={{ animationDelay: '2s' }}
+          className="absolute top-[10%] -right-[20%] h-[80%] w-[80%] rounded-full bg-[#1a94b7]/15 blur-[120px] animate-mesh-float-2"
         />
         <div 
-          className="absolute -bottom-[10%] left-[20%] h-[50%] w-[80%] rounded-full bg-[#00CCCB]/10 blur-[140px] animate-pulse-slow"
-          style={{ animationDelay: '4s' }}
+          className="absolute -bottom-[20%] left-[10%] h-[90%] w-[90%] rounded-full bg-[#00CCCB]/10 blur-[160px] animate-mesh-float-3"
         />
       </div>
 
@@ -626,13 +626,27 @@ export function LandingPage() {
             0% { transform: translateX(0); }
             100% { transform: translateX(-50%); }
           }
-          @keyframes pulse-slow {
-            0%, 100% { transform: scale(1); opacity: 0.2; }
-            50% { transform: scale(1.1); opacity: 0.3; }
+          @keyframes mesh-float-1 {
+            0% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(10%, 15%) scale(1.1); }
+            66% { transform: translate(-5%, 20%) scale(0.9); }
+            100% { transform: translate(0, 0) scale(1); }
           }
-          .animate-pulse-slow {
-            animation: pulse-slow 8s ease-in-out infinite;
+          @keyframes mesh-float-2 {
+            0% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(-15%, 10%) scale(0.9); }
+            66% { transform: translate(12%, -15%) scale(1.15); }
+            100% { transform: translate(0, 0) scale(1); }
           }
+          @keyframes mesh-float-3 {
+            0% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(10%, -20%) scale(1.1); }
+            66% { transform: translate(-15%, 15%) scale(0.95); }
+            100% { transform: translate(0, 0) scale(1); }
+          }
+          .animate-mesh-float-1 { animation: mesh-float-1 18s ease-in-out infinite; }
+          .animate-mesh-float-2 { animation: mesh-float-2 22s ease-in-out infinite; }
+          .animate-mesh-float-3 { animation: mesh-float-3 26s ease-in-out infinite; }
         `}
       </style>
     </div>
