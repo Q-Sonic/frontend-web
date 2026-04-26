@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import { FiPlus, FiTrash2, FiX } from 'react-icons/fi';
+import { FiChevronDown, FiPlus, FiTrash2, FiX } from 'react-icons/fi';
 import { FaThumbtack } from 'react-icons/fa6';
 import { Button } from '../Button';
 import {
-  createArtistServiceWithFormData,
+  type CreateArtistServiceBody,
+  type UpdateArtistServiceBody,
+  createArtistService,
+  updateArtistService,
   deleteArtistService,
   updateArtistServiceWithFormData,
 } from '../../api';
@@ -32,7 +35,11 @@ type ServiceFormState = {
   description: string;
   details: string[];
   imageUrl: string;
+  contractTemplateId: string;
+  technicalRiderTemplateId: string;
 };
+type EditorMode = 'create' | 'edit';
+type CustomSelectId = 'contract' | 'technicalRider';
 
 const emptyForm: ServiceFormState = {
   id: '',
@@ -41,7 +48,23 @@ const emptyForm: ServiceFormState = {
   description: '',
   details: [],
   imageUrl: '',
+  contractTemplateId: '',
+  technicalRiderTemplateId: '',
 };
+
+const contractTemplateOptions = [
+  { id: '', label: 'Seleccionar contrato' },
+  { id: 'contract-standard', label: 'Contrato estandar (ejemplo)' },
+  { id: 'contract-festival', label: 'Contrato festival (ejemplo)' },
+  { id: 'contract-private-event', label: 'Contrato evento privado (ejemplo)' },
+];
+
+const technicalRiderOptions = [
+  { id: '', label: 'Seleccionar rider tecnico' },
+  { id: 'rider-basic', label: 'Rider basico (ejemplo)' },
+  { id: 'rider-full-band', label: 'Rider banda completa (ejemplo)' },
+  { id: 'rider-acoustic', label: 'Rider acustico (ejemplo)' },
+];
 
 /** Matches public `ArtistServiceCard` shell: teal border, glass fill, hover glow. */
 const adminServiceCardShell =
@@ -64,7 +87,9 @@ export function ArtistServicesAdminModal({
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
   const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const [editorMode, setEditorMode] = useState<EditorMode>('create');
   const [pinnedServiceIds, setPinnedServiceIds] = useState<string[]>([]);
+  const [openCustomSelect, setOpenCustomSelect] = useState<CustomSelectId | null>(null);
 
   useEffect(() => {
     if (!isOpen) {
@@ -75,6 +100,8 @@ export function ArtistServicesAdminModal({
       setError('');
       setIsSaving(false);
       setIsEditorOpen(false);
+      setEditorMode('create');
+      setOpenCustomSelect(null);
     }
   }, [isOpen]);
 
@@ -106,6 +133,18 @@ export function ArtistServicesAdminModal({
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [isOpen, isSaving, onClose]);
 
+  useEffect(() => {
+    if (!isEditorOpen) return;
+    const onMouseDown = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (!target?.closest('[data-custom-select-root="true"]')) {
+        setOpenCustomSelect(null);
+      }
+    };
+    window.addEventListener('mousedown', onMouseDown);
+    return () => window.removeEventListener('mousedown', onMouseDown);
+  }, [isEditorOpen]);
+
   const selectedImage = useMemo(() => {
     if (previewUrl) return previewUrl;
     if (form.imageUrl) return form.imageUrl;
@@ -127,10 +166,15 @@ export function ArtistServicesAdminModal({
     setImageFile(null);
     setPreviewUrl('');
     setError('');
+    setEditorMode('create');
     setIsEditorOpen(true);
   };
 
   const startEdit = (service: ArtistServiceRecord) => {
+    const serviceWithTemplate = service as ArtistServiceRecord & {
+      contractTemplateId?: string;
+      technicalRiderTemplateId?: string;
+    };
     setForm({
       id: service.id,
       name: service.name,
@@ -138,10 +182,13 @@ export function ArtistServicesAdminModal({
       description: service.description ?? '',
       details: service.features ?? [],
       imageUrl: service.imageUrl ?? '',
+      contractTemplateId: serviceWithTemplate.contractTemplateId ?? '',
+      technicalRiderTemplateId: serviceWithTemplate.technicalRiderTemplateId ?? '',
     });
     setImageFile(null);
     setPreviewUrl('');
     setError('');
+    setEditorMode('edit');
     setIsEditorOpen(true);
   };
 
@@ -175,6 +222,15 @@ export function ArtistServicesAdminModal({
   const saveService = async () => {
     const name = form.name.trim();
     const price = Number(form.price);
+    const sanitizedDetails = form.details.map((detail) => detail.trim()).filter(Boolean);
+    const trimmedDescription = form.description.trim();
+    const createPayload: CreateArtistServiceBody = {
+      name,
+      price,
+    };
+    if (trimmedDescription) createPayload.description = trimmedDescription;
+    if (sanitizedDetails.length > 0) createPayload.features = sanitizedDetails;
+    const updatePayload: UpdateArtistServiceBody = { ...createPayload };
     if (!name || Number.isNaN(price) || price < 0) {
       setError('Nombre y precio valido son obligatorios.');
       return;
@@ -182,33 +238,23 @@ export function ArtistServicesAdminModal({
     setIsSaving(true);
     setError('');
     try {
-      if (form.id) {
-        const updated = await updateArtistServiceWithFormData(
-          form.id,
-          {
-            name,
-            price,
-            description: form.description.trim(),
-            features: form.details,
-          },
-          imageFile
-        );
+      if (editorMode === 'edit' && form.id) {
+        const updated = imageFile
+          ? await updateArtistServiceWithFormData(form.id, updatePayload, imageFile)
+          : await updateArtistService(form.id, updatePayload);
         onServicesChange(services.map((item) => (item.id === updated.id ? updated : item)));
         startEdit(updated);
       } else {
-        const created = await createArtistServiceWithFormData(
-          {
-            name,
-            price,
-            description: form.description.trim(),
-            features: form.details,
-          },
-          imageFile
-        );
-        onServicesChange([created, ...services]);
-        startEdit(created);
+        // Create first with JSON (backend path is more stable), then upload image on update if present.
+        const created = await createArtistService(createPayload);
+        const createdWithImage = imageFile
+          ? await updateArtistServiceWithFormData(created.id, {}, imageFile)
+          : created;
+        onServicesChange([createdWithImage, ...services]);
+        startEdit(createdWithImage);
       }
       setIsEditorOpen(false);
+      setEditorMode('create');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo guardar el servicio.');
     } finally {
@@ -235,6 +281,65 @@ export function ArtistServicesAdminModal({
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const renderCustomSelect = (
+    selectId: CustomSelectId,
+    label: string,
+    value: string,
+    options: Array<{ id: string; label: string }>,
+    onChange: (next: string) => void,
+  ) => {
+    const selectedOption = options.find((option) => option.id === value) ?? options[0];
+    const isOpen = openCustomSelect === selectId;
+    const isPlaceholder = !value;
+    return (
+      <div className="block" data-custom-select-root="true">
+        <p className="mb-1.5 text-sm font-medium text-neutral-300">{label}</p>
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setOpenCustomSelect((prev) => (prev === selectId ? null : selectId))}
+            className={`flex w-full items-center justify-between rounded-xl border bg-black/20 px-3 py-2.5 text-sm outline-none transition focus-visible:border-[#00d4c8]/50 focus-visible:ring-2 focus-visible:ring-[#00d4c8]/25 ${
+              isOpen ? 'border-[#00d4c8]/55' : 'border-white/20'
+            }`}
+          >
+            <span className={isPlaceholder ? 'text-neutral-500' : 'text-white'}>{selectedOption.label}</span>
+            <FiChevronDown
+              size={17}
+              className={`shrink-0 text-neutral-400 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+              aria-hidden
+            />
+          </button>
+          {isOpen && (
+            <div className="absolute z-30 mt-2 w-full overflow-hidden rounded-xl border border-white/15 bg-[#0f1115] shadow-[0_12px_30px_rgba(0,0,0,0.45)]">
+              <div className="max-h-52 overflow-y-auto py-1 scrollbar-thin [scrollbar-color:rgba(255,255,255,0.15)_transparent]">
+                {options.map((option) => {
+                  const isSelected = option.id === value;
+                  return (
+                    <button
+                      key={option.id || 'placeholder'}
+                      type="button"
+                      onClick={() => {
+                        onChange(option.id);
+                        setOpenCustomSelect(null);
+                      }}
+                      className={`flex w-full items-center px-3 py-2 text-left text-sm transition ${
+                        isSelected
+                          ? 'bg-[#00d4c8]/20 text-white'
+                          : 'text-neutral-200 hover:bg-white/10 hover:text-white'
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
   };
 
   const toggleServicePin = (serviceId: string) => {
@@ -513,6 +618,23 @@ export function ArtistServicesAdminModal({
                   <Button onClick={addDetail} disabled={isSaving} className="shrink-0 rounded-full px-5 py-2.5 text-sm">
                     + Agregar item
                   </Button>
+                </div>
+
+                <div className="mt-2 space-y-3 border-t border-white/10 pt-4">
+                  {renderCustomSelect(
+                    'contract',
+                    'Contrato',
+                    form.contractTemplateId,
+                    contractTemplateOptions,
+                    (next) => setForm((prev) => ({ ...prev, contractTemplateId: next })),
+                  )}
+                  {renderCustomSelect(
+                    'technicalRider',
+                    'Rider tecnico',
+                    form.technicalRiderTemplateId,
+                    technicalRiderOptions,
+                    (next) => setForm((prev) => ({ ...prev, technicalRiderTemplateId: next })),
+                  )}
                 </div>
               </div>
             </div>
