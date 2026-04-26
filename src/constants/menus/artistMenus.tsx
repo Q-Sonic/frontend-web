@@ -27,8 +27,18 @@ function CalendarIcon() {
   );
 }
 
+function SettingsIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12 15.5C13.933 15.5 15.5 13.933 15.5 12C15.5 10.067 13.933 8.5 12 8.5C10.067 8.5 8.5 10.067 8.5 12C8.5 13.933 10.067 15.5 12 15.5Z" stroke="white" strokeWidth="1.8" />
+      <path d="M19.4 12.98C19.44 12.66 19.47 12.33 19.47 12C19.47 11.67 19.44 11.34 19.4 11.02L21.3 9.54C21.47 9.41 21.52 9.17 21.42 8.97L19.62 5.03C19.52 4.83 19.29 4.74 19.08 4.81L16.84 5.56C16.34 5.17 15.79 4.84 15.19 4.59L14.85 2.21C14.82 1.99 14.63 1.83 14.41 1.83H9.59C9.37 1.83 9.18 1.99 9.15 2.21L8.81 4.59C8.21 4.84 7.66 5.17 7.16 5.56L4.92 4.81C4.71 4.74 4.48 4.83 4.38 5.03L2.58 8.97C2.48 9.17 2.53 9.41 2.7 9.54L4.6 11.02C4.56 11.34 4.53 11.67 4.53 12C4.53 12.33 4.56 12.66 4.6 12.98L2.7 14.46C2.53 14.59 2.48 14.83 2.58 15.03L4.38 18.97C4.48 19.17 4.71 19.26 4.92 19.19L7.16 18.44C7.66 18.83 8.21 19.16 8.81 19.41L9.15 21.79C9.18 22.01 9.37 22.17 9.59 22.17H14.41C14.63 22.17 14.82 22.01 14.85 21.79L15.19 19.41C15.79 19.16 16.34 18.83 16.84 18.44L19.08 19.19C19.29 19.26 19.52 19.17 19.62 18.97L21.42 15.03C21.52 14.83 21.47 14.59 21.3 14.46L19.4 12.98Z" stroke="white" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 export const artistSidebarMenus: SidebarMenuItem[] = [
   { to: '/artist/profile', label: 'Perfil', icon: <HomeIcon /> },
   { to: '/artist', label: 'Dashboard', icon: <DashboardIcon />, exactPath: true },
   { to: '/artist/calendario', label: 'Calendario', icon: <CalendarIcon /> },
+  { to: '/artist/settings', label: 'Configuración', icon: <SettingsIcon /> },
 ];

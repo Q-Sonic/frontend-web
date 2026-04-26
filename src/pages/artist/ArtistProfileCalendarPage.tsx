@@ -1,15 +1,16 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import type { UseArtistProfileByIdOptions } from '../../hooks/useArtistProfileById';
-import { Navigate, useParams } from 'react-router-dom';
+import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 import { Skeleton } from '../../components';
 import { ClientArtistSectionHeader } from '../../components/client/ClientArtistSectionHeader';
 import { useAuth } from '../../contexts/AuthContext';
 import { useArtistProfileNav } from '../../contexts/ArtistProfileNavContext';
+import { buildReservationNavigationState, getPrimaryReservationService } from '../../helpers/artistReservation';
 import { localDateKey } from '../../helpers/artistProfile';
 import { isBackendRoleArtista, isBackendRoleCliente } from '../../helpers/role';
 import { useArtistProfileById } from '../../hooks/useArtistProfileById';
-import { DEMO_BLOCKED_DATES_MAY_2026 } from '../../mocks/client';
+import type { ArtistServiceRecord } from '../../types';
 
 const WEEKDAYS_ES_LONG = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
@@ -43,24 +44,30 @@ function monthLabelEs(year: number, month: number): string {
 
 export function ArtistProfileCalendarPage() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { exitHomePath, basePath } = useArtistProfileNav();
-  const { profile, artistDisplayName, loading, error } = useArtistProfileById(id);
+  const { profile, services, artistDisplayName, loading, error } = useArtistProfileById(id);
 
   const isClientArtistCalendar =
     isBackendRoleCliente(user?.role) && basePath.startsWith('/client/artists');
 
-  /** Default May 2026 so demo blocked dates from the mockup align when API has no blockedDates. */
-  const [view, setView] = useState({ y: 2026, m: 4 });
+  const [view, setView] = useState(() => {
+    const n = new Date();
+    return { y: n.getFullYear(), m: n.getMonth() };
+  });
 
-  const blockedSet = useMemo(() => {
-    const fromApi = profile?.blockedDates ?? [];
-    const set = new Set(fromApi);
-    if (set.size === 0 && profile && isClientArtistCalendar) {
-      DEMO_BLOCKED_DATES_MAY_2026.forEach((k) => set.add(k));
-    }
-    return set;
-  }, [profile, isClientArtistCalendar]);
+  const blockedSet = useMemo(() => new Set(profile?.blockedDates ?? []), [profile?.blockedDates]);
+  const availableServices = useMemo(
+    () => services.filter((service): service is ArtistServiceRecord => !!service?.id),
+    [services],
+  );
+  const reservationService = useMemo(
+    () => getPrimaryReservationService(availableServices),
+    [availableServices],
+  );
+  const reserveHref =
+    reservationService ? `${basePath}/services/${reservationService.id}` : `${basePath}#documents`;
 
   const cells = useMemo(() => buildMonthCells(view.y, view.m), [view.y, view.m]);
 
@@ -75,6 +82,15 @@ export function ArtistProfileCalendarPage() {
   }, []);
 
   const currentKey = `${view.y}-${view.m}`;
+  const goToReservation = useCallback(
+    (preselectedDateKey?: string) => {
+      if (!reservationService || !isClientArtistCalendar) return;
+      navigate(`${basePath}/services/${reservationService.id}`, {
+        state: buildReservationNavigationState(reservationService, preselectedDateKey),
+      });
+    },
+    [basePath, isClientArtistCalendar, navigate, reservationService],
+  );
 
   if (!id) return <Navigate to={exitHomePath} replace />;
 
@@ -125,16 +141,14 @@ export function ArtistProfileCalendarPage() {
           artistDisplayName={artistDisplayName}
           profile={profile}
           basePath={basePath}
-          description="Fechas no disponibles según configuración del artista."
+          reserveHref={reserveHref}
+          onReserveClick={() => goToReservation()}
         />
       ) : (
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">
             Calendario · {artistDisplayName}
           </h1>
-          <p className="text-sm text-neutral-500 mt-1">
-            Fechas no disponibles según configuración del artista.
-          </p>
         </div>
       )}
 
@@ -203,13 +217,30 @@ export function ArtistProfileCalendarPage() {
               const blocked = blockedSet.has(key);
               const dayNum = cell.date.getDate();
               const inMonth = cell.inMonth;
+              const today = new Date();
+              const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+              const cellStart = new Date(
+                cell.date.getFullYear(),
+                cell.date.getMonth(),
+                cell.date.getDate(),
+              ).getTime();
+              const isPast = cellStart < todayStart;
+              const selectable = isClientArtistCalendar && inMonth && !blocked && !isPast;
 
               return (
-                <div
+                <button
                   key={`${key}-${idx}`}
+                  type="button"
+                  disabled={!selectable}
+                  onClick={() => {
+                    if (!selectable) return;
+                    goToReservation(key);
+                  }}
                   className={`min-h-[88px] p-2 flex flex-col bg-[#0f141c] ${
                     inMonth ? '' : 'opacity-45'
-                  } ${blocked && inMonth ? 'bg-[#4A151B]/95' : ''}`}
+                  } ${blocked && inMonth ? 'bg-[#4A151B]/95' : ''} ${
+                    selectable ? 'cursor-pointer transition hover:bg-white/8' : ''
+                  }`}
                 >
                   <span
                     className={`text-xs font-medium tabular-nums ${
@@ -223,7 +254,7 @@ export function ArtistProfileCalendarPage() {
                       No Disponible
                     </span>
                   ) : null}
-                </div>
+                </button>
               );
             })}
           </div>

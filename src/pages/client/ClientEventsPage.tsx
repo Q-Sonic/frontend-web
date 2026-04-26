@@ -4,7 +4,7 @@ import { ClientAreaHeader } from '../../components/client/ClientAreaHeader';
 import { ClientFloatingChatButton } from '../../components/client/ClientFloatingChatButton';
 import { ClientAreaPageShell } from '../../components/shared/ClientAreaPageShell';
 import { useClientSignedContractCalendar } from '../../hooks/useClientSignedContractCalendar';
-import type { ClientCalendarGridEvent } from '../../mocks/client';
+import type { ClientCalendarGridEvent } from '../../types/clientCalendar';
 
 const WEEKDAYS_ES = ['LUN', 'MAR', 'MIE', 'JUE', 'VIE', 'SAB', 'DOM'] as const;
 

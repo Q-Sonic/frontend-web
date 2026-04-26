@@ -110,6 +110,8 @@ type ServiceDetailArticleProps = {
   onSelectService: (serviceId: string) => void;
   profile: (ArtistProfile & { uid: string }) | null;
   basePath: string;
+  preselectedDateKey?: string;
+  prefilledServiceDetails?: string;
 };
 
 function ServiceDetailArticle({
@@ -120,10 +122,15 @@ function ServiceDetailArticle({
   onSelectService,
   profile,
   basePath,
+  preselectedDateKey,
+  prefilledServiceDetails,
 }: ServiceDetailArticleProps) {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [selectedDateKeys, setSelectedDateKeys] = useState<Set<string>>(() => new Set());
+  const [selectedDateKeys, setSelectedDateKeys] = useState<Set<string>>(() =>
+    preselectedDateKey ? new Set([preselectedDateKey]) : new Set(),
+  );
+  const [serviceDetails, setServiceDetails] = useState(prefilledServiceDetails ?? '');
   const [cartAddedFlash, setCartAddedFlash] = useState(false);
   const [contractModalOpen, setContractModalOpen] = useState(false);
   const [isContractDatesExpanded, setIsContractDatesExpanded] = useState(false);
@@ -145,6 +152,14 @@ function ServiceDetailArticle({
   useEffect(() => {
     setIsServiceMenuOpen(false);
   }, [svc.id]);
+
+  useEffect(() => {
+    setSelectedDateKeys(preselectedDateKey ? new Set([preselectedDateKey]) : new Set());
+  }, [preselectedDateKey, svc.id]);
+
+  useEffect(() => {
+    setServiceDetails(prefilledServiceDetails ?? '');
+  }, [prefilledServiceDetails, svc.id]);
 
   useEffect(() => {
     const handlePointerDownOutside = (event: MouseEvent) => {
@@ -300,7 +315,11 @@ function ServiceDetailArticle({
       serviceFeatures: Array.isArray(svc.features)
         ? svc.features.filter((f): f is string => typeof f === 'string' && f.trim().length > 0)
         : undefined,
+      serviceDetails: serviceDetails.trim() || undefined,
     });
+    setSelectedDateKeys(new Set());
+    setServiceDetails('');
+    setIsContractDatesExpanded(false);
     setCartAddedFlash(true);
     window.setTimeout(() => setCartAddedFlash(false), 2800);
   }, [
@@ -313,6 +332,7 @@ function ServiceDetailArticle({
     svc.name,
     svc.price,
     selectedDateKeys,
+    serviceDetails,
   ]);
 
   return (
@@ -423,13 +443,23 @@ function ServiceDetailArticle({
               ) : undefined
             }
           />
+          <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+            <label className="mb-2 block text-sm font-semibold text-white">Detalles del servicio</label>
+            <textarea
+              value={serviceDetails}
+              onChange={(e) => setServiceDetails(e.target.value)}
+              rows={4}
+              placeholder="Ej: tipo de evento, horario estimado, necesidades técnicas..."
+              className="w-full resize-none rounded-xl border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-[#00d4c8]/30"
+            />
+          </div>
         </section>
 
         <div className="order-1 w-full max-w-lg shrink-0 lg:order-2 lg:justify-self-end xl:max-w-xl">
           <div
             className={
               'w-full space-y-6 sm:space-y-7 rounded-3xl border border-[#00d4c8]/20 ' +
-              'bg-gradient-to-b from-white/[0.06] via-[#0c0e12] to-black/50 p-6 sm:p-8 ' +
+              'bg-linear-to-b from-white/6 via-[#0c0e12] to-black/50 p-6 sm:p-8 ' +
               'shadow-[0_0_40px_rgba(0,212,200,0.06),inset_0_1px_0_rgba(255,255,255,0.06)]'
             }
           >
@@ -460,6 +490,9 @@ function ServiceDetailArticle({
                       aria-label="Opciones de servicio"
                       className="absolute left-0 right-0 z-20 mt-2 max-h-56 overflow-y-auto rounded-xl border border-[#00d4c8]/25 bg-[#0a0c10]/95 p-1.5 shadow-[0_16px_40px_rgba(0,0,0,0.45)] backdrop-blur"
                     >
+                      <div className="rounded-lg px-3 py-2 text-sm text-neutral-400">
+                        --selecionar servicio--
+                      </div>
                       {serviceOptions.map((service) => {
                         const isSelected = service.id === svc.id;
                         return (
@@ -520,7 +553,7 @@ function ServiceDetailArticle({
                 </p>
                 <ul className="space-y-2.5 text-sm sm:text-base text-neutral-200">
                   {featureLines.map((line) => (
-                    <li key={line} className="flex gap-3 rounded-xl border border-white/[0.06] bg-white/[0.03] px-3 py-2.5">
+                    <li key={line} className="flex gap-3 rounded-xl border border-white/6 bg-white/3 px-3 py-2.5">
                       <span className="shrink-0 text-[#00d4c8] font-semibold">✓</span>
                       <span className="min-w-0 leading-snug">{line}</span>
                     </li>
@@ -529,7 +562,7 @@ function ServiceDetailArticle({
               </div>
             )}
 
-            <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl border border-white/10 bg-neutral-950 shadow-[0_12px_40px_rgba(0,0,0,0.45)]">
+            <div className="relative aspect-4/3 w-full overflow-hidden rounded-2xl border border-white/10 bg-neutral-950 shadow-[0_12px_40px_rgba(0,0,0,0.45)]">
               {coverPhoto ? (
                 <img src={coverPhoto} alt="" className="h-full w-full object-cover object-center" />
               ) : (
@@ -566,6 +599,7 @@ function ServiceDetailArticle({
               artistPhotoUrl: resolveArtistProfileMediaUrl(profile?.photo) || undefined,
               locationLabel: profile?.city?.trim() || 'Por definir',
               serviceFeatures: Array.isArray(svc.features) ? [...svc.features] : undefined,
+              serviceDetails: serviceDetails.trim() || undefined,
             };
             await persistSignedClientContractsWithApiFallback([line], {
               dataUrl,
@@ -599,6 +633,19 @@ function readServiceFromLocationState(
   return s.id === serviceId ? s : undefined;
 }
 
+function readBookingPrefillFromState(state: unknown): {
+  preselectedDateKey?: string;
+  prefilledServiceDetails?: string;
+} {
+  if (!state || typeof state !== 'object') return {};
+  const raw = state as Record<string, unknown>;
+  const preselectedDateKey =
+    typeof raw.preselectedDateKey === 'string' ? raw.preselectedDateKey : undefined;
+  const prefilledServiceDetails =
+    typeof raw.prefilledServiceDetails === 'string' ? raw.prefilledServiceDetails : undefined;
+  return { preselectedDateKey, prefilledServiceDetails };
+}
+
 export function ClientArtistServiceDetailPage() {
   const { id: artistId, serviceId } = useParams<{ id: string; serviceId: string }>();
   const location = useLocation();
@@ -619,6 +666,7 @@ export function ClientArtistServiceDetailPage() {
     () => (serviceId ? readServiceFromLocationState(location.state, serviceId) : undefined),
     [location.state, serviceId],
   );
+  const bookingPrefill = useMemo(() => readBookingPrefillFromState(location.state), [location.state]);
 
   const serviceFromList = useMemo(
     () => (serviceId ? services.find((s) => s.id === serviceId) : undefined),
@@ -699,7 +747,7 @@ export function ClientArtistServiceDetailPage() {
               <Skeleton className="h-28 w-full rounded-xl" />
               <Skeleton className="h-32 w-full rounded-xl" />
             </div>
-            <Skeleton className="aspect-[4/3] w-full max-w-lg rounded-3xl lg:max-w-none" />
+            <Skeleton className="aspect-4/3 w-full max-w-lg rounded-3xl lg:max-w-none" />
           </div>
         </div>
       ) : notFound ? (
@@ -724,6 +772,8 @@ export function ClientArtistServiceDetailPage() {
           onSelectService={handleSelectService}
           profile={profile}
           basePath={basePath}
+          preselectedDateKey={bookingPrefill.preselectedDateKey}
+          prefilledServiceDetails={bookingPrefill.prefilledServiceDetails}
         />
       ) : null}
     </div>

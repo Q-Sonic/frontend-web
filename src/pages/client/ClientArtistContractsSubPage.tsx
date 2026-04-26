@@ -3,6 +3,7 @@ import { ArtistProfileDocumentsServicesTable, Skeleton } from '../../components'
 import { ClientArtistSectionHeader } from '../../components/client/ClientArtistSectionHeader';
 import { useArtistProfileById } from '../../hooks/useArtistProfileById';
 import { contractPdfUrlForService } from '../../helpers/artistDocumentUrls';
+import { getPrimaryReservationService } from '../../helpers/artistReservation';
 import type { ArtistServiceRecord } from '../../types';
 import { useArtistProfileNav } from '../../contexts/ArtistProfileNavContext';
 
@@ -10,6 +11,10 @@ export function ClientArtistContractsSubPage() {
   const { id } = useParams<{ id: string }>();
   const { basePath } = useArtistProfileNav();
   const { profile, services, artistDisplayName, loading, error } = useArtistProfileById(id);
+  const reservationService = getPrimaryReservationService(services);
+  const reserveHref = reservationService
+    ? `${basePath}/services/${reservationService.id}`
+    : `${basePath}#documents`;
 
   const getDocumentUrl = (service: ArtistServiceRecord) => contractPdfUrlForService(service, profile);
 
@@ -46,6 +51,7 @@ export function ClientArtistContractsSubPage() {
         artistDisplayName={artistDisplayName}
         profile={profile}
         basePath={basePath}
+        reserveHref={reserveHref}
       />
 
       <section className="space-y-4">

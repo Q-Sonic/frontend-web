@@ -1,6 +1,6 @@
 import type { ChangeEvent } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { FiBell, FiMail, FiSearch, FiSettings, FiShoppingCart } from 'react-icons/fi';
+import { FiBell, FiSearch, FiShoppingCart } from 'react-icons/fi';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useClientNotificationsOptional } from '../../contexts/ClientNotificationsContext';
@@ -140,7 +140,7 @@ export function ClientAreaHeader({
           </button>
           {panelOpen ? (
             <div
-              className="absolute right-0 top-[calc(100%+0.5rem)] z-[60] w-[min(100vw-2rem,22rem)] overflow-hidden rounded-2xl border border-white/10 bg-[#111214] shadow-[0_16px_48px_rgba(0,0,0,0.55)]"
+              className="absolute right-0 top-[calc(100%+0.5rem)] z-60 w-[min(100vw-2rem,22rem)] overflow-hidden rounded-2xl border border-white/10 bg-[#111214] shadow-[0_16px_48px_rgba(0,0,0,0.55)]"
               role="dialog"
               aria-label="Notificaciones"
             >
@@ -160,7 +160,7 @@ export function ClientAreaHeader({
                 {list.length === 0 ? (
                   <p className="px-4 py-8 text-center text-sm text-white/45">Sin notificaciones por ahora</p>
                 ) : (
-                  <ul className="divide-y divide-white/[0.06]">
+                  <ul className="divide-y divide-white/6">
                     {list.map((n) => {
                       const body = notificationBody(n);
                       const timeLabel = formatClientNotificationTimeEs(n.createdAt);
@@ -223,13 +223,6 @@ export function ClientAreaHeader({
         </div>
         <button
           type="button"
-          className="p-2 rounded-lg text-neutral-300 hover:bg-white/5 hover:text-white transition-colors"
-          aria-label="Mensajes"
-        >
-          <FiMail size={20} />
-        </button>
-        <button
-          type="button"
           onClick={() => serviceCart?.openSigningModal()}
           className="relative p-2 rounded-lg text-neutral-300 hover:bg-white/5 hover:text-white transition-colors"
           aria-label={
@@ -245,23 +238,17 @@ export function ClientAreaHeader({
             </span>
           ) : null}
         </button>
-        <button
-          type="button"
-          className="p-2 rounded-lg text-neutral-300 hover:bg-white/5 hover:text-white transition-colors"
-          aria-label="Configuración"
-        >
-          <FiSettings size={20} />
-        </button>
-        <div
+        <Link
+          to="/client/profile"
           className="flex items-center justify-center w-10 h-10 rounded-full bg-accent text-white text-sm font-semibold shrink-0"
-          aria-hidden
+          aria-label="Ir a mi perfil"
         >
           {user?.photoURL ? (
             <img src={user.photoURL} alt="" className="w-full h-full rounded-full object-cover" />
           ) : (
             initials
           )}
-        </div>
+        </Link>
       </div>
     </header>
   );

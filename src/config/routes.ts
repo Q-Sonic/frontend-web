@@ -39,7 +39,7 @@ export function getProfileEditPath(role: string | undefined): string {
   const r = getProfileEditRoute(role);
   switch (r) {
     case 'artista':
-      return '/artist/profile';
+      return '/artist/settings';
     case 'cliente':
       return '/client/profile/edit';
     case 'admin':

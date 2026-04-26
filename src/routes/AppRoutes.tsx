@@ -7,6 +7,7 @@ import { LoginPage } from '../pages/LoginPage';
 import { RegisterPage } from '../pages/RegisterPage';
 import { ForgotPasswordPage } from '../pages/ForgotPasswordPage';
 import { TermsPage } from '../pages/TermsPage';
+import { TermsContractPage } from '../pages/TermsContractPage';
 import PaymentResultPage from '../pages/payment/PaymentResultPage';
 import { EditProfilePage } from '../pages/EditProfilePage';
 import { 
@@ -68,6 +69,7 @@ export function AppRoutes() {
       {/* Public Routes */}
       <Route path="/" element={<LandingPage />} />
       <Route path="/terms" element={<TermsPage />} />
+      <Route path="/terms-contract" element={<TermsContractPage />} />
       <Route path="/payment/success" element={<PaymentResultPage />} />
       <Route path="/payment/failure" element={<PaymentResultPage />} />
       <Route path="/payment/pending" element={<PaymentResultPage />} />
@@ -118,8 +120,22 @@ export function AppRoutes() {
               </SidebarLayout>
             }
           />
-          <Route path="/client/profile" element={<ProfileClientePage />} />
-          <Route path="/client/profile/edit" element={<ClientEditScreen />} />
+          <Route
+            path="/client/profile"
+            element={
+              <SidebarLayout sidebar={clientSidebar}>
+                <ProfileClientePage />
+              </SidebarLayout>
+            }
+          />
+          <Route
+            path="/client/profile/edit"
+            element={
+              <SidebarLayout sidebar={clientSidebar}>
+                <ClientEditScreen />
+              </SidebarLayout>
+            }
+          />
           
           <Route path="/client/artists/:id" element={<ClientArtistProfileLayout />}>
             <Route index element={<ArtistProfileMainPage />} />
@@ -151,6 +167,14 @@ export function AppRoutes() {
         />
         <Route path="/artist/media" element={<ArtistMediaLegacyRedirect />} />
         <Route path="/artist/profile" element={<ArtistProfileIdRedirect />} />
+        <Route
+          path="/artist/settings"
+          element={
+            <SidebarLayout sidebar={artistSidebar}>
+              <ArtistAccessSettingsPage />
+            </SidebarLayout>
+          }
+        />
         <Route path="/artist/:id" element={<ArtistProfileLayout />}>
           <Route index element={<ArtistProfileMainPage />} />
           <Route path="gallery/edit" element={<ArtistMediaPage />} />
@@ -158,7 +182,6 @@ export function AppRoutes() {
           <Route path="documents" element={<ArtistProfileDocumentsPage />} />
           <Route path="calendar" element={<ArtistProfileCalendarPage />} />
           <Route path="services/:serviceId" element={<ClientArtistServiceDetailPage />} />
-          <Route path="settings" element={<ArtistAccessSettingsPage />} />
         </Route>
 
         {/* Admin Routes */}

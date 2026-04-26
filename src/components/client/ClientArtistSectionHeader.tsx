@@ -23,6 +23,10 @@ export type ClientArtistSectionHeaderProps = {
   showMusicPlayer?: boolean;
   /** Optional content below the CTA row (e.g. extra toolbar). */
   children?: ReactNode;
+  /** Reserve CTA target. Defaults to `${basePath}/calendar`. */
+  reserveHref?: string;
+  /** Custom click handler for reserve CTA. */
+  onReserveClick?: () => void;
 };
 
 export function ClientArtistSectionHeader({
@@ -35,6 +39,8 @@ export function ClientArtistSectionHeader({
   description: descriptionProp,
   showMusicPlayer = false,
   children,
+  reserveHref,
+  onReserveClick,
 }: ClientArtistSectionHeaderProps) {
   const subtitleLine1 =
     subtitleLine1Prop ??
@@ -52,6 +58,7 @@ export function ClientArtistSectionHeader({
 
   const coverFallback =
     showMusicPlayer && profile?.photo ? resolveArtistProfileMediaUrl(profile.photo) : undefined;
+  const reserveTarget = reserveHref ?? `${basePath}/calendar`;
 
   const headerGridClass = showMusicPlayer
     ? 'grid gap-8 lg:grid-cols-[1fr_minmax(260px,380px)] lg:items-start lg:gap-10'
@@ -98,12 +105,22 @@ export function ClientArtistSectionHeader({
             <ArtistProfileSocialNetworkLink network="facebook" href={social.facebook} />
           </div>
           <div className="pt-2">
-            <Link
-              to={`${basePath}/calendar`}
-              className="inline-flex items-center justify-center rounded-xl bg-[#00d4c8] px-6 py-2.5 text-sm font-semibold text-[#0a0c10] shadow-[0_0_24px_rgba(0,212,200,0.35)] hover:bg-[#00ece0] transition-colors"
-            >
-              Reservar Fecha
-            </Link>
+            {onReserveClick ? (
+              <button
+                type="button"
+                onClick={onReserveClick}
+                className="cursor-pointer inline-flex items-center justify-center rounded-xl bg-[#00d4c8] px-6 py-2.5 text-sm font-semibold text-[#0a0c10] shadow-[0_0_24px_rgba(0,212,200,0.35)] hover:bg-[#00ece0] transition-colors"
+              >
+                Reservar Fecha
+              </button>
+            ) : (
+              <Link
+                to={reserveTarget}
+                className="cursor-pointer inline-flex items-center justify-center rounded-xl bg-[#00d4c8] px-6 py-2.5 text-sm font-semibold text-[#0a0c10] shadow-[0_0_24px_rgba(0,212,200,0.35)] hover:bg-[#00ece0] transition-colors"
+              >
+                Reservar Fechas
+              </Link>
+            )}
           </div>
         </div>
         {showMusicPlayer ? (
