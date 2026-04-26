@@ -395,21 +395,21 @@ export function LandingPage() {
                   </div>
                 </div>
 
-                {leadError && (
+                {leadError ? (
                   <p className="text-sm text-red-400 bg-red-400/10 p-3 rounded-xl border border-red-400/20" role="alert">
                     {leadError}
                   </p>
                 ) : null}
-                {leadSuccess ? (
-                  <p className="text-sm text-[#28C76F]" role="status">
-                    Listo. Te contactaremos en menos de 24 horas.
+                {leadSuccess && (
+                  <p className="text-sm text-[#28C76F] bg-[#28C76F]/10 p-3 rounded-xl border border-[#28C76F]/20" role="status">
+                    ¡Recibido! Te contactaremos en breve.
                   </p>
-                ) : null}
+                )}
 
                 <Button
                   type="submit"
                   variant="primary"
-                  className="mt-2 h-13 rounded-full px-8 text-lg cursor-pointer"
+                  className="w-full h-16 rounded-2xl text-lg font-bold tracking-tight shadow-[0_10px_30px_rgba(0,204,203,0.3)] transition-transform active:scale-[0.98]"
                   loading={leadLoading}
                 >
                   Solicitar acceso gratuito
