@@ -5,6 +5,7 @@ import { api } from '../../api';
 import { ensureArtistProfileListedForDiscovery } from '../../api/artistProfileService';
 import { Skeleton } from '../../components';
 import { ClientFloatingChatButton } from '../../components/client/ClientFloatingChatButton';
+import { buildWhatsappUrl } from '../../config/whatsapp';
 import { WithdrawalModal } from '../../components/payments/WithdrawalModal';
 import { useAuth } from '../../contexts/AuthContext';
 import { formatMoney } from '../../helpers/money';
@@ -313,24 +314,23 @@ export function HomeArtistaPage() {
             </div>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Link
-                to="/artist/services"
-                className="block rounded-xl border border-white/10 bg-surface p-5 transition-colors hover:border-white/30"
-              >
-                <h3 className="text-lg font-bold text-white">Servicios y precios</h3>
-                <p className="mt-1 text-sm text-muted">Configura lo que ofreces y cuánto cobras.</p>
-              </Link>
-
-              <Link
-                to={`/artist/${user.uid}/gallery/edit`}
-                className="block rounded-xl border border-white/10 bg-surface p-5 transition-colors hover:border-white/30"
-              >
-                <h3 className="text-lg font-bold text-white">Multimedia</h3>
-                <p className="mt-1 text-sm text-muted">Sube fotos, audio y video para tu perfil.</p>
-              </Link>
-
-              <PromoCard title="Blindaje Prime" isPopular />
-              <PromoCard title="Seguro Prime" />
+              <PromoCard
+                title="Blindaje Prime"
+                subtitle="Protección avanzada de cuenta, prioridad de soporte y monitoreo preventivo."
+                whatsappHref={buildPrimeWhatsappHref({
+                  planName: 'Blindaje Prime',
+                  artistName: user.displayName || user.email || 'artista',
+                })}
+                isPopular
+              />
+              <PromoCard
+                title="Seguro Prime"
+                subtitle="Cobertura para eventos y respaldo adicional para tus presentaciones."
+                whatsappHref={buildPrimeWhatsappHref({
+                  planName: 'Seguro Prime',
+                  artistName: user.displayName || user.email || 'artista',
+                })}
+              />
             </div>
           </section>
         </div>
@@ -553,21 +553,50 @@ function NextShowCard({
 
 function PromoCard({
   title,
+  subtitle,
+  whatsappHref,
   isPopular = false,
 }: {
   title: string;
+  subtitle: string;
+  whatsappHref: string;
   isPopular?: boolean;
 }) {
   return (
-    <div className="relative overflow-hidden rounded-xl border border-white/10 bg-black p-8 pb-20">
+    <a
+      href={whatsappHref}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="group relative block overflow-hidden rounded-2xl border border-[#00d4c8]/25 bg-linear-to-br from-[#0a0c10] via-[#0b1015] to-[#07090c] p-6 shadow-[0_10px_30px_rgba(0,0,0,0.35)] transition-all hover:-translate-y-0.5 hover:border-[#00d4c8]/55 hover:shadow-[0_16px_40px_rgba(0,212,200,0.15)]"
+    >
       {isPopular ? (
-        <span className="absolute right-3 top-3 rounded bg-warning/20 px-2 py-0.5 text-xs font-medium text-warning">
+        <span className="absolute right-3 top-3 rounded-full border border-warning/35 bg-warning/15 px-2.5 py-0.5 text-xs font-medium text-warning">
           Popular
         </span>
       ) : null}
-      <h3 className="text-2xl font-bold text-white">{title}</h3>
-    </div>
+      <div className="space-y-3">
+        <h3 className="text-2xl font-bold text-white">{title}</h3>
+        <p className="text-sm leading-relaxed text-neutral-300">{subtitle}</p>
+      </div>
+      <div className="mt-5 inline-flex items-center rounded-full border border-[#00d4c8]/35 bg-[#00d4c8]/12 px-3.5 py-1.5 text-xs font-semibold tracking-wide text-[#8ff6ef] transition group-hover:border-[#00d4c8]/70 group-hover:bg-[#00d4c8]/20">
+        Consultar por WhatsApp
+      </div>
+    </a>
   );
+}
+
+function buildPrimeWhatsappHref({
+  planName,
+  artistName,
+}: {
+  planName: string;
+  artistName: string;
+}): string {
+  const cleanArtistName = artistName.trim() || 'artista';
+  const message =
+    `Hola, soy ${cleanArtistName} y quiero mas informacion sobre ${planName}. ` +
+    'Me interesa conocer beneficios, precio y como activarlo en mi cuenta.';
+  return buildWhatsappUrl(message);
 }
 
 function getWithdrawalStatusLabel(status: WithdrawalRequest['status']): string {

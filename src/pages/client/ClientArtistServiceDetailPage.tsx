@@ -317,6 +317,9 @@ function ServiceDetailArticle({
         : undefined,
       serviceDetails: serviceDetails.trim() || undefined,
     });
+    setSelectedDateKeys(new Set());
+    setServiceDetails('');
+    setIsContractDatesExpanded(false);
     setCartAddedFlash(true);
     window.setTimeout(() => setCartAddedFlash(false), 2800);
   }, [
@@ -456,7 +459,7 @@ function ServiceDetailArticle({
           <div
             className={
               'w-full space-y-6 sm:space-y-7 rounded-3xl border border-[#00d4c8]/20 ' +
-              'bg-gradient-to-b from-white/[0.06] via-[#0c0e12] to-black/50 p-6 sm:p-8 ' +
+              'bg-linear-to-b from-white/6 via-[#0c0e12] to-black/50 p-6 sm:p-8 ' +
               'shadow-[0_0_40px_rgba(0,212,200,0.06),inset_0_1px_0_rgba(255,255,255,0.06)]'
             }
           >
@@ -487,6 +490,9 @@ function ServiceDetailArticle({
                       aria-label="Opciones de servicio"
                       className="absolute left-0 right-0 z-20 mt-2 max-h-56 overflow-y-auto rounded-xl border border-[#00d4c8]/25 bg-[#0a0c10]/95 p-1.5 shadow-[0_16px_40px_rgba(0,0,0,0.45)] backdrop-blur"
                     >
+                      <div className="rounded-lg px-3 py-2 text-sm text-neutral-400">
+                        --selecionar servicio--
+                      </div>
                       {serviceOptions.map((service) => {
                         const isSelected = service.id === svc.id;
                         return (
@@ -547,7 +553,7 @@ function ServiceDetailArticle({
                 </p>
                 <ul className="space-y-2.5 text-sm sm:text-base text-neutral-200">
                   {featureLines.map((line) => (
-                    <li key={line} className="flex gap-3 rounded-xl border border-white/[0.06] bg-white/[0.03] px-3 py-2.5">
+                    <li key={line} className="flex gap-3 rounded-xl border border-white/6 bg-white/3 px-3 py-2.5">
                       <span className="shrink-0 text-[#00d4c8] font-semibold">✓</span>
                       <span className="min-w-0 leading-snug">{line}</span>
                     </li>
@@ -556,7 +562,7 @@ function ServiceDetailArticle({
               </div>
             )}
 
-            <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl border border-white/10 bg-neutral-950 shadow-[0_12px_40px_rgba(0,0,0,0.45)]">
+            <div className="relative aspect-4/3 w-full overflow-hidden rounded-2xl border border-white/10 bg-neutral-950 shadow-[0_12px_40px_rgba(0,0,0,0.45)]">
               {coverPhoto ? (
                 <img src={coverPhoto} alt="" className="h-full w-full object-cover object-center" />
               ) : (
@@ -741,7 +747,7 @@ export function ClientArtistServiceDetailPage() {
               <Skeleton className="h-28 w-full rounded-xl" />
               <Skeleton className="h-32 w-full rounded-xl" />
             </div>
-            <Skeleton className="aspect-[4/3] w-full max-w-lg rounded-3xl lg:max-w-none" />
+            <Skeleton className="aspect-4/3 w-full max-w-lg rounded-3xl lg:max-w-none" />
           </div>
         </div>
       ) : notFound ? (

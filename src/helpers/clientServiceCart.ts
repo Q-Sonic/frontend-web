@@ -36,6 +36,14 @@ function newLineId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
+function normalizeDateKeys(keys: string[]): string[] {
+  return [...new Set(keys.map((k) => k.trim()).filter(Boolean))].sort();
+}
+
+function normalizedDetails(value: string | undefined): string {
+  return (value ?? '').trim();
+}
+
 export function getServiceCartLines(): ServiceCartLine[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -58,8 +66,24 @@ export function addServiceCartLine(
   payload: Omit<ServiceCartLine, 'id' | 'addedAt'>,
 ): ServiceCartLine {
   const items = getServiceCartLines();
+  const normalizedKeys = normalizeDateKeys(payload.selectedDateKeys);
+  const details = normalizedDetails(payload.serviceDetails);
+
+  const existing = items.find((line) => {
+    if (line.artistId !== payload.artistId) return false;
+    if (line.serviceId !== payload.serviceId) return false;
+    if (normalizedDetails(line.serviceDetails) !== details) return false;
+    const currentKeys = normalizeDateKeys(line.selectedDateKeys);
+    if (currentKeys.length !== normalizedKeys.length) return false;
+    return currentKeys.every((k, i) => k === normalizedKeys[i]);
+  });
+
+  if (existing) return existing;
+
   const line: ServiceCartLine = {
     ...payload,
+    selectedDateKeys: normalizedKeys,
+    serviceDetails: details || undefined,
     id: newLineId(),
     addedAt: new Date().toISOString(),
   };

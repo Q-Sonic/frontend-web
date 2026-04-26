@@ -1,11 +1,10 @@
-import { FiMessageCircle } from 'react-icons/fi';
+import { buildWhatsappUrl } from '../../config/whatsapp';
 
 export function ClientFloatingChatButton() {
 
   const handleClick = () => {
-    const phone = '+593994176997';
-    const text = encodeURIComponent('Hola, me gustaría soporte sobre...');
-    window.open(`https://wa.me/${phone}?text=${text}`, '_blank');
+    const url = buildWhatsappUrl('Hola, me gustaría soporte sobre...');
+    window.open(url, '_blank');
   };
 
   return (

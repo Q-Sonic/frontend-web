@@ -1,4 +1,4 @@
-import { FiImage, FiFileText, FiUser, FiSettings } from 'react-icons/fi';
+import { FiImage, FiFileText, FiUser } from 'react-icons/fi';
 import type { SidebarMenuItem } from '../components/AppSidebar';
 
 /** Sidebar nav for an artist viewing their own profile (`/artist/:id/...`). */
@@ -21,12 +21,6 @@ export function artistOwnerProfileNavItems(artistBasePath: string): SidebarMenuI
       to: `${artistBasePath}/documents`,
       label: 'Documentos',
       icon: <FiFileText className="text-current" aria-hidden />,
-      exactPath: true,
-    },
-    {
-      to: `${artistBasePath}/settings`,
-      label: 'Configuración',
-      icon: <FiSettings className="text-current" aria-hidden />,
       exactPath: true,
     },
   ];
