@@ -33,6 +33,7 @@ export {
   updateArtistServiceWithFormData,
   deleteArtistService,
 } from './artistServiceService';
+export type { CreateArtistServiceBody, UpdateArtistServiceBody } from '../types';
 export {
   getMyArtistSongs,
   getArtistSongsByArtistId,

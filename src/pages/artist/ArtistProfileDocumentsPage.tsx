@@ -266,9 +266,10 @@ export function ArtistProfileDocumentsPage() {
         };
         setManualContracts((prev) => [newRow, ...prev]);
       } else if (documentModal.itemId) {
+        const itemId = documentModal.itemId;
         setContractOverrides((prev) => ({
           ...prev,
-          [documentModal.itemId]: { name, description, documentUrl },
+          [itemId]: { name, description, documentUrl },
         }));
       }
       setInfoBanner('Contrato actualizado en la tabla (modo temporal frontend).');
@@ -286,9 +287,10 @@ export function ArtistProfileDocumentsPage() {
           ...prev,
         ]);
       } else if (documentModal.itemId) {
+        const itemId = documentModal.itemId;
         setRiderOverrides((prev) => ({
           ...prev,
-          [documentModal.itemId]: { name, description, documentUrl },
+          [itemId]: { name, description, documentUrl },
         }));
       }
       setInfoBanner('Rider técnico actualizado en la tabla (modo temporal frontend).');
