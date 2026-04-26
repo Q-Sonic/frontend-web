@@ -184,7 +184,23 @@ export function LandingPage() {
   }
 
   return (
-    <div className="relative isolate min-h-screen overflow-x-hidden bg-[#07090b] text-neutral-100 font-inter">
+    <div 
+      className="relative isolate min-h-screen overflow-x-hidden bg-[#07090b] text-neutral-100 font-inter"
+      onMouseMove={(e) => {
+        const x = e.clientX;
+        const y = e.clientY;
+        document.documentElement.style.setProperty('--mouse-x', `${x}px`);
+        document.documentElement.style.setProperty('--mouse-y', `${y}px`);
+      }}
+    >
+      {/* Interactive Spotlight */}
+      <div 
+        className="pointer-events-none fixed inset-0 z-10 transition-opacity duration-300"
+        style={{
+          background: `radial-gradient(600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(0, 204, 203, 0.06), transparent 80%)`
+        }}
+      />
+
       {/* Cinematic Mesh Gradient Background */}
       <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
         <div 
