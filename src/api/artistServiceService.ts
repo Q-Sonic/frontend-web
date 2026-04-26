@@ -60,6 +60,8 @@ export async function createArtistServiceWithFormData(
   if (body.description != null) formData.append('description', body.description);
   if (body.duration != null) formData.append('duration', body.duration);
   if (body.features != null) formData.append('features', JSON.stringify(body.features));
+  if (body.contractTemplateId) formData.append('contractTemplateId', body.contractTemplateId);
+  if (body.technicalRiderTemplateId) formData.append('technicalRiderTemplateId', body.technicalRiderTemplateId);
   if (imageFile) formData.append('image', imageFile);
   const res = await apiPostFormData<ApiResponse<ArtistServiceRecord>>('artist-services', formData);
   return res.data;
@@ -87,6 +89,8 @@ export async function updateArtistServiceWithFormData(
   if (body.description != null) formData.append('description', body.description);
   if (body.duration != null) formData.append('duration', body.duration);
   if (body.features != null) formData.append('features', JSON.stringify(body.features));
+  if (body.contractTemplateId) formData.append('contractTemplateId', body.contractTemplateId);
+  if (body.technicalRiderTemplateId) formData.append('technicalRiderTemplateId', body.technicalRiderTemplateId);
   if (imageFile) formData.append('image', imageFile);
   const res = await apiPutFormData<ApiResponse<ArtistServiceRecord>>(`artist-services/${id}`, formData);
   return res.data;

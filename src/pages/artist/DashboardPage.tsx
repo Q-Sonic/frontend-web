@@ -562,24 +562,44 @@ function PromoCard({
   whatsappHref: string;
   isPopular?: boolean;
 }) {
+  const isBlindaje = title.toLowerCase().includes('blindaje');
+  
   return (
     <a
       href={whatsappHref}
       target="_blank"
       rel="noopener noreferrer"
-      className="group relative block overflow-hidden rounded-2xl border border-[#00d4c8]/25 bg-linear-to-br from-[#0a0c10] via-[#0b1015] to-[#07090c] p-6 shadow-[0_10px_30px_rgba(0,0,0,0.35)] transition-all hover:-translate-y-0.5 hover:border-[#00d4c8]/55 hover:shadow-[0_16px_40px_rgba(0,212,200,0.15)]"
+      className="group relative block overflow-hidden rounded-2xl border border-white/5 bg-[#0a0c10] p-6 shadow-xl transition-all hover:-translate-y-1 hover:border-[#00d4c8]/30 hover:shadow-[0_20px_40px_rgba(0,0,0,0.6)]"
     >
+      {/* Background Glow */}
+      <div className="absolute -right-4 -top-4 h-32 w-32 rounded-full bg-[#00d4c8]/5 blur-3xl transition-opacity group-hover:opacity-100 opacity-0" />
+      
       {isPopular ? (
-        <span className="absolute right-3 top-3 rounded-full border border-warning/35 bg-warning/15 px-2.5 py-0.5 text-xs font-medium text-warning">
-          Popular
+        <span className="absolute right-4 top-4 rounded-full bg-[#00d4c8]/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-[#00d4c8] border border-[#00d4c8]/20">
+          Recomendado
         </span>
       ) : null}
-      <div className="space-y-3">
-        <h3 className="text-2xl font-bold text-white">{title}</h3>
-        <p className="text-sm leading-relaxed text-neutral-300">{subtitle}</p>
+
+      <div className="flex items-start gap-4">
+        <div className={`mt-1 flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-white/10 ${isBlindaje ? 'bg-[#00d4c8]/10 text-[#00d4c8]' : 'bg-blue-500/10 text-blue-400'}`}>
+          {isBlindaje ? (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          ) : (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22v-9"/><path d="M5 13a7 7 0 0 1 14 0"/><path d="M21 21H3"/><path d="M9 21v-4a3 3 0 0 1 6 0v4"/></svg>
+          )}
+        </div>
+        
+        <div className="space-y-1">
+          <h3 className="text-xl font-bold text-white group-hover:text-[#00d4c8] transition-colors">{title}</h3>
+          <p className="text-sm leading-relaxed text-neutral-400 line-clamp-2">{subtitle}</p>
+        </div>
       </div>
-      <div className="mt-5 inline-flex items-center rounded-full border border-[#00d4c8]/35 bg-[#00d4c8]/12 px-3.5 py-1.5 text-xs font-semibold tracking-wide text-[#8ff6ef] transition group-hover:border-[#00d4c8]/70 group-hover:bg-[#00d4c8]/20">
-        Consultar por WhatsApp
+
+      <div className="mt-6 flex items-center justify-between">
+        <span className="text-xs font-semibold text-neutral-500 uppercase tracking-widest group-hover:text-white transition-colors">Soporte VIP</span>
+        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/5 text-neutral-400 transition-colors group-hover:bg-[#00d4c8] group-hover:text-black">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+        </div>
       </div>
     </a>
   );

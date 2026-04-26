@@ -227,6 +227,8 @@ export function ArtistServicesAdminModal({
     const createPayload: CreateArtistServiceBody = {
       name,
       price,
+      contractTemplateId: form.contractTemplateId || undefined,
+      technicalRiderTemplateId: form.technicalRiderTemplateId || undefined,
     };
     if (trimmedDescription) createPayload.description = trimmedDescription;
     if (sanitizedDetails.length > 0) createPayload.features = sanitizedDetails;
