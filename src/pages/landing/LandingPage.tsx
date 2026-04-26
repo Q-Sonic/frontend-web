@@ -339,16 +339,19 @@ export function LandingPage() {
               <form className="space-y-8 rounded-3xl bg-white/[0.02] p-8 md:p-10 border border-white/5 shadow-2xl" onSubmit={handleLeadSubmit}>
                 <div className="space-y-6">
                   <div>
-                    <span className="mb-4 block text-sm font-medium tracking-widest text-[#00CCCB] uppercase">Yo soy</span>
-                    <div className="flex flex-wrap gap-4">
+                    <div className="mb-6 flex items-center gap-3">
+                      <div className="h-px w-8 bg-[#00CCCB]/30" />
+                      <span className="text-[10px] font-bold tracking-[0.4em] text-[#00CCCB] uppercase">Perfil Profesional</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
                       {['artist', 'client'].map((type) => (
                         <label 
                           key={type}
                           className={`
-                            relative flex cursor-pointer items-center justify-center rounded-2xl border px-8 py-4 transition-all duration-300
+                            relative flex cursor-pointer items-center justify-center rounded-xl border border-white/5 py-4 transition-all duration-500
                             ${inquiryType === type 
-                              ? 'border-[#00CCCB] bg-[#00CCCB]/10 text-white shadow-[0_0_20px_rgba(0,204,203,0.2)]' 
-                              : 'border-white/10 bg-white/[0.03] text-neutral-400 hover:border-white/20'
+                              ? 'bg-[#00CCCB]/10 text-white border-[#00CCCB]/40 shadow-[0_0_20px_rgba(0,204,203,0.1)]' 
+                              : 'bg-white/[0.02] text-neutral-500 hover:bg-white/[0.04] hover:text-neutral-300'
                             }
                           `}
                         >
@@ -360,8 +363,8 @@ export function LandingPage() {
                             onChange={() => setInquiryType(type as any)}
                             className="sr-only"
                           />
-                          <span className="text-sm font-semibold tracking-wide">
-                            {type === 'artist' ? 'ARTISTA' : 'BUSCO TALENTO'}
+                          <span className="text-xs font-bold tracking-widest">
+                            {type === 'artist' ? 'ARTISTA' : 'CLIENTE'}
                           </span>
                         </label>
                       ))}
