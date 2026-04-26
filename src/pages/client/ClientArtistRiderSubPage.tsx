@@ -3,6 +3,7 @@ import { Navigate, useParams } from 'react-router-dom';
 import { ArtistProfileRidersGrid, Skeleton } from '../../components';
 import { ClientArtistSectionHeader } from '../../components/client/ClientArtistSectionHeader';
 import { useArtistProfileById } from '../../hooks/useArtistProfileById';
+import { getPrimaryReservationService } from '../../helpers/artistReservation';
 import { buildArtistRiderItems } from '../../helpers/artistRiderSections';
 import { useArtistProfileNav } from '../../contexts/ArtistProfileNavContext';
 import { getPinnedItemIds, savePinnedItemIds, sortPinnedFirst } from '../../helpers/pinnedItems';
@@ -11,6 +12,10 @@ export function ClientArtistRiderSubPage() {
   const { id } = useParams<{ id: string }>();
   const { basePath } = useArtistProfileNav();
   const { profile, services, artistDisplayName, loading, error } = useArtistProfileById(id);
+  const reservationService = getPrimaryReservationService(services);
+  const reserveHref = reservationService
+    ? `${basePath}/services/${reservationService.id}`
+    : `${basePath}#documents`;
   const [pinnedRiderIds, setPinnedRiderIds] = useState<string[]>([]);
 
   const riderItems = useMemo(() => buildArtistRiderItems(services, profile), [profile, services]);
@@ -68,6 +73,7 @@ export function ClientArtistRiderSubPage() {
         artistDisplayName={artistDisplayName}
         profile={profile}
         basePath={basePath}
+        reserveHref={reserveHref}
       />
 
       <section className="space-y-4">
@@ -77,7 +83,7 @@ export function ClientArtistRiderSubPage() {
         {orderedRiderItems.length > 0 ? (
           <ArtistProfileRidersGrid items={orderedRiderItems} />
         ) : (
-          <p className="text-sm text-neutral-400 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-8 text-center">
+          <p className="text-sm text-neutral-400 rounded-2xl border border-white/10 bg-white/3 px-4 py-8 text-center">
             Este artista aún no tiene rider técnico disponible.
           </p>
         )}

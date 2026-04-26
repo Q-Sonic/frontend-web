@@ -10,6 +10,7 @@ import {
   FiX,
 } from 'react-icons/fi';
 import { Button } from '../Button';
+import { Link } from 'react-router-dom';
 
 export type ContractSigningParty = {
   roleLabel: string;
@@ -439,7 +440,16 @@ export function ClientContractSigningModal({
               className="mt-1 h-5 w-5 shrink-0 rounded border-white/30 bg-transparent accent-[#00CCCB]"
             />
             <span>
-              Acepto los términos del contrato y confirmo mi firma electrónica
+              Acepto los{' '}
+              <Link
+                to="/terms-contract"
+                className="text-accent underline-offset-2 hover:underline"
+                target="_blank"
+                onClick={onClose}
+              >
+                términos del contrato
+              </Link>{' '}
+              y confirmo mi firma electrónica
             </span>
           </label>
         </div>
@@ -485,31 +495,3 @@ export function ClientContractSigningModal({
     </div>
   );
 }
-
-/** Example props for Storybook or temporary wiring; replace with API data when the flow exists. */
-export const demoContractSigningModalProps: Pick<
-  ClientContractSigningModalProps,
-  'artistParty' | 'clientParty' | 'summary'
-> = {
-  artistParty: {
-    roleLabel: 'Artista',
-    name: 'Godly',
-    signed: true,
-    avatarUrl: undefined,
-    initials: 'G',
-  },
-  clientParty: {
-    roleLabel: 'Cliente',
-    name: 'Juan Pérez',
-    signed: false,
-    initials: 'JP',
-  },
-  summary: {
-    event: 'Show en vivo',
-    dateLabel: 'Sábado, 20 de Abril 2026',
-    location: 'Quito, Ecuador',
-    totalValue: '$ 500 USD',
-    duration: '2 horas de presentación',
-    service: 'Show + DJ + Luces',
-  },
-};

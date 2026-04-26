@@ -13,6 +13,8 @@ export type ServiceCartLine = {
   locationLabel?: string;
   /** Copied from `ArtistServiceRecord.features` when adding to cart */
   serviceFeatures?: string[];
+  /** Optional client notes captured during booking. */
+  serviceDetails?: string;
 };
 
 const SIGNED_MOCK_STORAGE_KEY = 'stagego_client_signed_cart_mock_v1';

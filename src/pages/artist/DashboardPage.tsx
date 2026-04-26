@@ -4,6 +4,7 @@ import WorldIcon from '../../../public/icons/world';
 import { api } from '../../api';
 import { ensureArtistProfileListedForDiscovery } from '../../api/artistProfileService';
 import { Skeleton } from '../../components';
+import { ClientFloatingChatButton } from '../../components/client/ClientFloatingChatButton';
 import { WithdrawalModal } from '../../components/payments/WithdrawalModal';
 import { useAuth } from '../../contexts/AuthContext';
 import { formatMoney } from '../../helpers/money';
@@ -354,6 +355,7 @@ export function HomeArtistaPage() {
           refreshDashboard();
         }}
       />
+      <ClientFloatingChatButton />
     </div>
   );
 }

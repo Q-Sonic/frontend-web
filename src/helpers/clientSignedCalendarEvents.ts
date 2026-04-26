@@ -1,4 +1,4 @@
-import type { ClientCalendarGridEvent, ClientUpcomingEvent } from '../mocks/client/types';
+import type { ClientCalendarGridEvent, ClientUpcomingEvent } from '../types/clientCalendar';
 import type { SignedCartMockRecord } from './clientServiceCart';
 
 export function parseContractDateKey(key: string): { y: number; m0: number; d: number } | null {

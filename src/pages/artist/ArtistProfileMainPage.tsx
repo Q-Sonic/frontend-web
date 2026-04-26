@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useArtistProfileNav } from '../../contexts/ArtistProfileNavContext';
+import { buildReservationNavigationState, getPrimaryReservationService } from '../../helpers/artistReservation';
 import { isBackendRoleArtista } from '../../helpers/role';
 import {
   ARTIST_PROFILE_ACCENT,
@@ -32,6 +33,7 @@ type ArtistModalType = 'profile' | 'songs' | 'featured-song' | 'services' | null
 
 export function ArtistProfileMainPage() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { basePath, setSidebarProfileIntro } = useArtistProfileNav();
   const effectiveId = id;
@@ -63,12 +65,14 @@ export function ArtistProfileMainPage() {
   const [localServices, setLocalServices] = useState<ArtistServiceRecord[]>([]);
   const [activeModal, setActiveModal] = useState<ArtistModalType>(null);
   const [songs, setSongs] = useState<ArtistSongRecord[]>([]);
+  const [playingSongId, setPlayingSongId] = useState<string | null>(null);
   const [modalError, setModalError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [servicesExpanded, setServicesExpanded] = useState(false);
   const [pinnedServiceIds, setPinnedServiceIds] = useState<string[]>([]);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const songPreviewRef = useRef<HTMLAudioElement | null>(null);
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -131,9 +135,16 @@ export function ArtistProfileMainPage() {
       el.pause();
       el.currentTime = 0;
     }
+    const previewEl = songPreviewRef.current;
+    if (previewEl) {
+      previewEl.pause();
+      previewEl.currentTime = 0;
+      previewEl.src = '';
+    }
     setPlaying(false);
     setProgress(0);
     setDuration(0);
+    setPlayingSongId(null);
   }, [effectiveId, localProfile?.featuredSong, localProfile?.media]);
 
   useEffect(() => {
@@ -174,17 +185,24 @@ export function ArtistProfileMainPage() {
     [duration],
   );
 
-  const scrollToServicesSection = useCallback(() => {
-    document.getElementById('documents')?.scrollIntoView({
-      behavior: 'smooth',
-      block: 'start',
-    });
-  }, []);
-
   const orderedServices = useMemo(
     () => sortPinnedFirst(localServices, pinnedServiceIds),
     [localServices, pinnedServiceIds],
   );
+  const reserveService = useMemo(
+    () => getPrimaryReservationService(orderedServices),
+    [orderedServices],
+  );
+  const goToReservation = useCallback(
+    (preselectedDateKey?: string) => {
+      if (isSelfArtist || !reserveService) return;
+      navigate(`${basePath}/services/${reserveService.id}`, {
+        state: buildReservationNavigationState(reserveService, preselectedDateKey),
+      });
+    },
+    [basePath, isSelfArtist, navigate, reserveService],
+  );
+  const featuredTrack = songs.find((song) => song.isFeatured) ?? songs[0];
 
   if (!effectiveId) {
     return (
@@ -253,7 +271,6 @@ export function ArtistProfileMainPage() {
     (m): m is ArtistMediaItem => !!m && typeof m === 'object' && m.type === 'image',
   );
 
-  const featuredTrack = songs.find((song) => song.isFeatured) ?? songs[0];
   const featuredSong = featuredTrack
     ? {
         title: featuredTrack.title ?? 'Canción',
@@ -262,6 +279,7 @@ export function ArtistProfileMainPage() {
         coverUrl: featuredTrack.coverUrl || localProfile.photo,
       }
     : undefined;
+
 
   const coverPhoto = localProfile.photo?.trim() || '';
   const social = localProfile.socialNetworks ?? {};
@@ -314,8 +332,8 @@ export function ArtistProfileMainPage() {
             <Button
               variant="primary"
               className="rounded-3xl px-8 py-3.5 text-xl font-bold"
-              disabled={isSelfArtist}
-              onClick={isSelfArtist ? undefined : scrollToServicesSection}
+              disabled={isSelfArtist || !reserveService}
+              onClick={isSelfArtist ? undefined : () => goToReservation()}
             >
               Reservar Fecha
             </Button>
@@ -364,7 +382,10 @@ export function ArtistProfileMainPage() {
                     dayShort={dayShort}
                     num={num}
                     reserved={reserved}
-                    onClick={() => setSelectedAvailabilityKey(key)}
+                    onClick={() => {
+                      setSelectedAvailabilityKey(key);
+                      if (!reserved) goToReservation(key);
+                    }}
                   />
                 );
               })}
@@ -381,12 +402,27 @@ export function ArtistProfileMainPage() {
             ) : (
               <div className="flex gap-4 overflow-x-auto pb-2 flex-1 items-end">
                 {songs.slice(0, 8).map((track) => (
-                  <a
+                  <button
                     key={track.id}
-                    href={track.audioUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="shrink-0 flex flex-col items-center gap-2 group w-[72px]"
+                    type="button"
+                    onClick={() => {
+                      const previewEl = songPreviewRef.current;
+                      if (!previewEl || !track.audioUrl) return;
+                      if (playingSongId === track.id) {
+                        previewEl.pause();
+                        previewEl.currentTime = 0;
+                        setPlayingSongId(null);
+                        return;
+                      }
+                      previewEl.pause();
+                      previewEl.src = track.audioUrl;
+                      previewEl.currentTime = 0;
+                      void previewEl
+                        .play()
+                        .then(() => setPlayingSongId(track.id))
+                        .catch(() => setPlayingSongId(null));
+                    }}
+                    className="shrink-0 flex flex-col items-center gap-2 group w-[72px] border-0 bg-transparent p-0 text-left"
                   >
                     <div className="relative w-[72px] h-[72px] rounded-full overflow-hidden border border-white/10 bg-neutral-800 shadow-lg">
                       {track.coverUrl || coverPhoto ? (
@@ -401,7 +437,11 @@ export function ArtistProfileMainPage() {
                         </div>
                       )}
                       <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition">
-                        <FiPlay className="text-white" size={22} />
+                        {playingSongId === track.id ? (
+                          <FiPause className="text-white" size={22} />
+                        ) : (
+                          <FiPlay className="text-white" size={22} />
+                        )}
                       </div>
                     </div>
                     <div className="text-center w-full">
@@ -410,10 +450,15 @@ export function ArtistProfileMainPage() {
                         {track.title || 'Canción'}
                       </p>
                     </div>
-                  </a>
+                  </button>
                 ))}
               </div>
             )}
+            <audio
+              ref={songPreviewRef}
+              preload="none"
+              onEnded={() => setPlayingSongId(null)}
+            />
           </div>
         </div>
 

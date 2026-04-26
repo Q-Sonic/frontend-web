@@ -110,6 +110,8 @@ type ServiceDetailArticleProps = {
   onSelectService: (serviceId: string) => void;
   profile: (ArtistProfile & { uid: string }) | null;
   basePath: string;
+  preselectedDateKey?: string;
+  prefilledServiceDetails?: string;
 };
 
 function ServiceDetailArticle({
@@ -120,10 +122,15 @@ function ServiceDetailArticle({
   onSelectService,
   profile,
   basePath,
+  preselectedDateKey,
+  prefilledServiceDetails,
 }: ServiceDetailArticleProps) {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [selectedDateKeys, setSelectedDateKeys] = useState<Set<string>>(() => new Set());
+  const [selectedDateKeys, setSelectedDateKeys] = useState<Set<string>>(() =>
+    preselectedDateKey ? new Set([preselectedDateKey]) : new Set(),
+  );
+  const [serviceDetails, setServiceDetails] = useState(prefilledServiceDetails ?? '');
   const [cartAddedFlash, setCartAddedFlash] = useState(false);
   const [contractModalOpen, setContractModalOpen] = useState(false);
   const [isContractDatesExpanded, setIsContractDatesExpanded] = useState(false);
@@ -145,6 +152,14 @@ function ServiceDetailArticle({
   useEffect(() => {
     setIsServiceMenuOpen(false);
   }, [svc.id]);
+
+  useEffect(() => {
+    setSelectedDateKeys(preselectedDateKey ? new Set([preselectedDateKey]) : new Set());
+  }, [preselectedDateKey, svc.id]);
+
+  useEffect(() => {
+    setServiceDetails(prefilledServiceDetails ?? '');
+  }, [prefilledServiceDetails, svc.id]);
 
   useEffect(() => {
     const handlePointerDownOutside = (event: MouseEvent) => {
@@ -300,6 +315,7 @@ function ServiceDetailArticle({
       serviceFeatures: Array.isArray(svc.features)
         ? svc.features.filter((f): f is string => typeof f === 'string' && f.trim().length > 0)
         : undefined,
+      serviceDetails: serviceDetails.trim() || undefined,
     });
     setCartAddedFlash(true);
     window.setTimeout(() => setCartAddedFlash(false), 2800);
@@ -313,6 +329,7 @@ function ServiceDetailArticle({
     svc.name,
     svc.price,
     selectedDateKeys,
+    serviceDetails,
   ]);
 
   return (
@@ -423,6 +440,16 @@ function ServiceDetailArticle({
               ) : undefined
             }
           />
+          <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+            <label className="mb-2 block text-sm font-semibold text-white">Detalles del servicio</label>
+            <textarea
+              value={serviceDetails}
+              onChange={(e) => setServiceDetails(e.target.value)}
+              rows={4}
+              placeholder="Ej: tipo de evento, horario estimado, necesidades técnicas..."
+              className="w-full resize-none rounded-xl border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-[#00d4c8]/30"
+            />
+          </div>
         </section>
 
         <div className="order-1 w-full max-w-lg shrink-0 lg:order-2 lg:justify-self-end xl:max-w-xl">
@@ -566,6 +593,7 @@ function ServiceDetailArticle({
               artistPhotoUrl: resolveArtistProfileMediaUrl(profile?.photo) || undefined,
               locationLabel: profile?.city?.trim() || 'Por definir',
               serviceFeatures: Array.isArray(svc.features) ? [...svc.features] : undefined,
+              serviceDetails: serviceDetails.trim() || undefined,
             };
             await persistSignedClientContractsWithApiFallback([line], {
               dataUrl,
@@ -599,6 +627,19 @@ function readServiceFromLocationState(
   return s.id === serviceId ? s : undefined;
 }
 
+function readBookingPrefillFromState(state: unknown): {
+  preselectedDateKey?: string;
+  prefilledServiceDetails?: string;
+} {
+  if (!state || typeof state !== 'object') return {};
+  const raw = state as Record<string, unknown>;
+  const preselectedDateKey =
+    typeof raw.preselectedDateKey === 'string' ? raw.preselectedDateKey : undefined;
+  const prefilledServiceDetails =
+    typeof raw.prefilledServiceDetails === 'string' ? raw.prefilledServiceDetails : undefined;
+  return { preselectedDateKey, prefilledServiceDetails };
+}
+
 export function ClientArtistServiceDetailPage() {
   const { id: artistId, serviceId } = useParams<{ id: string; serviceId: string }>();
   const location = useLocation();
@@ -619,6 +660,7 @@ export function ClientArtistServiceDetailPage() {
     () => (serviceId ? readServiceFromLocationState(location.state, serviceId) : undefined),
     [location.state, serviceId],
   );
+  const bookingPrefill = useMemo(() => readBookingPrefillFromState(location.state), [location.state]);
 
   const serviceFromList = useMemo(
     () => (serviceId ? services.find((s) => s.id === serviceId) : undefined),
@@ -724,6 +766,8 @@ export function ClientArtistServiceDetailPage() {
           onSelectService={handleSelectService}
           profile={profile}
           basePath={basePath}
+          preselectedDateKey={bookingPrefill.preselectedDateKey}
+          prefilledServiceDetails={bookingPrefill.prefilledServiceDetails}
         />
       ) : null}
     </div>

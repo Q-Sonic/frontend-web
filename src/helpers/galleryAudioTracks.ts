@@ -1,6 +1,5 @@
 import type { ArtistProfile } from '../types/profile';
 import type { ArtistMediaItem } from '../types';
-import { MOCK_AUDIO_PREVIEW_URL } from '../mocks/client/artistCards';
 import { resolveArtistProfileMediaUrl } from './artistDocumentUrls';
 
 export type GalleryAudioTrack = {
@@ -49,17 +48,6 @@ export function buildGalleryAudioTracks(
       id: `media-${m.url}`,
       title: (m.name || 'Canción').trim(),
       artistLabel: artistDisplayName,
-      coverUrl: photoCover || undefined,
-    });
-  }
-
-  /** Same royalty-free sample as discovery cards until the API exposes real streams. */
-  if (out.length === 0) {
-    out.push({
-      id: '_gallery-audio-demo',
-      title: 'Vista previa',
-      artistLabel: artistDisplayName.trim() || 'Artista',
-      streamUrl: MOCK_AUDIO_PREVIEW_URL,
       coverUrl: photoCover || undefined,
     });
   }
