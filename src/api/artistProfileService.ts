@@ -15,6 +15,7 @@ export type ArtistProfileListFilters = {
   maxPrice?: number;
   search?: string;
   availableToday?: boolean;
+  date?: string;
 };
 
 function buildArtistProfilesQuery(filters: ArtistProfileListFilters): string {
@@ -28,6 +29,7 @@ function buildArtistProfilesQuery(filters: ArtistProfileListFilters): string {
   if (filters.minPrice != null && Number.isFinite(filters.minPrice)) p.set('minPrice', String(filters.minPrice));
   if (filters.maxPrice != null && Number.isFinite(filters.maxPrice)) p.set('maxPrice', String(filters.maxPrice));
   if (filters.availableToday === true) p.set('availableToday', 'true');
+  if (filters.availableToday === true && filters.date?.trim()) p.set('date', filters.date.trim());
   const q = p.toString();
   return q ? `?${q}` : '';
 }

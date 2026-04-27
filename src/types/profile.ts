@@ -68,6 +68,8 @@ export interface ArtistProfileListItem extends ArtistProfile {
   genre?: string;
   /** Primary service price (if provided by discovery API). */
   price?: number;
+  /** Minimum known price for this artist (profile aggregate). */
+  minPrice?: number;
 }
 
 export interface ArtistProfileUpdate {
