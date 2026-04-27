@@ -53,5 +53,8 @@ export function artistListItemToDiscoverCard(item: ArtistProfileListItem): Disco
     genreLine,
     imageUrl,
     previewAudioUrl: previewAudioUrl || undefined,
+    priceFromUsd: Number.isFinite(Number(item.minPrice ?? item.price))
+      ? Number(item.minPrice ?? item.price)
+      : undefined,
   };
 }

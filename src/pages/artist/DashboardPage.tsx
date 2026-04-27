@@ -11,51 +11,19 @@ import { useAuth } from '../../contexts/AuthContext';
 import { formatMoney } from '../../helpers/money';
 import { isBackendRoleArtista } from '../../helpers/role';
 import { withMinimumDelay } from '../../helpers/withMinimumDelay';
-import type { ApiResponse } from '../../types';
-import { fetchArtistDashboardStats, fetchArtistCalendarEvents, fetchArtistWithdrawals } from '../../api/firestoreDashboardService';
-
-type DashboardStats = {
-  totalEvents: number;
-  eventsGrowthPercent: number;
-  totalBalance: number;
-  profileVisitsTotal: number;
-  visitsChartData: { day: string; count: number }[];
-};
-
-type WithdrawalRequest = {
-  id: string;
-  amount: number;
-  status: 'PENDING' | 'COMPLETED' | 'REJECTED';
-  createdAt: unknown;
-  reason?: string;
-};
-
-type CalendarEvent = {
-  id: string;
-  eventDetails?: {
-    name?: string;
-    date?: unknown;
-    location?: string;
-  };
-};
-
-type ExtendedEventDetail = {
-  id: string;
-  clientContact?: {
-    name?: string;
-    email?: string;
-    phone?: string;
-  };
-  eventDetails?: {
-    date?: unknown;
-    location?: string;
-  };
-};
+import {
+  fetchArtistDashboardStats,
+  fetchArtistWithdrawals,
+  type DashboardStats,
+  type WithdrawalRequest,
+} from '../../api/firestoreDashboardService';
 
 type NextShow = {
   clientName: string;
   dateLabel: string;
   location: string;
+  eventName?: string;
+  contractId?: string;
 };
 
 type CancelFlag = { current: boolean };
@@ -84,7 +52,7 @@ export function HomeArtistaPage() {
       setStatsError('');
 
       try {
-        const data = await withMinimumDelay(1000, () => fetchArtistDashboardStats(user.uid));
+        const data = await withMinimumDelay(1000, () => fetchArtistDashboardStats());
         if (!cancelled?.current) {
           setStats(data);
         }
@@ -115,7 +83,7 @@ export function HomeArtistaPage() {
       setWithdrawalsLoading(true);
 
       try {
-        const data = await fetchArtistWithdrawals(user.uid);
+        const data = await fetchArtistWithdrawals();
         if (!cancelled?.current) {
           setWithdrawals(data);
         }
@@ -146,16 +114,10 @@ export function HomeArtistaPage() {
       setNextShowLoading(true);
       setNextShowError('');
 
-      const now = new Date();
-
       try {
         const data = await withMinimumDelay(1000, async () => {
-          const events = await fetchArtistCalendarEvents(user.uid);
-          const nextContract = pickNextUpcomingEvent(events, now);
-          if (!nextContract) return null;
-
-          // For detail, we also map it directly from the contract record we already have
-          return mapEventDetailToNextShow(nextContract as ExtendedEventDetail);
+          const statsData = await fetchArtistDashboardStats();
+          return mapStatsNextEventToNextShow(statsData.nextEvent);
         });
 
         if (!cancelled?.current) {
@@ -164,7 +126,7 @@ export function HomeArtistaPage() {
       } catch (err) {
         if (!cancelled?.current) {
           setNextShow(null);
-          setNextShowError(err instanceof Error ? err.message : 'Error al cargar el próximo show.');
+          setNextShowError('No se pudo cargar el próximo show.');
         }
       } finally {
         if (!cancelled?.current) {
@@ -406,7 +368,7 @@ function SummaryCard({
             {loading ? <Skeleton className="h-4 w-36 rounded" /> : `${eventsValue} eventos este mes`}
           </p>
 
-          {error ? <p className="mt-2 text-xs text-red-400">{error}</p> : null}
+          {error ? <p className="mt-2 text-xs text-red-400">No se pudo actualizar el resumen en este momento.</p> : null}
         </div>
 
         <div className="rounded-xl border border-white/10 bg-surface p-5">
@@ -426,7 +388,13 @@ function SummaryCard({
               : bars.length > 0
                 ? bars.map((bar) => (
                     <div key={bar.day} className="flex min-w-0 flex-1 flex-col items-center gap-2">
-                      <div className="flex h-28 w-full items-end rounded-xl bg-white/5 p-1">
+                      <div
+                        className="group relative flex h-28 w-full items-end rounded-xl bg-white/5 p-1"
+                        title={`${bar.day}: ${bar.count} visita${bar.count === 1 ? '' : 's'}`}
+                      >
+                        <div className="pointer-events-none absolute -top-8 left-1/2 z-10 -translate-x-1/2 rounded-md border border-white/10 bg-neutral-950/95 px-2 py-1 text-[11px] font-medium text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100">
+                          {bar.day}: {bar.count}
+                        </div>
                         <div
                           className="w-full rounded-lg bg-linear-to-t from-accent to-[#3A9AF4]"
                           style={{ height: `${Math.max(bar.heightPct, 8)}%` }}
@@ -518,7 +486,7 @@ function NextShowCard({
             </div>
           ) : nextShow ? (
             <>
-              <p className="truncate font-semibold text-white">{nextShow.clientName}</p>
+              <p className="truncate font-semibold text-white">{nextShow.eventName || nextShow.clientName}</p>
               <p className="text-sm text-muted">
                 {nextShow.dateLabel}
                 {nextShow.location ? ` • ${nextShow.location}` : ''}
@@ -535,12 +503,14 @@ function NextShowCard({
         </div>
       </div>
 
-      <Link
-        to="/artist/calendario"
-        className="block rounded-full bg-white/10 py-2 text-center text-sm font-medium text-white transition hover:bg-white/15"
-      >
-        Ver detalles
-      </Link>
+      {nextShow ? (
+        <Link
+          to={nextShow.contractId ? `/artist/calendario` : '/artist/calendario'}
+          className="block rounded-full bg-white/10 py-2 text-center text-sm font-medium text-white transition hover:bg-white/15"
+        >
+          Ver detalles
+        </Link>
+      ) : null}
     </div>
   );
 }
@@ -671,30 +641,28 @@ function formatDateSpanishCompact(date: Date): string {
   return `${day} ${capitalizedMonth}`;
 }
 
-function pickNextUpcomingEvent(events: CalendarEvent[], now: Date): CalendarEvent | null {
-  const sortedEvents = [...events].sort((left, right) => {
-    const leftDate = parseFirestoreTimestamp(left.eventDetails?.date)?.getTime() ?? Number.MAX_SAFE_INTEGER;
-    const rightDate = parseFirestoreTimestamp(right.eventDetails?.date)?.getTime() ?? Number.MAX_SAFE_INTEGER;
-    return leftDate - rightDate;
-  });
+function mapStatsNextEventToNextShow(
+  nextEvent:
+    | {
+        id?: string;
+        clientName?: string;
+        eventDetails?: {
+          name?: string;
+          date?: unknown;
+          location?: string;
+        };
+      }
+    | undefined,
+): NextShow | null {
+  if (!nextEvent) return null;
 
-  for (const event of sortedEvents) {
-    const date = parseFirestoreTimestamp(event.eventDetails?.date);
-    if (date && date >= now) return event;
-  }
-
-  return sortedEvents[0] ?? null;
-}
-
-function mapEventDetailToNextShow(detail: ExtendedEventDetail | null | undefined): NextShow | null {
-  if (!detail) return null;
-
-  const clientName = detail.clientContact?.name || 'Cliente';
-  const eventDate = parseFirestoreTimestamp(detail.eventDetails?.date);
+  const clientName = nextEvent.clientName || 'Cliente';
+  const eventDate = parseFirestoreTimestamp(nextEvent.eventDetails?.date);
   const dateLabel = eventDate ? formatDateSpanishCompact(eventDate) : '';
-  const location = detail.eventDetails?.location || '';
+  const location = nextEvent.eventDetails?.location || '';
+  const eventName = nextEvent.eventDetails?.name || '';
 
-  return { clientName, dateLabel, location };
+  return { clientName, dateLabel, location, eventName, contractId: nextEvent.id };
 }
 
 function toVisitsBars(

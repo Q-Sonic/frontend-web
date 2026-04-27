@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import type { ArtistProfileListFilters } from '../../api';
+import { useEffect, useMemo, useState } from 'react';
+import { listArtistProfiles, type ArtistProfileListFilters } from '../../api';
 import { ClientAreaHeader } from '../../components/client/ClientAreaHeader';
 import { ClientFloatingChatButton } from '../../components/client/ClientFloatingChatButton';
 import { ClientAreaPageShell } from '../../components/shared/ClientAreaPageShell';
@@ -13,11 +13,73 @@ import { FiSearch } from 'react-icons/fi';
 
 export function DashboardPage() {
   const [filters, setFilters] = useState<ArtistProfileListFilters>({});
+  const [genreOptions, setGenreOptions] = useState<string[]>([]);
+  const [cityOptions, setCityOptions] = useState<string[]>([]);
   const [search, setSearch] = useState('');
   const [playingCardKey, setPlayingCardKey] = useState<string | null>(null);
 
+  useEffect(() => {
+    let cancelled = false;
+    listArtistProfiles({})
+      .then((rows) => {
+        if (cancelled) return;
+        const normalize = (value?: string) => value?.trim() ?? '';
+        const titleCase = (value: string) =>
+          value
+            .split(/\s+/)
+            .filter(Boolean)
+            .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+            .join(' ');
+
+        const buildOptions = (values: Array<string | undefined>) => {
+          const map = new Map<string, string>();
+          values.forEach((value) => {
+            const cleaned = normalize(value);
+            if (!cleaned) return;
+            const key = cleaned.toLowerCase();
+            if (!map.has(key)) {
+              map.set(key, titleCase(cleaned));
+            }
+          });
+          return [...map.values()].sort((a, b) => a.localeCompare(b));
+        };
+
+        setGenreOptions(buildOptions(rows.map((row) => row.genre)));
+        setCityOptions(buildOptions(rows.map((row) => row.city)));
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setGenreOptions([]);
+        setCityOptions([]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const listFilters = useMemo(
-    () => ({ ...filters, search: search.trim() || undefined }),
+    () => {
+      const now = new Date();
+      const localDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(
+        now.getDate(),
+      ).padStart(2, '0')}`;
+      const minPrice = filters.minPrice;
+      const maxPrice = filters.maxPrice;
+      const hasInvalidRange =
+        minPrice != null &&
+        maxPrice != null &&
+        Number.isFinite(minPrice) &&
+        Number.isFinite(maxPrice) &&
+        minPrice > maxPrice;
+
+      return {
+        ...filters,
+        ...(hasInvalidRange ? { minPrice: undefined, maxPrice: undefined } : {}),
+        search: search.trim() || undefined,
+        date: filters.availableToday ? localDate : undefined,
+      };
+    },
     [filters, search],
   );
 
@@ -42,7 +104,13 @@ export function DashboardPage() {
           </p>
         </section>
 
-        <DiscoverFilterBar filters={filters} onChange={setFilters} />
+        <DiscoverFilterBar
+          filters={filters}
+          onChange={setFilters}
+          genreOptions={genreOptions}
+          cityOptions={cityOptions}
+          resultsCount={gridItems.length}
+        />
 
         {error ? (
           <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-6 mb-8 text-center">
