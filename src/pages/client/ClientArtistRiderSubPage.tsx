@@ -1,12 +1,19 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Navigate, useParams } from 'react-router-dom';
-import { ArtistProfileRidersGrid, Skeleton } from '../../components';
+import { ArtistDocumentLinkedServicesModal, ArtistProfileRidersGrid, Skeleton } from '../../components';
+import type { ArtistRiderItem } from '../../components';
 import { ClientArtistSectionHeader } from '../../components/client/ClientArtistSectionHeader';
 import { useArtistProfileById } from '../../hooks/useArtistProfileById';
 import { getPrimaryReservationService } from '../../helpers/artistReservation';
-import { buildArtistRiderItems } from '../../helpers/artistRiderSections';
+import {
+  buildClientRiderCatalogItems,
+  getLinkedServicesForClientRiderRow,
+} from '../../helpers/clientArtistDocuments';
 import { useArtistProfileNav } from '../../contexts/ArtistProfileNavContext';
-import { getPinnedItemIds, savePinnedItemIds, sortPinnedFirst } from '../../helpers/pinnedItems';
+
+type RiderAssociationsState =
+  | null
+  | { documentTitle: string; linkedServices: { id: string; name: string }[] };
 
 export function ClientArtistRiderSubPage() {
   const { id } = useParams<{ id: string }>();
@@ -16,25 +23,24 @@ export function ClientArtistRiderSubPage() {
   const reserveHref = reservationService
     ? `${basePath}/services/${reservationService.id}`
     : `${basePath}#documents`;
-  const [pinnedRiderIds, setPinnedRiderIds] = useState<string[]>([]);
+  const [associations, setAssociations] = useState<RiderAssociationsState>(null);
 
-  const riderItems = useMemo(() => buildArtistRiderItems(services, profile), [profile, services]);
-  const orderedRiderItems = useMemo(
-    () => sortPinnedFirst(riderItems, pinnedRiderIds),
-    [riderItems, pinnedRiderIds],
+  const riderItems = useMemo(() => buildClientRiderCatalogItems(services, profile), [profile, services]);
+
+  const openLinkedServices = useCallback(
+    (item: ArtistRiderItem) => {
+      setAssociations({
+        documentTitle: item.title.trim() || 'Rider técnico',
+        linkedServices: getLinkedServicesForClientRiderRow(item.id, services),
+      });
+    },
+    [services],
   );
 
-  useEffect(() => {
-    if (!id) {
-      setPinnedRiderIds([]);
-      return;
-    }
-    const validIds = new Set(riderItems.map((item) => item.id));
-    const storedPinned = getPinnedItemIds(id, 'riders');
-    const sanitizedPinned = storedPinned.filter((itemId) => validIds.has(itemId));
-    const savedPinned = savePinnedItemIds(id, 'riders', sanitizedPinned);
-    setPinnedRiderIds(savedPinned);
-  }, [id, riderItems]);
+  const getOnViewLinkedServices = useCallback(
+    (item: ArtistRiderItem) => () => openLinkedServices(item),
+    [openLinkedServices],
+  );
 
   if (!id) return <Navigate to="/client" replace />;
 
@@ -77,17 +83,29 @@ export function ClientArtistRiderSubPage() {
       />
 
       <section className="space-y-4">
-        <h2 className="text-xl md:text-2xl font-bold tracking-tight text-white">
-          Requisitos técnicos por tipo de show
+        <h2 className="text-lg sm:text-xl md:text-2xl font-bold tracking-tight text-white break-words pr-1">
+          Riders técnicos disponibles
         </h2>
-        {orderedRiderItems.length > 0 ? (
-          <ArtistProfileRidersGrid items={orderedRiderItems} />
+        <p className="text-sm text-neutral-400 max-w-3xl leading-relaxed [text-wrap:pretty]">
+          Descarga cada rider en PDF y consulta a qué servicios aplica.
+        </p>
+        {riderItems.length > 0 ? (
+          <ArtistProfileRidersGrid items={riderItems} getOnViewLinkedServices={getOnViewLinkedServices} />
         ) : (
           <p className="text-sm text-neutral-400 rounded-2xl border border-white/10 bg-white/3 px-4 py-8 text-center">
             Este artista aún no tiene rider técnico disponible.
           </p>
         )}
       </section>
+
+      <ArtistDocumentLinkedServicesModal
+        isOpen={Boolean(associations)}
+        variant="rider"
+        documentTitle={associations?.documentTitle ?? ''}
+        linkedServices={associations?.linkedServices ?? []}
+        onClose={() => setAssociations(null)}
+        audience="client"
+      />
     </div>
   );
 }

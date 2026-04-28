@@ -92,9 +92,11 @@ export function ClientArtistSectionHeader({
     <header className="space-y-0">
       <div className={headerGridClass}>
         <div className="min-w-0 space-y-4">
-          <h1 className="text-3xl sm:text-4xl font-bold text-white tracking-tight leading-tight">
+          <h1 className="text-2xl sm:text-4xl font-bold text-white tracking-tight leading-snug sm:leading-tight break-words">
             {titleLead}{' '}
-            <span style={{ color: ARTIST_PROFILE_ACCENT }}>{artistDisplayName}</span>
+            <span className="break-words" style={{ color: ARTIST_PROFILE_ACCENT }}>
+              {artistDisplayName}
+            </span>
           </h1>
           <p className="text-sm sm:text-base text-white/85 font-medium">{subtitleLine1}</p>
           <p className="text-sm text-neutral-400 max-w-2xl leading-relaxed">{description}</p>

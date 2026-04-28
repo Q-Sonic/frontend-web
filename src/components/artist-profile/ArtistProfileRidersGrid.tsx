@@ -15,6 +15,8 @@ interface ArtistProfileRidersGridProps {
   pinnedIds?: string[];
   canTogglePin?: boolean;
   onTogglePin?: (id: string) => void;
+  /** Per card: opens linked-services UI (client view). */
+  getOnViewLinkedServices?: (item: ArtistRiderItem) => (() => void) | undefined;
 }
 
 export function ArtistProfileRidersGrid({
@@ -23,6 +25,7 @@ export function ArtistProfileRidersGrid({
   pinnedIds = [],
   canTogglePin = false,
   onTogglePin,
+  getOnViewLinkedServices,
 }: ArtistProfileRidersGridProps) {
   if (items.length === 0) {
     return (
@@ -44,6 +47,7 @@ export function ArtistProfileRidersGrid({
           imageUrl={item.imageUrl}
           documentUrl={item.documentUrl}
           onMissingDocumentClick={onMissingDocumentClick}
+          onViewLinkedServices={getOnViewLinkedServices?.(item)}
           isPinned={pinnedIds.includes(item.id)}
           canTogglePin={canTogglePin}
           onTogglePin={onTogglePin}
