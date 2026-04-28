@@ -26,6 +26,8 @@ export {
   ArtistGalleryWavePlayer,
   ArtistProfileAvailabilityDay,
   ArtistProfileDocumentsServicesTable,
+  ArtistDocumentLinkServiceModal,
+  ArtistDocumentLinkedServicesModal,
   ArtistProfileEditButton,
   ArtistProfileGalleryGrid,
   ArtistProfileSettingsModal,

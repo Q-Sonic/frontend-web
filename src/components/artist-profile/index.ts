@@ -4,6 +4,8 @@ export { ArtistProfileEditButton } from './ArtistProfileEditButton';
 export { ArtistProfileSectionTitle } from './ArtistProfileSectionTitle';
 export { ArtistProfileGalleryGrid } from './ArtistProfileGalleryGrid';
 export { ArtistProfileDocumentsServicesTable } from './ArtistProfileDocumentsServicesTable';
+export { ArtistDocumentLinkServiceModal } from './ArtistDocumentLinkServiceModal';
+export { ArtistDocumentLinkedServicesModal } from './ArtistDocumentLinkedServicesModal';
 export { ArtistProfileRidersGrid } from './ArtistProfileRidersGrid';
 export type { ArtistRiderItem } from './ArtistProfileRidersGrid';
 export { ArtistGalleryFilterTabs } from './ArtistGalleryFilterTabs';

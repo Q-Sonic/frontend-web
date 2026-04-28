@@ -7,6 +7,7 @@ import { ClientArtistSectionHeader } from '../../components/client/ClientArtistS
 import { useAuth } from '../../contexts/AuthContext';
 import { useArtistProfileNav } from '../../contexts/ArtistProfileNavContext';
 import { buildReservationNavigationState, getPrimaryReservationService } from '../../helpers/artistReservation';
+import { isArtistServiceBookable } from '../../helpers/artistServiceVisibility';
 import { localDateKey } from '../../helpers/artistProfile';
 import { isBackendRoleArtista, isBackendRoleCliente } from '../../helpers/role';
 import { useArtistProfileById } from '../../hooks/useArtistProfileById';
@@ -63,7 +64,11 @@ export function ArtistProfileCalendarPage() {
 
   const blockedSet = useMemo(() => new Set(profile?.blockedDates ?? []), [profile?.blockedDates]);
   const availableServices = useMemo(
-    () => services.filter((service): service is ArtistServiceRecord => !!service?.id),
+    () =>
+      services.filter(
+        (service): service is ArtistServiceRecord =>
+          !!service?.id && isArtistServiceBookable(service),
+      ),
     [services],
   );
   const reservationService = useMemo(
