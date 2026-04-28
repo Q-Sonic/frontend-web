@@ -6,7 +6,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { Skeleton } from '../Skeleton';
 import { es } from 'date-fns/locale/es';
 
-import { buildWhatsappUrl, SUPPORT_MESSAGES } from '../../config/whatsapp';
+import { buildWhatsappUrl, SUPPORT_MESSAGES, getDynamicSupportMessage } from '../../config/whatsapp';
 
 export function ChatManager() {
   const { 
@@ -107,7 +107,7 @@ export function ChatManager() {
                 </div>
                 <p className="text-xs text-neutral-400">No tienes conversaciones activas aún.</p>
                 <a 
-                  href={buildWhatsappUrl(SUPPORT_MESSAGES.PRIME)}
+                  href={buildWhatsappUrl(getDynamicSupportMessage(user))}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="mt-4 flex items-center gap-2 px-4 py-2 bg-[#25D366] text-black font-bold text-xs rounded-full hover:scale-105 transition-transform"

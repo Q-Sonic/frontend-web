@@ -40,3 +40,4 @@ export type {
   NuveiPayment,
   WebhookProcessedResponse,
 } from './payment';
+export type { DashboardStats, WithdrawalRequest } from './dashboard';

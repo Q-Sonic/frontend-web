@@ -14,3 +14,12 @@ export const SUPPORT_MESSAGES = {
   PRIME: 'Hola, soy usuario Prime y necesito soporte.',
   ARTIST: 'Hola, soy artista y necesito ayuda con mi perfil.',
 };
+
+export function getDynamicSupportMessage(user: { displayName?: string; role?: string } | null): string {
+  if (!user) return SUPPORT_MESSAGES.GENERAL;
+  const name = user.displayName || 'Usuario';
+  if (user.role === 'artista' || user.role === 'ARTISTA') {
+    return `Hola, soy el artista ${name} y necesito soporte.`;
+  }
+  return `Hola, soy el cliente ${name} y necesito soporte.`;
+}

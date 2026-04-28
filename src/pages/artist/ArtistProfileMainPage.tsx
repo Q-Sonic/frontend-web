@@ -306,14 +306,16 @@ export function ArtistProfileMainPage() {
           </div>
 
           <div className="mt-8">
-            <Button
-              variant="primary"
-              className="rounded-3xl px-8 py-3.5 text-xl font-bold"
-              disabled={isSelfArtist || !reserveService}
-              onClick={isSelfArtist ? () => navigate('/artist/settings') : () => goToReservation()}
-            >
-              {isSelfArtist ? 'Gestionar Perfil' : 'Reservar Fecha'}
-            </Button>
+            {!isSelfArtist && (
+              <Button
+                variant="primary"
+                className="rounded-3xl px-8 py-3.5 text-xl font-bold"
+                disabled={!reserveService}
+                onClick={() => goToReservation()}
+              >
+                Reservar Fecha
+              </Button>
+            )}
           </div>
         </div>
       </section>

@@ -103,12 +103,12 @@ export const WithdrawalModal: React.FC<WithdrawalModalProps> = ({
                   onChange={(e) => setBankDetails({...bankDetails, accountNumber: e.target.value})}
                 />
                 <select
-                  className="bg-[#1a1f28] border border-white/10 rounded-lg p-2.5 text-white outline-hidden focus:border-accent appearance-none"
+                  className="bg-neutral-900 border border-white/10 rounded-lg p-2.5 text-white outline-hidden focus:border-accent appearance-none cursor-pointer"
                   value={bankDetails.accountType}
                   onChange={(e) => setBankDetails({...bankDetails, accountType: e.target.value})}
                 >
-                  <option value="Ahorros" className="bg-[#111214] text-white">Ahorros</option>
-                  <option value="Corriente" className="bg-[#111214] text-white">Corriente</option>
+                  <option value="Ahorros" className="bg-neutral-900 text-white">Ahorros</option>
+                  <option value="Corriente" className="bg-neutral-900 text-white">Corriente</option>
                 </select>
               </div>
               <input

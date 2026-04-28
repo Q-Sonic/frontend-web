@@ -19,9 +19,9 @@ export function DiscoverFilterBar({ filters, onChange }: DiscoverFilterBarProps)
           value={filters.genre ?? ''}
           onChange={(e) => onChange({ ...filters, genre: e.target.value || undefined })}
         >
-          <option value="">Género</option>
+          <option value="" className="bg-neutral-900 text-white">Género</option>
           {GENRE_OPTIONS.filter(Boolean).map((g) => (
-            <option key={g} value={g}>
+            <option key={g} value={g} className="bg-neutral-900 text-white">
               {g}
             </option>
           ))}
@@ -40,9 +40,9 @@ export function DiscoverFilterBar({ filters, onChange }: DiscoverFilterBarProps)
           value={filters.city ?? ''}
           onChange={(e) => onChange({ ...filters, city: e.target.value || undefined })}
         >
-          <option value="">Ciudad</option>
+          <option value="" className="bg-neutral-900 text-white">Ciudad</option>
           {CITY_OPTIONS.filter(Boolean).map((c) => (
-            <option key={c} value={c}>
+            <option key={c} value={c} className="bg-neutral-900 text-white">
               {c}
             </option>
           ))}

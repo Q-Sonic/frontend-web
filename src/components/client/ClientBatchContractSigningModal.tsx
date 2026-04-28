@@ -123,6 +123,7 @@ export function ClientBatchContractSigningModal({
   const [signedSessionLines, setSignedSessionLines] = useState<ServiceCartLine[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const signingSessionStartedRef = useRef(false);
+  const signatureDataRef = useRef<string | null>(null);
 
   const clientName =
     user?.displayName?.trim() || user?.email?.trim() || 'Cliente';
@@ -169,7 +170,18 @@ export function ClientBatchContractSigningModal({
     canvas.style.width = `${width}px`;
     canvas.style.height = `${height}px`;
     paintSignatureBackground(ctx, width, height, dpr);
-    setHasSignature(false);
+
+    // Restaurar firma si existe
+    if (signatureDataRef.current) {
+        const img = new Image();
+        img.onload = () => {
+            ctx.drawImage(img, 0, 0, width, height);
+        };
+        img.src = signatureDataRef.current;
+        setHasSignature(true);
+    } else {
+        setHasSignature(false);
+    }
   }, [paintSignatureBackground]);
 
   useEffect(() => {
@@ -257,6 +269,12 @@ export function ClientBatchContractSigningModal({
     }
     drawingRef.current = false;
     lastRef.current = null;
+    
+    // Guardar para persistencia (resize)
+    if (hasSignature) {
+        const canvas = canvasRef.current;
+        if (canvas) signatureDataRef.current = canvas.toDataURL();
+    }
   };
 
   const clearSignature = () => {
@@ -268,6 +286,7 @@ export function ClientBatchContractSigningModal({
     const dpr = window.devicePixelRatio || 1;
     const { width, height } = wrap.getBoundingClientRect();
     paintSignatureBackground(ctx, width, height, dpr);
+    signatureDataRef.current = null;
     setHasSignature(false);
   };
 
@@ -304,6 +323,7 @@ export function ClientBatchContractSigningModal({
       ctx.lineWidth = 2.5;
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
+      signatureDataRef.current = canvas.toDataURL();
       setHasSignature(true);
     };
     img.onerror = () => URL.revokeObjectURL(url);
@@ -323,9 +343,10 @@ export function ClientBatchContractSigningModal({
       await onComplete({ dataUrl, signedLines: toSign });
       setSignedSessionLines((s) => [...s, ...toSign]);
       setSelectedIds(new Set(remaining.map((l) => l.id)));
-      setTermsAccepted(false);
-      setHasSignature(false);
-      requestAnimationFrame(() => fitCanvasToContainer());
+      
+      // Mantenemos la firma y los términos aceptados para facilitar la firma de los contratos restantes
+      // si el usuario decide firmarlos uno por uno o en grupos.
+      // Se limpiará solo si el usuario pulsa deliberadamente "Limpiar" o cierra el modal.
     } finally {
       setSigning(false);
     }

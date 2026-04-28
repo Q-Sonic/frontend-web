@@ -11,24 +11,12 @@ import { useAuth } from '../../contexts/AuthContext';
 import { formatMoney } from '../../helpers/money';
 import { isBackendRoleArtista } from '../../helpers/role';
 import { withMinimumDelay } from '../../helpers/withMinimumDelay';
-import type { ApiResponse } from '../../types';
-import { fetchArtistDashboardStats, fetchArtistCalendarEvents, fetchArtistWithdrawals } from '../../api/firestoreDashboardService';
-
-type DashboardStats = {
-  totalEvents: number;
-  eventsGrowthPercent: number;
-  totalBalance: number;
-  profileVisitsTotal: number;
-  visitsChartData: { day: string; count: number }[];
-};
-
-type WithdrawalRequest = {
-  id: string;
-  amount: number;
-  status: 'PENDING' | 'COMPLETED' | 'REJECTED';
-  createdAt: unknown;
-  reason?: string;
-};
+import type { ApiResponse, DashboardStats, WithdrawalRequest } from '../../types';
+import {
+  fetchDashboardStats,
+  fetchArtistContracts,
+  fetchArtistWithdrawals,
+} from '../../api';
 
 type CalendarEvent = {
   id: string;
@@ -84,9 +72,14 @@ export function HomeArtistaPage() {
       setStatsError('');
 
       try {
-        const data = await withMinimumDelay(1000, () => fetchArtistDashboardStats(user.uid));
+        const data = await withMinimumDelay(1000, () => fetchDashboardStats());
         if (!cancelled?.current) {
           setStats(data);
+          // If backend already provided nextEvent, we can use it
+          if (data.nextEvent) {
+            setNextShow(mapEventDetailToNextShow(data.nextEvent as ExtendedEventDetail));
+            setNextShowLoading(false);
+          }
         }
       } catch (err) {
         if (!cancelled?.current) {
@@ -115,7 +108,7 @@ export function HomeArtistaPage() {
       setWithdrawalsLoading(true);
 
       try {
-        const data = await fetchArtistWithdrawals(user.uid);
+        const data = await fetchArtistWithdrawals();
         if (!cancelled?.current) {
           setWithdrawals(data);
         }
@@ -150,11 +143,10 @@ export function HomeArtistaPage() {
 
       try {
         const data = await withMinimumDelay(1000, async () => {
-          const events = await fetchArtistCalendarEvents(user.uid);
+          const events = await fetchArtistContracts();
           const nextContract = pickNextUpcomingEvent(events, now);
           if (!nextContract) return null;
 
-          // For detail, we also map it directly from the contract record we already have
           return mapEventDetailToNextShow(nextContract as ExtendedEventDetail);
         });
 
@@ -349,7 +341,6 @@ export function HomeArtistaPage() {
           refreshDashboard();
         }}
       />
-      <ClientFloatingChatButton />
     </div>
   );
 }
@@ -460,10 +451,10 @@ function BalanceCard({
     <div className="rounded-3xl bg-linear-to-l from-accent to-[#3A9AF4] p-5 text-white">
       <p className="text-sm font-medium opacity-90">Mi saldo</p>
       <p className="mt-2 text-3xl font-bold">
-        {loading || balance === null ? (
+        {loading ? (
           <Skeleton className="inline-block h-8 w-28 rounded opacity-60 align-middle" />
         ) : (
-          `$${formatMoney(balance)}`
+          `$${formatMoney(balance ?? 0)}`
         )}
       </p>
 

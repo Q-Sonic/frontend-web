@@ -221,3 +221,13 @@ export async function fetchSignedCartMockRecordsFromApi(): Promise<SignedCartMoc
   const rows = await fetchMyContractHistorySafe();
   return contractRecordsToSignedMockRecords(rows);
 }
+
+export async function fetchBookedDates(artistId: string): Promise<string[]> {
+  try {
+    const raw = await api<{ success: boolean; data: string[] }>(`contracts/booked-dates/${artistId}`);
+    return Array.isArray(raw.data) ? raw.data : [];
+  } catch (error) {
+    console.error('Failed to fetch booked dates:', error);
+    return [];
+  }
+}

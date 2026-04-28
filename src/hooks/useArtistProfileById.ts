@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getArtistProfileById, getArtistServicesByArtistId, getUser } from '../api';
+import { getArtistProfileById, getArtistServicesByArtistId, getUser, fetchBookedDates } from '../api';
 import { ApiError } from '../api/client';
 import type { ArtistProfile, ArtistServiceRecord } from '../types';
 import { withMinimumDelay } from '../helpers/withMinimumDelay';
@@ -34,6 +34,7 @@ export function useArtistProfileById(
   const [artistDisplayName, setArtistDisplayName] = useState<string>('Artista');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [bookedDates, setBookedDates] = useState<string[]>([]);
   const [version, setVersion] = useState(0);
 
   const refetch = () => setVersion(v => v + 1);
@@ -79,15 +80,17 @@ export function useArtistProfileById(
             }
           }
 
-          const [servicesList, userData] = await Promise.all([
+          const [servicesList, userData, booked] = await Promise.all([
             getArtistServicesByArtistId(safeId).catch(() => [] as ArtistServiceRecord[]),
             getUser(safeId).catch(() => null),
+            fetchBookedDates(safeId).catch(() => [] as string[]),
           ]);
 
           if (cancelled) return;
 
           setProfile(profileData);
           setServices(servicesList ?? []);
+          setBookedDates(booked ?? []);
           setArtistDisplayName(
             userData?.displayName?.trim() ||
               userData?.email?.trim() ||
@@ -100,6 +103,7 @@ export function useArtistProfileById(
         setError(err instanceof Error ? err.message : 'No se pudo cargar el perfil.');
         setProfile(null);
         setServices([]);
+        setBookedDates([]);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -112,5 +116,5 @@ export function useArtistProfileById(
     };
   }, [artistUid, allowEmpty, fallbackName, version]);
 
-  return { profile, services, artistDisplayName, loading, error, refetch };
+  return { profile, services, bookedDates, artistDisplayName, loading, error, refetch };
 }

@@ -50,7 +50,7 @@ export function ArtistProfileCalendarPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { exitHomePath, basePath } = useArtistProfileNav();
-  const { profile, services, artistDisplayName, loading, error } = useArtistProfileById(id);
+  const { profile, services, bookedDates, artistDisplayName, loading, error } = useArtistProfileById(id);
 
   const isClientArtistCalendar =
     isBackendRoleCliente(user?.role) && basePath.startsWith('/client/artists');
@@ -61,7 +61,11 @@ export function ArtistProfileCalendarPage() {
   });
   const [selectedDateKey, setSelectedDateKey] = useState<string | null>(null);
 
-  const blockedSet = useMemo(() => new Set(profile?.blockedDates ?? []), [profile?.blockedDates]);
+  const blockedSet = useMemo(() => {
+    const set = new Set(profile?.blockedDates ?? []);
+    bookedDates.forEach(d => set.add(d));
+    return set;
+  }, [profile?.blockedDates, bookedDates]);
   const availableServices = useMemo(
     () => services.filter((service): service is ArtistServiceRecord => !!service?.id),
     [services],
@@ -191,7 +195,7 @@ export function ArtistProfileCalendarPage() {
           </div>
           <label className="sr-only">Mes</label>
           <select
-            className="rounded-xl bg-black/50 border border-white/10 px-3 py-2 text-sm text-white font-medium min-w-[200px] focus:outline-none focus:ring-2 focus:ring-accent/30"
+            className="rounded-xl bg-neutral-900 border border-white/10 px-3 py-2 text-sm text-white font-medium min-w-[200px] focus:outline-none focus:ring-2 focus:ring-accent/30 appearance-none cursor-pointer"
             value={currentKey}
             onChange={(e) => {
               const [ys, ms] = e.target.value.split('-');
@@ -199,7 +203,7 @@ export function ArtistProfileCalendarPage() {
             }}
           >
             {monthOptions.map((o) => (
-              <option key={`${o.y}-${o.m}`} value={`${o.y}-${o.m}`}>
+              <option key={`${o.y}-${o.m}`} value={`${o.y}-${o.m}`} className="bg-neutral-900 text-white">
                 {o.label}
               </option>
             ))}
@@ -255,7 +259,7 @@ export function ArtistProfileCalendarPage() {
                   </span>
                   {blocked && inMonth ? (
                     <span className="mt-auto text-[10px] md:text-[11px] font-medium text-[#FF4D4D] leading-tight">
-                      No Disponible
+                      {bookedDates.includes(key) ? 'Reservado' : 'No Disponible'}
                     </span>
                   ) : null}
                 </button>

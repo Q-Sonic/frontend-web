@@ -25,7 +25,7 @@ import {
 import { isBackendRoleArtista } from '../../helpers/role';
 import { Navigate, useNavigate } from 'react-router-dom';
 
-type SettingsTab = 'profile' | 'media' | 'calendar' | 'documents' | 'access';
+type SettingsTab = 'profile' | 'access';
 
 export function ArtistSettingsHubPage() {
   const navigate = useNavigate();
@@ -71,9 +71,6 @@ export function ArtistSettingsHubPage() {
 
   const tabs = [
     { id: 'profile', label: 'Mi Perfil', icon: <FiUser /> },
-    { id: 'calendar', label: 'Mi Calendario', icon: <FiCalendar /> },
-    { id: 'media', label: 'Música y Galería', icon: <FiMusic /> },
-    { id: 'documents', label: 'Documentos y Contratos', icon: <FiFileText /> },
     { id: 'access', label: 'Seguridad y Acceso', icon: <FiLock /> },
   ] as const;
 
@@ -100,7 +97,7 @@ export function ArtistSettingsHubPage() {
                     : 'text-neutral-400 hover:text-white hover:bg-white/5 border border-transparent'
                   }`}
               >
-                <span className="text-lg">{tab.icon}</span>
+                <span className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-lg">{tab.icon}</span>
                 {tab.label}
               </button>
             ))}
@@ -126,7 +123,7 @@ export function ArtistSettingsHubPage() {
               </div>
             ) : (
               <>
-                {activeTab === 'profile' && (
+            {activeTab === 'profile' && (
               <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
                 <section>
                   <h2 className="text-xl font-semibold text-white mb-6 flex items-center gap-2">
@@ -172,56 +169,7 @@ export function ArtistSettingsHubPage() {
               </div>
             )}
 
-            {activeTab === 'calendar' && (
-              <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-                <ArtistCalendarSettings artistId={user.uid} />
-              </div>
-            )}
-
             {activeTab === 'access' && <ArtistAccessSettingsPage />}
-            
-            {activeTab === 'documents' && (
-              <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-                <ArtistProfileDocumentsPage />
-              </div>
-            )}
-
-            {activeTab === 'media' && (
-              <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                <section>
-                  <h2 className="text-xl font-semibold text-white mb-6 flex items-center gap-2">
-                    <FiMusic className="text-[#38BACC]" /> Música y Canciones
-                  </h2>
-                  <div className="grid gap-4">
-                    <Button variant="secondary" className="w-full justify-between" onClick={() => setActiveModal('songs')}>
-                       <span>Gestionar Repertorio</span>
-                       <FiMusic />
-                    </Button>
-                    <Button variant="outline" className="w-full justify-between" onClick={() => setActiveModal('featured-song')}>
-                       <span>Elegir Canción Destacada</span>
-                       <FiMusic />
-                    </Button>
-                  </div>
-                </section>
-                
-                <section>
-                  <h2 className="text-xl font-semibold text-white mb-6 flex items-center gap-2">
-                    <FiImage className="text-[#38BACC]" /> Galería de Fotos
-                  </h2>
-                  <div className="p-12 border border-dashed border-white/10 rounded-3xl text-center">
-                     <FiImage className="mx-auto text-4xl text-neutral-600 mb-4" />
-                     <p className="text-neutral-400">Sube y organiza las fotos de tu perfil.</p>
-                     <Button 
-                        variant="secondary" 
-                        className="mt-6 rounded-full px-8"
-                        onClick={() => navigate(`/artist/${user.uid}/gallery/edit`)}
-                     >
-                        Ir a Galería
-                     </Button>
-                  </div>
-                </section>
-              </div>
-            )}
             </>
             )}
           </div>

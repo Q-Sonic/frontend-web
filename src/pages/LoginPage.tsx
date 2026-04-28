@@ -59,9 +59,21 @@ export function LoginPage() {
   const location = useLocation();
   const { refreshUser } = useAuth();
 
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(() => {
+    try {
+      return localStorage.getItem('rememberedEmail') || '';
+    } catch {
+      return '';
+    }
+  });
   const [password, setPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(false);
+  const [rememberMe, setRememberMe] = useState(() => {
+    try {
+      return localStorage.getItem('shouldRememberMe') === 'true';
+    } catch {
+      return false;
+    }
+  });
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
@@ -126,6 +138,19 @@ export function LoginPage() {
         },
         rememberMe
       );
+
+      try {
+        if (rememberMe) {
+          localStorage.setItem('rememberedEmail', email);
+          localStorage.setItem('shouldRememberMe', 'true');
+        } else {
+          localStorage.removeItem('rememberedEmail');
+          localStorage.setItem('shouldRememberMe', 'false');
+        }
+      } catch {
+        /* ignore */
+      }
+
       await refreshUser();
       navigate(from, { replace: true });
     } catch (err) {

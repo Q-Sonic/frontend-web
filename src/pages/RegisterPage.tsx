@@ -227,159 +227,177 @@ export function RegisterPage() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
-        {/* Full Name */}
-        <Input
-          label="Nombre completo"
-          type="text"
-          autoComplete="name"
-          placeholder="Juan Pérez"
-          icon={<UserIcon />}
-          value={displayName}
-          onChange={(e) => setDisplayName(e.target.value)}
-          onBlur={() => touch('displayName')}
-          error={showError('displayName', displayNameError)}
-          success={!!displayName && !displayNameError}
-          required
-        />
-
-        {/* Account type */}
-        <fieldset className="border-0 p-0 m-0 min-w-0">
-          <legend className="text-sm font-medium text-white/80 mb-2">Tipo de cuenta</legend>
-          <div className="flex gap-2" role="group" aria-label="Tipo de cuenta">
-            {REGISTRATION_ROLE_OPTIONS.map(({ value, label }) => {
-              const selected = accountRole === value;
-              return (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => setAccountRole(value)}
-                  className={[
-                    'flex-1 rounded-lg border py-2.5 px-3 text-sm font-medium transition-all duration-200',
-                    selected
-                      ? 'border-[#00d4c8] bg-[#00d4c8]/10 text-white'
-                      : 'border-white/15 bg-transparent text-white/60 hover:border-white/35 hover:text-white/85',
-                  ].join(' ')}
-                >
-                  {label}
-                </button>
-              );
-            })}
+      {showSuccess ? (
+        <div className="flex flex-col items-center justify-center py-12 text-center animate-in fade-in zoom-in duration-500">
+          <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400">
+            <CheckCircleIcon />
           </div>
-        </fieldset>
-
-        {/* Email */}
-        <Input
-          label="Correo electrónico"
-          type="email"
-          autoComplete="email"
-          placeholder="correo@ejemplo.com"
-          icon={<MailIcon />}
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          onBlur={() => touch('email')}
-          error={showError('email', emailError)}
-          success={!!email && !emailError}
-          required
-        />
-
-        {/* Password */}
-        <Input
-          label="Contraseña"
-          type="password"
-          autoComplete="new-password"
-          placeholder="Crea tu contraseña"
-          icon={<LockIcon />}
-          showPasswordToggle
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          onBlur={() => touch('password')}
-          error={showError('password', passwordError)}
-          hint={!showError('password', passwordError) ? 'Mínimo 8 caracteres' : undefined}
-          success={!!password && !passwordError}
-          required
-        />
-
-        {/* Confirm Password */}
-        <Input
-          label="Confirmar contraseña"
-          type="password"
-          autoComplete="new-password"
-          placeholder="Confirma tu contraseña"
-          icon={<LockIcon />}
-          showPasswordToggle
-          value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
-          onBlur={() => touch('confirmPassword')}
-          error={showError('confirmPassword', confirmPasswordError)}
-          success={!!confirmPassword && !confirmPasswordError && !!password}
-          required
-        />
-
-        {/* Terms checkbox */}
-        <label className="flex items-start gap-2.5 cursor-pointer select-none group mt-1">
-          <div className="relative mt-0.5 flex-shrink-0">
-            <input
-              type="checkbox"
-              className="sr-only"
-              checked={agreedToTerms}
-              onChange={(e) => setAgreedToTerms(e.target.checked)}
-            />
-            <div className={`w-4 h-4 rounded border flex items-center justify-center transition-all duration-150 ${
-              agreedToTerms
-                ? 'bg-[#00d4c8] border-[#00d4c8]'
-                : isSubmitted && !agreedToTerms
-                ? 'bg-transparent border-red-500'
-                : 'bg-transparent border-white/25 group-hover:border-white/50'
-            }`}>
-              {agreedToTerms && (
-                <svg width="10" height="10" viewBox="0 0 12 12" fill="none" aria-hidden>
-                  <path d="M2 6l3 3 5-5" stroke="#0d1117" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              )}
+          <h3 className="text-2xl font-bold text-white mb-2">¡Bienvenido a Stage Go!</h3>
+          <p className="text-neutral-400 mb-8 max-w-sm">
+            Tu cuenta ha sido creada con éxito. Prepárate para llevar tu carrera al siguiente nivel.
+          </p>
+          <div className="w-full max-w-xs space-y-4">
+            <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+              <div className="h-full bg-[#00d4c8] animate-progress-expand transition-all duration-[2000ms] ease-out" style={{ width: '100%' }}></div>
             </div>
+            <p className="text-xs text-neutral-500 italic">Redirigiendo al inicio de sesión...</p>
           </div>
-          <span className="text-sm text-white/55 group-hover:text-white/75 transition-colors leading-5">
-            Acepto los{' '}
-            <Link
-              to="/terms"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[#00d4c8] hover:text-[#00ece0] font-medium transition-colors"
-            >
-              términos y condiciones
-            </Link>
-          </span>
-        </label>
-        {isSubmitted && !agreedToTerms && (
-          <p className="text-xs text-red-400 -mt-2">Debes aceptar los términos para continuar.</p>
-        )}
-
-        {/* Submit */}
-        <Button type="submit" variant="primary" fullWidth loading={isSubmitting} className="mt-1">
-          {isSubmitting ? 'Creando tu cuenta…' : 'Registrarse'}
-        </Button>
-
-        {/* Divider */}
-        <div className="flex items-center gap-3">
-          <hr className="flex-1 border-white/10" />
-          <span className="text-white/30 text-xs">o</span>
-          <hr className="flex-1 border-white/10" />
         </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
+          {/* Full Name */}
+          <Input
+            label="Nombre completo"
+            type="text"
+            autoComplete="name"
+            placeholder="Juan Pérez"
+            icon={<UserIcon />}
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
+            onBlur={() => touch('displayName')}
+            error={showError('displayName', displayNameError)}
+            success={!!displayName && !displayNameError}
+            required
+          />
 
-        {/* Google button */}
-        <Button
-          type="button"
-          variant="outline"
-          fullWidth
-          leftIcon={!isGoogleLoading && <GoogleIcon />}
-          onClick={handleGoogleLogin}
-          loading={isGoogleLoading}
-          disabled={isSubmitting}
-        >
-          {isGoogleLoading ? 'Conectando...' : 'Registrarse con Google'}
-        </Button>
-      </form>
+          {/* Account type */}
+          <fieldset className="border-0 p-0 m-0 min-w-0">
+            <legend className="text-sm font-medium text-white/80 mb-2">Tipo de cuenta</legend>
+            <div className="flex gap-2" role="group" aria-label="Tipo de cuenta">
+              {REGISTRATION_ROLE_OPTIONS.map(({ value, label }) => {
+                const selected = accountRole === value;
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setAccountRole(value)}
+                    className={[
+                      'flex-1 rounded-lg border py-2.5 px-3 text-sm font-medium transition-all duration-200',
+                      selected
+                        ? 'border-[#00d4c8] bg-[#00d4c8]/10 text-white'
+                        : 'border-white/15 bg-transparent text-white/60 hover:border-white/35 hover:text-white/85',
+                    ].join(' ')}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+          </fieldset>
+
+          {/* Email */}
+          <Input
+            label="Correo electrónico"
+            type="email"
+            autoComplete="email"
+            placeholder="correo@ejemplo.com"
+            icon={<MailIcon />}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            onBlur={() => touch('email')}
+            error={showError('email', emailError)}
+            success={!!email && !emailError}
+            required
+          />
+
+          {/* Password */}
+          <Input
+            label="Contraseña"
+            type="password"
+            autoComplete="new-password"
+            placeholder="Crea tu contraseña"
+            icon={<LockIcon />}
+            showPasswordToggle
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            onBlur={() => touch('password')}
+            error={showError('password', passwordError)}
+            hint={!showError('password', passwordError) ? 'Mínimo 8 caracteres' : undefined}
+            success={!!password && !passwordError}
+            required
+          />
+
+          {/* Confirm Password */}
+          <Input
+            label="Confirmar contraseña"
+            type="password"
+            autoComplete="new-password"
+            placeholder="Confirma tu contraseña"
+            icon={<LockIcon />}
+            showPasswordToggle
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            onBlur={() => touch('confirmPassword')}
+            error={showError('confirmPassword', confirmPasswordError)}
+            success={!!confirmPassword && !confirmPasswordError && !!password}
+            required
+          />
+
+          {/* Terms checkbox */}
+          <label className="flex items-start gap-2.5 cursor-pointer select-none group mt-1">
+            <div className="relative mt-0.5 flex-shrink-0">
+              <input
+                type="checkbox"
+                className="sr-only"
+                checked={agreedToTerms}
+                onChange={(e) => setAgreedToTerms(e.target.checked)}
+              />
+              <div className={`w-4 h-4 rounded border flex items-center justify-center transition-all duration-150 ${
+                agreedToTerms
+                  ? 'bg-[#00d4c8] border-[#00d4c8]'
+                  : isSubmitted && !agreedToTerms
+                  ? 'bg-transparent border-red-500'
+                  : 'bg-transparent border-white/25 group-hover:border-white/50'
+              }`}>
+                {agreedToTerms && (
+                  <svg width="10" height="10" viewBox="0 0 12 12" fill="none" aria-hidden>
+                    <path d="M2 6l3 3 5-5" stroke="#0d1117" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                )}
+              </div>
+            </div>
+            <span className="text-sm text-white/55 group-hover:text-white/75 transition-colors leading-5">
+              Acepto los{' '}
+              <Link
+                to="/terms"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[#00d4c8] hover:text-[#00ece0] font-medium transition-colors"
+              >
+                términos y condiciones
+              </Link>
+            </span>
+          </label>
+          {isSubmitted && !agreedToTerms && (
+            <p className="text-xs text-red-400 -mt-2">Debes aceptar los términos para continuar.</p>
+          )}
+
+          {/* Submit */}
+          <Button type="submit" variant="primary" fullWidth loading={isSubmitting} className="mt-1">
+            {isSubmitting ? 'Creando tu cuenta…' : 'Registrarse'}
+          </Button>
+
+          {/* Divider */}
+          <div className="flex items-center gap-3">
+            <hr className="flex-1 border-white/10" />
+            <span className="text-white/30 text-xs">o</span>
+            <hr className="flex-1 border-white/10" />
+          </div>
+
+          {/* Google button */}
+          <Button
+            type="button"
+            variant="outline"
+            fullWidth
+            leftIcon={!isGoogleLoading && <GoogleIcon />}
+            onClick={handleGoogleLogin}
+            loading={isGoogleLoading}
+            disabled={isSubmitting}
+          >
+            {isGoogleLoading ? 'Conectando...' : 'Registrarse con Google'}
+          </Button>
+        </form>
+      )}
 
       {/* Footer link */}
       <p className="mt-8 text-center text-sm text-white/40">

@@ -8,6 +8,8 @@ export {
   verifyAccountChangeCode,
   changeAccountEmail,
   changeAccountPassword,
+  forgotPassword,
+  resetPassword,
 } from './authService';
 export type { AccountChangeStatus } from './authService';
 export { getAllUsers, getUser, updateUser } from './userService';
@@ -51,5 +53,7 @@ export {
   createContractsForSignedLines,
   contractRecordsToSignedMockRecords,
   dispatchContractsApiRefresh,
+  fetchBookedDates,
   STAGEGO_CLIENT_CONTRACTS_API_REFRESH_EVENT,
 } from './contractService';
+export { fetchDashboardStats, fetchArtistContracts, fetchArtistWithdrawals } from './dashboardService';

@@ -146,6 +146,7 @@ export function AppRoutes() {
             <Route path="services/:serviceId" element={<ClientArtistServiceDetailPage />} />
             <Route path="contracts" element={<ClientArtistContractsSubPage />} />
             <Route path="rider" element={<ClientArtistRiderSubPage />} />
+            <Route path="documents" element={<Navigate to="contracts" replace />} />
           </Route>
         </Route>
 

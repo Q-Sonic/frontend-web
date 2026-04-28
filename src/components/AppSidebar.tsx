@@ -192,7 +192,7 @@ export function AppSidebar({
         </nav>
       </div>
       {user && (
-        <div className="shrink-0 border-t border-white/10 px-3 pt-3 pb-2">
+        <div className="mt-auto shrink-0 border-t border-white/10 px-3 pt-3 pb-2">
           <button
             type="button"
             onClick={() => {

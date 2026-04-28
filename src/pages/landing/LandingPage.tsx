@@ -196,14 +196,17 @@ export function LandingPage() {
     >
       {/* Interactive Spotlight */}
       <div 
-        className="pointer-events-none fixed inset-0 z-10 transition-opacity duration-300"
+        className="pointer-events-none fixed inset-0 z-10 transition-opacity duration-500 ease-out"
         style={{
-          background: `radial-gradient(600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(0, 204, 203, 0.06), transparent 80%)`
+          background: `radial-gradient(800px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(0, 204, 203, 0.08), transparent 80%)`
         }}
       />
 
-      {/* Minimalist Background with Spotlight only */}
-      <div className="pointer-events-none fixed inset-0 z-0 bg-[#07090b]" />
+      {/* Ambient background glow */}
+      <div className="pointer-events-none fixed inset-0 z-0 bg-[#07090b]">
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-[#00CCCB]/5 blur-[120px] rounded-full" />
+        <div className="absolute bottom-[10%] right-[-5%] w-[30%] h-[30%] bg-[#00CCCB]/3 blur-[100px] rounded-full" />
+      </div>
 
       <header className="fixed top-0 left-0 right-0 z-50 bg-[#0A0B0B]">
         <div className="mx-auto flex min-h-[4.5rem] max-w-[1150px] items-center justify-between px-3 py-3 md:px-5 md:py-4 lg:px-8">

@@ -41,15 +41,13 @@ export async function api<T>(
     (headers as Record<string, string>)['Authorization'] = `Bearer ${idToken}`;
   }
   const method = (options.method ?? 'GET').toUpperCase();
-  if (pathNorm.startsWith('client-profiles') && method === 'PUT') {
-    console.log('[ClientProfile Update] api request', {
-      url,
-      method,
-      hasAuth: !!idToken,
-      authPrefix: idToken ? `Bearer ${idToken.slice(0, 10)}...` : 'none',
-      body: options.body,
-    });
-  }
+  
+  // LOG PARA TODAS LAS PETICIONES (DEBUGGING)
+  console.log(`[API Request] ${method} ${url}`, {
+    hasAuth: !!idToken,
+    body: options.body ? (typeof options.body === 'string' ? JSON.parse(options.body) : 'complex-body') : 'no-body'
+  });
+
   const res = await fetch(url, { ...options, headers });
   if (pathNorm.startsWith('client-profiles') && method === 'PUT') {
     console.log('[ClientProfile Update] api response', {
