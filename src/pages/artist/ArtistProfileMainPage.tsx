@@ -8,7 +8,6 @@ import {
   ARTIST_PROFILE_ACCENT,
   ArtistProfileAvailabilityDay,
   ArtistFeaturedSongModal,
-  ArtistProfileEditButton,
   ArtistProfileGalleryGrid,
   ArtistProfileSettingsModal,
   ArtistProfileSectionTitle,
@@ -24,6 +23,7 @@ import {
   weekdayShortEs,
 } from '../../components';
 import { ensureArtistProfileListedForDiscovery, getArtistSongsByArtistId } from '../../api';
+import { isArtistServiceBookable } from '../../helpers/artistServiceVisibility';
 import { getPinnedItemIds, savePinnedItemIds, sortPinnedFirst } from '../../helpers/pinnedItems';
 import type { ArtistMediaItem, ArtistProfile, ArtistServiceRecord, ArtistSongRecord } from '../../types';
 import { FiPlay, FiPause, FiSkipBack, FiSkipForward, FiUser, FiAlertCircle } from 'react-icons/fi';
@@ -62,6 +62,8 @@ export function ArtistProfileMainPage() {
   const [playingSongId, setPlayingSongId] = useState<string | null>(null);
   const [servicesExpanded, setServicesExpanded] = useState(false);
   const [pinnedServiceIds, setPinnedServiceIds] = useState<string[]>([]);
+  const [servicesAdminModalOpen, setServicesAdminModalOpen] = useState(false);
+  const [adminModalEditorServiceId, setAdminModalEditorServiceId] = useState<string | null>(null);
 
   // Missing state for build fix
   const [artistDisplayName, setArtistDisplayName] = useState('');
@@ -177,6 +179,11 @@ export function ArtistProfileMainPage() {
     () => sortPinnedFirst(localServices, pinnedServiceIds),
     [localServices, pinnedServiceIds],
   );
+  const orderedServicesPublic = useMemo(() => {
+    const bookable = localServices.filter(isArtistServiceBookable);
+    return sortPinnedFirst(bookable, pinnedServiceIds);
+  }, [localServices, pinnedServiceIds]);
+  const servicesForGrid = isSelfArtist ? orderedServices : orderedServicesPublic;
   const reserveService = useMemo(
     () => getPrimaryReservationService(orderedServices),
     [orderedServices],
@@ -541,9 +548,14 @@ export function ArtistProfileMainPage() {
       <section id="documents" className="space-y-5 scroll-mt-24">
         <ArtistProfileSectionTitle
           title="Servicios"
-          isSelfArtist={false}
+          isSelfArtist={isSelfArtist}
+          editAfterTitle
+          onClick={() => {
+            setAdminModalEditorServiceId(null);
+            setServicesAdminModalOpen(true);
+          }}
           asideContent={
-            orderedServices.length > 4 ? (
+            servicesForGrid.length > 4 ? (
               <button
                 type="button"
                 onClick={() => setServicesExpanded((prev) => !prev)}
@@ -551,16 +563,20 @@ export function ArtistProfileMainPage() {
               >
                 {servicesExpanded
                   ? 'Ver menos'
-                  : `Ver más (${orderedServices.length - 4} más)`}
+                  : `Ver más (${servicesForGrid.length - 4} más)`}
               </button>
             ) : null
           }
         />
-        {orderedServices.length === 0 ? (
-          <p className="text-neutral-500 text-sm">Sin servicios.</p>
+        {servicesForGrid.length === 0 ? (
+          <p className="text-neutral-500 text-sm">
+            {isSelfArtist
+              ? 'Sin servicios.'
+              : 'Este artista aún no tiene servicios publicados (contrato y rider técnico requeridos).'}
+          </p>
         ) : (
           <div className="grid w-full grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
-            {(servicesExpanded ? orderedServices : orderedServices.slice(0, 4)).map((s) => {
+            {(servicesExpanded ? servicesForGrid : servicesForGrid.slice(0, 4)).map((s) => {
               const serviceFeatures = Array.isArray(s.features) ? s.features : [];
               const features =
                 s.duration && s.duration.trim()
@@ -575,6 +591,16 @@ export function ArtistProfileMainPage() {
                     isSelfArtist={isSelfArtist}
                     hireLinkTo={`${basePath}/services/${s.id}`}
                     isPinned={pinnedServiceIds.includes(s.id)}
+                    documentsComplete={isArtistServiceBookable(s)}
+                    documentsHref={isSelfArtist ? `${basePath}/documents` : undefined}
+                    onContinueEditingDraft={
+                      isSelfArtist
+                        ? (svc) => {
+                            setAdminModalEditorServiceId(svc.id);
+                            setServicesAdminModalOpen(true);
+                          }
+                        : undefined
+                    }
                   />
                 </div>
               );
@@ -597,6 +623,19 @@ export function ArtistProfileMainPage() {
         )}
       </section>
 
+      <ArtistServicesAdminModal
+        isOpen={servicesAdminModalOpen}
+        artistId={effectiveId}
+        services={localServices}
+        onClose={() => {
+          setServicesAdminModalOpen(false);
+          setAdminModalEditorServiceId(null);
+        }}
+        onServicesChange={setLocalServices}
+        onPinnedServicesChange={setPinnedServiceIds}
+        openEditorForServiceId={adminModalEditorServiceId}
+        onOpenEditorForServiceIdConsumed={() => setAdminModalEditorServiceId(null)}
+      />
     </div>
   );
 }

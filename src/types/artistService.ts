@@ -17,8 +17,23 @@ export interface ArtistServiceRecord {
   documentUrl?: string;
   riderPdfUrl?: string;
   contractDocumentUrl?: string;
+  /**
+   * Artist file id linked as contract template (same as `contractId` from API).
+   * Prefer reading `contractId` / `contractTemplateId` via `normalizeArtistServiceRecord` from API layer.
+   */
   contractTemplateId?: string;
+  /**
+   * Artist file id linked as technical rider (same as `technicalRiderId` from API).
+   */
   technicalRiderTemplateId?: string;
+  /** OpenAPI / backend field for linked contract `artist-files` record. */
+  contractId?: string;
+  /** OpenAPI / backend field for linked rider `artist-files` record. */
+  technicalRiderId?: string;
+  /** Populated on some GET responses when contract is expanded. */
+  contract?: { id?: string; originalName?: string; url?: string } | null;
+  /** Populated on some GET responses when rider is expanded. */
+  technicalRider?: { id?: string; originalName?: string; url?: string } | null;
 }
 
 export interface CreateArtistServiceBody {
@@ -27,7 +42,9 @@ export interface CreateArtistServiceBody {
   description?: string;
   duration?: string;
   features?: string[];
+  /** Artist file id; sent to API as `contractId`. */
   contractTemplateId?: string;
+  /** Artist file id; sent to API as `technicalRiderId`. */
   technicalRiderTemplateId?: string;
 }
 

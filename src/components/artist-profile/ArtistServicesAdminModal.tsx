@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { FiChevronDown, FiPlus, FiTrash2, FiX } from 'react-icons/fi';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { FiChevronDown, FiFileText, FiPlus, FiTrash2, FiUpload, FiX } from 'react-icons/fi';
 import { FaThumbtack } from 'react-icons/fa6';
 import { Button } from '../Button';
 import {
@@ -9,7 +9,10 @@ import {
   updateArtistService,
   deleteArtistService,
   updateArtistServiceWithFormData,
+  listMyArtistFiles,
+  uploadArtistFile,
 } from '../../api';
+import type { ArtistFileRecord } from '../../types/artistFile';
 import {
   MAX_PINNED_ITEMS,
   getPinnedItemIds,
@@ -26,6 +29,9 @@ type ArtistServicesAdminModalProps = {
   onClose: () => void;
   onServicesChange: (next: ArtistServiceRecord[]) => void;
   onPinnedServicesChange?: (ids: string[]) => void;
+  /** When the admin modal opens, open the editor for this service id (e.g. from profile card). */
+  openEditorForServiceId?: string | null;
+  onOpenEditorForServiceIdConsumed?: () => void;
 };
 
 type ServiceFormState = {
@@ -41,6 +47,33 @@ type ServiceFormState = {
 type EditorMode = 'create' | 'edit';
 type CustomSelectId = 'contract' | 'technicalRider';
 
+type ServiceDocumentUploadTarget = 'contract' | 'technical_rider';
+
+const uploadModalMessages = {
+  nameRequired: 'Primero escribe un nombre para este documento.',
+  pdfRequiredCreate: 'Adjunta un archivo PDF.',
+  pdfTypeInvalid: 'Solo se permiten archivos PDF.',
+} as const;
+
+function sanitizePdfDisplayBase(displayBaseName: string): string {
+  return displayBaseName.replace(/[/\\?%*:|"<>]/g, '-').trim() || 'documento';
+}
+
+function displayNameToOriginalPdfFilename(displayBaseName: string): string {
+  return `${sanitizePdfDisplayBase(displayBaseName)}.pdf`;
+}
+
+function buildNamedPdfFile(source: File, displayBaseName: string): File {
+  const target = displayNameToOriginalPdfFilename(displayBaseName);
+  if (source.name.toLowerCase() === target.toLowerCase()) return source;
+  return new File([source], target, { type: 'application/pdf' });
+}
+
+function fileLabel(file: ArtistFileRecord): string {
+  const base = file.originalName.replace(/\.pdf$/i, '') || file.originalName;
+  return base.trim() || file.id;
+}
+
 const emptyForm: ServiceFormState = {
   id: '',
   name: '',
@@ -51,20 +84,6 @@ const emptyForm: ServiceFormState = {
   contractTemplateId: '',
   technicalRiderTemplateId: '',
 };
-
-const contractTemplateOptions = [
-  { id: '', label: 'Seleccionar contrato' },
-  { id: 'contract-standard', label: 'Contrato estandar (ejemplo)' },
-  { id: 'contract-festival', label: 'Contrato festival (ejemplo)' },
-  { id: 'contract-private-event', label: 'Contrato evento privado (ejemplo)' },
-];
-
-const technicalRiderOptions = [
-  { id: '', label: 'Seleccionar rider tecnico' },
-  { id: 'rider-basic', label: 'Rider basico (ejemplo)' },
-  { id: 'rider-full-band', label: 'Rider banda completa (ejemplo)' },
-  { id: 'rider-acoustic', label: 'Rider acustico (ejemplo)' },
-];
 
 /** Matches public `ArtistServiceCard` shell: teal border, glass fill, hover glow. */
 const adminServiceCardShell =
@@ -79,33 +98,53 @@ export function ArtistServicesAdminModal({
   onClose,
   onServicesChange,
   onPinnedServicesChange,
+  openEditorForServiceId,
+  onOpenEditorForServiceIdConsumed,
 }: ArtistServicesAdminModalProps) {
   const [form, setForm] = useState<ServiceFormState>(emptyForm);
   const [newDetail, setNewDetail] = useState('');
   const [imageFile, setImageFile] = useState<File | null>(null);
-  const [contractFile, setContractFile] = useState<File | null>(null);
-  const [riderFile, setRiderFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
+  const [editorError, setEditorError] = useState('');
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editorMode, setEditorMode] = useState<EditorMode>('create');
   const [pinnedServiceIds, setPinnedServiceIds] = useState<string[]>([]);
   const [openCustomSelect, setOpenCustomSelect] = useState<CustomSelectId | null>(null);
+  const [contractFiles, setContractFiles] = useState<ArtistFileRecord[]>([]);
+  const [riderFiles, setRiderFiles] = useState<ArtistFileRecord[]>([]);
+  const [filesLoading, setFilesLoading] = useState(false);
+  const [filesLoadError, setFilesLoadError] = useState('');
+  const [uploadModal, setUploadModal] = useState<{
+    isOpen: boolean;
+    target: ServiceDocumentUploadTarget;
+    name: string;
+    description: string;
+    file: File | null;
+  }>({ isOpen: false, target: 'contract', name: '', description: '', file: null });
+  const [uploadModalError, setUploadModalError] = useState('');
+  const [isSavingUpload, setIsSavingUpload] = useState(false);
 
   useEffect(() => {
     if (!isOpen) {
       setForm(emptyForm);
       setNewDetail('');
       setImageFile(null);
-      setContractFile(null);
-      setRiderFile(null);
       setPreviewUrl('');
       setError('');
+      setEditorError('');
       setIsSaving(false);
       setIsEditorOpen(false);
       setEditorMode('create');
       setOpenCustomSelect(null);
+      setContractFiles([]);
+      setRiderFiles([]);
+      setFilesLoading(false);
+      setFilesLoadError('');
+      setUploadModal({ isOpen: false, target: 'contract', name: '', description: '', file: null });
+      setUploadModalError('');
+      setIsSavingUpload(false);
     }
   }, [isOpen]);
 
@@ -131,22 +170,60 @@ export function ArtistServicesAdminModal({
   useEffect(() => {
     if (!isOpen) return;
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !isSaving) onClose();
+      if (e.key !== 'Escape' || isSaving) return;
+      if (uploadModal.isOpen) {
+        if (!isSavingUpload) {
+          setUploadModalError('');
+          setUploadModal((prev) => ({ ...prev, isOpen: false, file: null, description: '' }));
+        }
+        return;
+      }
+      if (isEditorOpen) {
+        setEditorError('');
+        setIsEditorOpen(false);
+        return;
+      }
+      onClose();
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [isOpen, isSaving, onClose]);
+  }, [isOpen, isSaving, isSavingUpload, isEditorOpen, onClose, uploadModal.isOpen]);
 
   useEffect(() => {
     if (!isEditorOpen) return;
-    const onMouseDown = (event: MouseEvent) => {
+    const onPointerDown = (event: PointerEvent) => {
       const target = event.target as HTMLElement | null;
       if (!target?.closest('[data-custom-select-root="true"]')) {
         setOpenCustomSelect(null);
       }
     };
-    window.addEventListener('mousedown', onMouseDown);
-    return () => window.removeEventListener('mousedown', onMouseDown);
+    window.addEventListener('pointerdown', onPointerDown);
+    return () => window.removeEventListener('pointerdown', onPointerDown);
+  }, [isEditorOpen]);
+
+  useEffect(() => {
+    if (!isEditorOpen) return;
+    let cancelled = false;
+    setFilesLoading(true);
+    setFilesLoadError('');
+    void Promise.all([listMyArtistFiles('contract'), listMyArtistFiles('technical_rider')])
+      .then(([contracts, riders]) => {
+        if (!cancelled) {
+          setContractFiles(contracts);
+          setRiderFiles(riders);
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setFilesLoadError(err instanceof Error ? err.message : 'No se pudieron cargar los documentos.');
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setFilesLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [isEditorOpen]);
 
   const selectedImage = useMemo(() => {
@@ -160,6 +237,65 @@ export function ArtistServicesAdminModal({
     [services, pinnedServiceIds],
   );
 
+  const contractSelectOptions = useMemo(() => {
+    const placeholder = { id: '', label: 'Elegir entre tus contratos guardados…' };
+    const fromFiles = contractFiles.map((f) => ({ id: f.id, label: fileLabel(f) }));
+    const ids = new Set(fromFiles.map((o) => o.id));
+    const extra: Array<{ id: string; label: string }> = [];
+    if (form.contractTemplateId && !ids.has(form.contractTemplateId)) {
+      extra.push({ id: form.contractTemplateId, label: '(Documento vinculado)' });
+    }
+    return [placeholder, ...extra, ...fromFiles];
+  }, [contractFiles, form.contractTemplateId]);
+
+  const riderSelectOptions = useMemo(() => {
+    const placeholder = { id: '', label: 'Elegir entre tus riders guardados…' };
+    const fromFiles = riderFiles.map((f) => ({ id: f.id, label: fileLabel(f) }));
+    const ids = new Set(fromFiles.map((o) => o.id));
+    const extra: Array<{ id: string; label: string }> = [];
+    if (form.technicalRiderTemplateId && !ids.has(form.technicalRiderTemplateId)) {
+      extra.push({ id: form.technicalRiderTemplateId, label: '(Documento vinculado)' });
+    }
+    return [placeholder, ...extra, ...fromFiles];
+  }, [riderFiles, form.technicalRiderTemplateId]);
+
+  const canSaveUploadModal =
+    uploadModal.isOpen &&
+    !isSavingUpload &&
+    Boolean(uploadModal.name.trim()) &&
+    Boolean(uploadModal.file) &&
+    uploadModal.file?.type === 'application/pdf';
+
+  const startEdit = useCallback((service: ArtistServiceRecord) => {
+    setForm({
+      id: service.id,
+      name: service.name,
+      price: String(service.price),
+      description: service.description ?? '',
+      details: service.features ?? [],
+      imageUrl: service.imageUrl ?? '',
+      contractTemplateId: service.contractTemplateId ?? service.contractId ?? '',
+      technicalRiderTemplateId: service.technicalRiderTemplateId ?? service.technicalRiderId ?? '',
+    });
+    setImageFile(null);
+    setPreviewUrl('');
+    setError('');
+    setEditorError('');
+    setEditorMode('edit');
+    setIsEditorOpen(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen || !openEditorForServiceId) return;
+    const svc = services.find((s) => s.id === openEditorForServiceId);
+    if (!svc) {
+      onOpenEditorForServiceIdConsumed?.();
+      return;
+    }
+    startEdit(svc);
+    onOpenEditorForServiceIdConsumed?.();
+  }, [isOpen, openEditorForServiceId, services, onOpenEditorForServiceIdConsumed, startEdit]);
+
   if (!isOpen) return null;
 
   const subtleScrollbarClass =
@@ -168,35 +304,10 @@ export function ArtistServicesAdminModal({
   const startCreate = () => {
     setForm(emptyForm);
     setImageFile(null);
-    setContractFile(null);
-    setRiderFile(null);
     setPreviewUrl('');
     setError('');
+    setEditorError('');
     setEditorMode('create');
-    setIsEditorOpen(true);
-  };
-
-  const startEdit = (service: ArtistServiceRecord) => {
-    const serviceWithTemplate = service as ArtistServiceRecord & {
-      contractTemplateId?: string;
-      technicalRiderTemplateId?: string;
-    };
-    setForm({
-      id: service.id,
-      name: service.name,
-      price: String(service.price),
-      description: service.description ?? '',
-      details: service.features ?? [],
-      imageUrl: service.imageUrl ?? '',
-      contractTemplateId: serviceWithTemplate.contractTemplateId ?? '',
-      technicalRiderTemplateId: serviceWithTemplate.technicalRiderTemplateId ?? '',
-    });
-    setImageFile(null);
-    setContractFile(null);
-    setRiderFile(null);
-    setPreviewUrl('');
-    setError('');
-    setEditorMode('edit');
     setIsEditorOpen(true);
   };
 
@@ -242,33 +353,90 @@ export function ArtistServicesAdminModal({
     if (sanitizedDetails.length > 0) createPayload.features = sanitizedDetails;
     const updatePayload: UpdateArtistServiceBody = { ...createPayload };
     if (!name || Number.isNaN(price) || price < 0) {
-      setError('Nombre y precio valido son obligatorios.');
+      setEditorError('Nombre y precio valido son obligatorios.');
       return;
     }
     setIsSaving(true);
+    setEditorError('');
     setError('');
     try {
       if (editorMode === 'edit' && form.id) {
-        const updated = (imageFile || contractFile || riderFile)
-          ? await updateArtistServiceWithFormData(form.id, updatePayload, imageFile, contractFile, riderFile)
+        const updated = imageFile
+          ? await updateArtistServiceWithFormData(form.id, updatePayload, imageFile, null, null)
           : await updateArtistService(form.id, updatePayload);
         onServicesChange(services.map((item) => (item.id === updated.id ? updated : item)));
         startEdit(updated);
       } else {
-        // Create first with JSON, then upload files on update if present.
-        const created = await createArtistService(createPayload);
-        const createdWithFiles = (imageFile || contractFile || riderFile)
-          ? await updateArtistServiceWithFormData(created.id, {}, imageFile, contractFile, riderFile)
-          : created;
+        const createdWithFiles = await createArtistService(createPayload, imageFile);
         onServicesChange([createdWithFiles, ...services]);
         startEdit(createdWithFiles);
       }
       setIsEditorOpen(false);
       setEditorMode('create');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo guardar el servicio.');
+      setEditorError(err instanceof Error ? err.message : 'No se pudo guardar el servicio.');
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const openServiceDocumentUploadModal = (target: ServiceDocumentUploadTarget) => {
+    setUploadModalError('');
+    setUploadModal({
+      isOpen: true,
+      target,
+      name: '',
+      description: '',
+      file: null,
+    });
+  };
+
+  const closeServiceDocumentUploadModal = () => {
+    setUploadModalError('');
+    setUploadModal((prev) => ({ ...prev, isOpen: false, file: null, description: '' }));
+  };
+
+  const saveServiceDocumentUploadModal = async () => {
+    const name = uploadModal.name.trim();
+    if (!name) {
+      setUploadModalError(uploadModalMessages.nameRequired);
+      return;
+    }
+    if (!uploadModal.file) {
+      setUploadModalError(uploadModalMessages.pdfRequiredCreate);
+      return;
+    }
+    if (uploadModal.file.type !== 'application/pdf') {
+      setUploadModalError(uploadModalMessages.pdfTypeInvalid);
+      return;
+    }
+    setIsSavingUpload(true);
+    setUploadModalError('');
+    try {
+      const pdfFile = buildNamedPdfFile(uploadModal.file, name);
+      const desc = uploadModal.description.trim();
+      const record = await uploadArtistFile(pdfFile, uploadModal.target, {
+        displayName: name,
+        ...(desc ? { description: desc } : {}),
+      });
+      const [contracts, riders] = await Promise.all([
+        listMyArtistFiles('contract'),
+        listMyArtistFiles('technical_rider'),
+      ]);
+      setContractFiles(contracts);
+      setRiderFiles(riders);
+      if (uploadModal.target === 'contract') {
+        setForm((prev) => ({ ...prev, contractTemplateId: record.id }));
+      } else {
+        setForm((prev) => ({ ...prev, technicalRiderTemplateId: record.id }));
+      }
+      closeServiceDocumentUploadModal();
+    } catch (err) {
+      setUploadModalError(
+        err instanceof Error ? err.message : 'No se pudo subir el documento. Inténtalo de nuevo.',
+      );
+    } finally {
+      setIsSavingUpload(false);
     }
   };
 
@@ -305,12 +473,12 @@ export function ArtistServicesAdminModal({
     const isPlaceholder = !value;
     return (
       <div className="block" data-custom-select-root="true">
-        <p className="mb-1.5 text-sm font-medium text-neutral-300">{label}</p>
+        {label ? <p className="mb-1.5 text-sm font-medium text-neutral-300">{label}</p> : null}
         <div className="relative">
           <button
             type="button"
             onClick={() => setOpenCustomSelect((prev) => (prev === selectId ? null : selectId))}
-            className={`flex w-full items-center justify-between rounded-xl border bg-black/20 px-3 py-2.5 text-sm outline-none transition focus-visible:border-[#00d4c8]/50 focus-visible:ring-2 focus-visible:ring-[#00d4c8]/25 ${
+            className={`touch-manipulation flex min-h-[44px] w-full items-center justify-between rounded-xl border bg-black/20 px-3 py-2.5 text-sm outline-none transition focus-visible:border-[#00d4c8]/50 focus-visible:ring-2 focus-visible:ring-[#00d4c8]/25 ${
               isOpen ? 'border-[#00d4c8]/55' : 'border-white/20'
             }`}
           >
@@ -334,7 +502,7 @@ export function ArtistServicesAdminModal({
                         onChange(option.id);
                         setOpenCustomSelect(null);
                       }}
-                      className={`flex w-full items-center px-3 py-2 text-left text-sm transition ${
+                      className={`touch-manipulation flex min-h-[44px] w-full items-center px-3 py-2.5 text-left text-sm transition sm:min-h-0 sm:py-2 ${
                         isSelected
                           ? 'bg-[#00d4c8]/20 text-white'
                           : 'text-neutral-200 hover:bg-white/10 hover:text-white'
@@ -366,58 +534,59 @@ export function ArtistServicesAdminModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+    <div className="fixed inset-0 z-50 flex min-h-0 items-stretch justify-center bg-black/70 p-0 sm:items-center sm:p-4 sm:pt-[max(0.5rem,env(safe-area-inset-top))] sm:pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:pl-[max(0.5rem,env(safe-area-inset-left))] sm:pr-[max(0.5rem,env(safe-area-inset-right))]">
       <div
-        className={`w-full max-w-[1180px] max-h-[90vh] overflow-y-auto rounded-3xl border border-[#00d4c8]/35 bg-[#111214] p-5 shadow-[0_0_40px_rgba(0,212,200,0.2)] sm:p-6 md:p-8 ${subtleScrollbarClass}`}
+        className={`flex h-full min-h-0 max-h-[100dvh] w-full max-w-full flex-col overflow-hidden rounded-none border-x-0 border-y border-[#00d4c8]/35 bg-[#111214] shadow-none sm:h-auto sm:max-h-[min(92dvh,calc(100dvh-2rem))] sm:max-w-[min(1240px,calc(100vw-1.5rem))] sm:rounded-3xl sm:border sm:shadow-[0_0_40px_rgba(0,212,200,0.2)] ${subtleScrollbarClass}`}
       >
-        <div className="mb-6 sm:mb-8">
-          <div className="flex items-start justify-between gap-4">
-            <h3 className="min-w-0 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+        <div className="shrink-0 px-4 pb-3 pt-[max(1rem,env(safe-area-inset-top))] sm:px-6 sm:pb-4 sm:pt-6 md:px-8 md:pt-8">
+          <div className="grid grid-cols-[1fr_auto] gap-x-3 gap-y-3 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center sm:gap-x-4">
+            <h3 className="col-start-1 row-start-1 min-w-0 self-start text-2xl font-semibold tracking-tight text-white sm:self-center sm:text-3xl md:text-4xl">
               Administrar Servicios
             </h3>
+            <Button
+              className="col-span-2 col-start-1 row-start-2 w-full shrink-0 rounded-full px-5 py-2.5 text-sm font-semibold sm:col-span-1 sm:col-start-2 sm:row-start-1 sm:w-auto sm:justify-self-start sm:px-7 sm:py-2.5 sm:text-base"
+              leftIcon={<FiPlus className="text-lg sm:text-xl" aria-hidden />}
+              onClick={startCreate}
+            >
+              Agregar servicios
+            </Button>
             <button
               type="button"
               onClick={onClose}
               disabled={isSaving}
-              className="shrink-0 rounded-full border border-white/20 p-2.5 text-white/70 transition hover:border-white/30 hover:bg-white/5 hover:text-white"
+              className="touch-manipulation col-start-2 row-start-1 inline-flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center self-start rounded-full border border-white/20 text-white/70 transition hover:border-white/30 hover:bg-white/5 hover:text-white disabled:opacity-50 sm:col-start-3 sm:self-center"
               aria-label="Cerrar modal"
             >
-              <FiX size={20} />
+              <FiX size={20} aria-hidden />
             </button>
           </div>
-          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-neutral-400 sm:text-base">
-            Añade, edita y gestiona tus servicios
-          </p>
-        </div>
-
-        <div className="mb-6 flex flex-wrap items-center justify-end gap-3">
-          {services.length > 0 && (
-            <p className="mr-auto text-sm text-neutral-500">
-              {services.length} {services.length === 1 ? 'servicio' : 'servicios'}
+          <div className="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <p className="max-w-2xl text-sm leading-relaxed text-neutral-400 sm:text-base">
+              Añade, edita y gestiona tus servicios
             </p>
-          )}
-          <Button
-            className="rounded-full px-5 py-2.5 text-sm font-semibold sm:px-7 sm:py-3 sm:text-base"
-            leftIcon={<FiPlus className="text-lg sm:text-xl" aria-hidden />}
-            onClick={startCreate}
-          >
-            Agregar servicios
-          </Button>
+            {services.length > 0 ? (
+              <span className="shrink-0 text-sm text-neutral-500">
+                · {services.length} {services.length === 1 ? 'servicio' : 'servicios'}
+              </span>
+            ) : null}
+          </div>
         </div>
 
         {error && (
-          <p className="mb-4 rounded-lg border border-red-500/35 bg-red-500/10 px-3 py-2 text-sm text-red-300">
+          <p className="mx-4 mb-0 mt-2 shrink-0 rounded-lg border border-red-500/35 bg-red-500/10 px-3 py-2 text-sm text-red-300 sm:mx-6 md:mx-8">
             {error}
           </p>
         )}
 
-        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3 sm:p-4">
-          <div className={`overflow-x-auto overflow-y-hidden pb-1 ${subtleScrollbarClass}`}>
-            <div className="flex min-w-max items-stretch gap-4">
+        <div
+          className={`min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 sm:px-6 sm:pb-6 sm:pt-4 md:px-8 md:pb-6 md:pt-4 ${subtleScrollbarClass}`}
+        >
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3 sm:p-5">
+            <div className="grid auto-rows-fr grid-cols-1 gap-3 min-[480px]:grid-cols-2 min-[480px]:gap-4 lg:grid-cols-3 xl:grid-cols-4 lg:gap-5">
               {orderedServices.map((service) => (
                 <article
                   key={service.id}
-                  className={`flex w-[min(272px,85vw)] shrink-0 flex-col self-stretch ${adminServiceCardShell}`}
+                  className={`flex h-full min-h-0 min-w-0 flex-col ${adminServiceCardShell}`}
                 >
                   <div className="relative aspect-[4/3] w-full shrink-0 overflow-hidden bg-neutral-950">
                     {service.imageUrl ? (
@@ -484,7 +653,7 @@ export function ArtistServicesAdminModal({
                     <div className="mt-auto flex gap-2 border-t border-white/10 pt-4">
                       <Button
                         variant="outline"
-                        className="min-h-[38px] flex-1 rounded-full border-white/25 px-3 py-2 text-xs hover:border-white/40 hover:bg-white/[0.06] sm:text-sm"
+                        className="min-h-[44px] flex-1 rounded-full border-white/25 px-3 py-2 text-xs hover:border-white/40 hover:bg-white/[0.06] sm:min-h-[38px] sm:text-sm"
                         onClick={() => startEdit(service)}
                         disabled={isSaving}
                       >
@@ -492,7 +661,7 @@ export function ArtistServicesAdminModal({
                       </Button>
                       <Button
                         variant="danger"
-                        className="min-h-[38px] flex-1 rounded-full px-3 py-2 text-xs sm:text-sm [&_svg]:size-3.5"
+                        className="min-h-[44px] flex-1 rounded-full px-3 py-2 text-xs sm:min-h-[38px] sm:text-sm [&_svg]:size-3.5"
                         leftIcon={<FiTrash2 />}
                         onClick={() => removeService(service.id)}
                         disabled={isSaving}
@@ -504,7 +673,7 @@ export function ArtistServicesAdminModal({
                 </article>
               ))}
               {services.length === 0 && (
-                <p className="w-full min-w-[min(100%,280px)] rounded-2xl border border-dashed border-white/15 bg-black/20 px-4 py-10 text-center text-sm text-neutral-500">
+                <p className="col-span-full rounded-2xl border border-dashed border-white/15 bg-black/20 px-4 py-12 text-center text-sm text-neutral-500 sm:py-14">
                   Aun no tienes servicios. Usa <span className="text-neutral-300">Agregar servicios</span> para crear
                   el primero.
                 </p>
@@ -515,25 +684,46 @@ export function ArtistServicesAdminModal({
       </div>
 
       {isEditorOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-[2px]">
-          <div className="w-full max-w-[860px] rounded-3xl border border-[#00d4c8]/35 bg-[#111214] p-5 shadow-[0_0_40px_rgba(0,212,200,0.18)] sm:p-6">
-            <div className="mb-5 flex items-start justify-between gap-4">
-              <div className="min-w-0">
-                <h4 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">Editando servicios</h4>
-                <p className="mt-1 text-sm text-neutral-500">Completa los campos y guarda los cambios.</p>
+        <>
+        <div className="fixed inset-0 z-[100] flex min-h-0 items-stretch justify-center bg-black/60 p-0 backdrop-blur-[2px] sm:items-center sm:p-4 sm:pt-[max(0.5rem,env(safe-area-inset-top))] sm:pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:pl-[max(0.5rem,env(safe-area-inset-left))] sm:pr-[max(0.5rem,env(safe-area-inset-right))]">
+          <div className="flex h-full min-h-0 max-h-[100dvh] w-full max-w-full flex-col overflow-hidden rounded-none border-x-0 border-y border-[#00d4c8]/35 bg-[#111214] shadow-none sm:h-auto sm:max-h-[min(96dvh,calc(100dvh-2rem))] sm:max-w-[min(1120px,calc(100vw-1.5rem))] sm:rounded-3xl sm:border sm:shadow-[0_0_40px_rgba(0,212,200,0.18)]">
+            <div className="flex shrink-0 items-start justify-between gap-3 border-b border-white/10 px-4 pb-3 pt-[max(1rem,env(safe-area-inset-top))] sm:gap-4 sm:px-7 sm:pb-5 sm:pt-6">
+              <div className="min-w-0 pr-2">
+                <h4 className="text-xl font-semibold tracking-tight text-white sm:text-2xl md:text-3xl">
+                  {editorMode === 'create' ? 'Crear nuevo servicio' : 'Editar servicio'}
+                </h4>
+                <p className="mt-1 text-xs leading-relaxed text-neutral-500 sm:text-sm">
+                  {editorMode === 'create'
+                    ? 'Nombre y precio son obligatorios. Puedes añadir foto, descripción y documentos después.'
+                    : 'Completa los campos y guarda los cambios.'}
+                </p>
               </div>
               <button
                 type="button"
-                onClick={() => setIsEditorOpen(false)}
+                onClick={() => {
+                  setEditorError('');
+                  setIsEditorOpen(false);
+                }}
                 disabled={isSaving}
-                className="shrink-0 rounded-full border border-white/20 p-2 text-white/70 transition hover:border-white/30 hover:bg-white/5 hover:text-white"
+                className="touch-manipulation inline-flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-full border border-white/20 text-white/70 transition hover:border-white/30 hover:bg-white/5 hover:text-white disabled:opacity-50"
                 aria-label="Cerrar editor"
               >
-                <FiX size={18} />
+                <FiX size={20} aria-hidden />
               </button>
             </div>
-            <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1fr_1fr]">
-              <div className="space-y-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5">
+            {editorError ? (
+              <p
+                role="alert"
+                className="shrink-0 border-b border-red-500/20 bg-red-500/10 px-4 py-2.5 text-sm leading-relaxed text-red-200/95 sm:px-7"
+              >
+                {editorError}
+              </p>
+            ) : null}
+            <div
+              className={`min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-4 py-4 sm:px-7 sm:py-6 ${subtleScrollbarClass}`}
+            >
+            <div className="grid grid-cols-1 gap-6 sm:gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-10">
+              <div className="space-y-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:space-y-5 sm:p-6 lg:space-y-6">
                 <div className="flex flex-col items-center gap-3 border-b border-white/10 pb-5">
                   <div className="h-28 w-28 overflow-hidden rounded-full border-2 border-[#00d4c8]/30 bg-black/40 shadow-[0_0_20px_rgba(0,212,200,0.12)]">
                     {selectedImage ? (
@@ -542,7 +732,7 @@ export function ArtistServicesAdminModal({
                       <div className="flex h-full items-center justify-center text-xs text-neutral-500">Sin foto</div>
                     )}
                   </div>
-                  <label className="cursor-pointer rounded-full border border-[#00d4c8]/50 bg-[#00d4c8]/15 px-5 py-2 text-sm font-semibold text-white transition hover:border-[#00d4c8]/70 hover:bg-[#00d4c8]/25">
+                  <label className="touch-manipulation inline-flex min-h-[44px] cursor-pointer items-center justify-center rounded-full border border-[#00d4c8]/50 bg-[#00d4c8]/15 px-5 py-2.5 text-sm font-semibold text-white transition hover:border-[#00d4c8]/70 hover:bg-[#00d4c8]/25">
                     Cambiar foto
                     <input
                       type="file"
@@ -556,7 +746,10 @@ export function ArtistServicesAdminModal({
                   <p className="mb-1.5 text-sm font-medium text-neutral-300">Nombre del servicio</p>
                   <input
                     value={form.name}
-                    onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
+                    onChange={(e) => {
+                      setEditorError('');
+                      setForm((prev) => ({ ...prev, name: e.target.value }));
+                    }}
                     className="w-full rounded-xl border border-white/20 bg-black/20 px-3 py-2.5 text-white outline-none transition placeholder:text-neutral-600 focus:border-[#00d4c8]/50 focus:ring-2 focus:ring-[#00d4c8]/25"
                   />
                 </div>
@@ -568,7 +761,10 @@ export function ArtistServicesAdminModal({
                       type="number"
                       min={0}
                       step={0.01}
-                      onChange={(e) => setForm((prev) => ({ ...prev, price: e.target.value }))}
+                      onChange={(e) => {
+                        setEditorError('');
+                        setForm((prev) => ({ ...prev, price: e.target.value }));
+                      }}
                       className="w-full rounded-xl border border-white/20 bg-black/20 px-3 py-2.5 text-white outline-none transition focus:border-[#00d4c8]/50 focus:ring-2 focus:ring-[#00d4c8]/25"
                     />
                   </div>
@@ -579,21 +775,24 @@ export function ArtistServicesAdminModal({
                 <div>
                   <p className="mb-1.5 text-sm font-medium text-neutral-300">Descripcion</p>
                   <textarea
-                    rows={4}
+                    rows={5}
                     value={form.description}
-                    onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
-                    className="w-full resize-y rounded-xl border border-white/20 bg-black/20 px-3 py-2.5 text-white outline-none transition focus:border-[#00d4c8]/50 focus:ring-2 focus:ring-[#00d4c8]/25"
+                    onChange={(e) => {
+                      setEditorError('');
+                      setForm((prev) => ({ ...prev, description: e.target.value }));
+                    }}
+                    className="min-h-[7.5rem] w-full resize-y rounded-xl border border-white/20 bg-black/20 px-3 py-3 text-white outline-none transition focus:border-[#00d4c8]/50 focus:ring-2 focus:ring-[#00d4c8]/25"
                   />
                 </div>
               </div>
 
-              <div className="space-y-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5">
+              <div className="space-y-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:space-y-5 sm:p-6 lg:space-y-6">
                 <div>
                   <p className="text-base font-semibold text-white">Detalles</p>
                   <p className="mt-0.5 text-xs text-neutral-500">Lista de inclusiones o condiciones del servicio.</p>
                 </div>
-                <div className="rounded-xl border border-white/10 bg-black/25 p-3">
-                  <div className="max-h-[200px] space-y-2 overflow-y-auto pr-1 scrollbar-thin [scrollbar-color:rgba(255,255,255,0.15)_transparent]">
+                <div className="rounded-xl border border-white/10 bg-black/25 p-3 sm:p-4">
+                  <div className="max-h-[min(240px,40dvh)] space-y-2 overflow-y-auto pr-1 scrollbar-thin [scrollbar-color:rgba(255,255,255,0.15)_transparent] sm:max-h-[min(260px,32vh)]">
                     {form.details.map((detail, index) => (
                       <div key={`${detail}-${index}`} className="flex items-center gap-2">
                         <input
@@ -604,10 +803,10 @@ export function ArtistServicesAdminModal({
                         <button
                           type="button"
                           onClick={() => removeDetail(index)}
-                          className="shrink-0 rounded-lg border border-red-400/40 p-2 text-red-300 transition hover:border-red-400/60 hover:bg-red-500/10"
+                          className="touch-manipulation inline-flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-lg border border-red-400/40 text-red-300 transition hover:border-red-400/60 hover:bg-red-500/10"
                           aria-label="Quitar detalle"
                         >
-                          <FiTrash2 size={16} />
+                          <FiTrash2 size={18} aria-hidden />
                         </button>
                       </div>
                     ))}
@@ -625,84 +824,248 @@ export function ArtistServicesAdminModal({
                       className="w-full rounded-xl border border-white/20 bg-black/20 px-3 py-2.5 text-sm text-white outline-none transition focus:border-[#00d4c8]/50 focus:ring-2 focus:ring-[#00d4c8]/25"
                     />
                   </div>
-                  <Button onClick={addDetail} disabled={isSaving} className="shrink-0 rounded-full px-5 py-2.5 text-sm">
+                  <Button
+                    onClick={addDetail}
+                    disabled={isSaving}
+                    className="touch-manipulation min-h-[44px] shrink-0 rounded-full px-5 py-2.5 text-sm sm:min-h-0"
+                  >
                     + Agregar item
                   </Button>
                 </div>
 
-                <div className="mt-2 space-y-3 border-t border-white/10 pt-4">
-                  {renderCustomSelect(
-                    'contract',
-                    'Contrato (Plantilla)',
-                    form.contractTemplateId,
-                    contractTemplateOptions,
-                    (next) => setForm((prev) => ({ ...prev, contractTemplateId: next })),
-                  )}
-                  
-                  {/* Real Contract PDF Upload */}
-                  <div className="space-y-1.5">
-                    <p className="text-sm font-medium text-neutral-300">Adjuntar PDF de Contrato</p>
-                    <div className="flex items-center gap-3">
-                      <label className="flex cursor-pointer items-center justify-center rounded-xl border border-white/20 bg-black/20 px-4 py-2.5 text-sm text-white transition hover:border-[#00d4c8]/50 hover:bg-[#00d4c8]/5">
-                        {contractFile ? 'Cambiar PDF' : 'Seleccionar PDF'}
-                        <input
-                          type="file"
-                          accept="application/pdf"
-                          className="hidden"
-                          onChange={(e) => setContractFile(e.target.files?.[0] ?? null)}
-                        />
-                      </label>
-                      <span className="truncate text-xs text-neutral-500">
-                        {contractFile ? contractFile.name : 'Ningún archivo seleccionado'}
-                      </span>
-                    </div>
+                <div className="mt-1 space-y-6 border-t border-white/10 pt-7">
+                  <div>
+                    <p className="text-base font-semibold text-white">Documentos del servicio</p>
+                    <p className="mt-2 text-sm leading-relaxed text-neutral-500">
+                      Elige un PDF que ya tengas en Documentos o sube uno nuevo: se guardará allí y quedará
+                      vinculado a este servicio.
+                    </p>
                   </div>
+                  {filesLoadError ? (
+                    <p className="text-xs text-red-300/90">{filesLoadError}</p>
+                  ) : filesLoading ? (
+                    <p className="text-xs text-neutral-500">Cargando documentos…</p>
+                  ) : null}
 
-                  {renderCustomSelect(
-                    'technicalRider',
-                    'Rider tecnico (Plantilla)',
-                    form.technicalRiderTemplateId,
-                    technicalRiderOptions,
-                    (next) => setForm((prev) => ({ ...prev, technicalRiderTemplateId: next })),
-                  )}
+                  <div className="grid gap-6 sm:grid-cols-2 sm:gap-7">
+                    <div className="rounded-2xl border border-white/10 bg-black/25 p-5 sm:p-6">
+                      <div className="mb-5 flex gap-3">
+                        <div
+                          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[#00d4c8]/25 bg-[#00d4c8]/10 text-[#00d4c8]"
+                          aria-hidden
+                        >
+                          <FiFileText size={20} strokeWidth={1.75} />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-white">Contrato</p>
+                          <p className="mt-0.5 text-xs leading-snug text-neutral-500">
+                            Plantilla que verá el contratante.
+                          </p>
+                        </div>
+                      </div>
+                      <div className="space-y-4">
+                        <div>
+                          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-neutral-500">
+                            Usar archivo guardado
+                          </p>
+                          {renderCustomSelect(
+                            'contract',
+                            '',
+                            form.contractTemplateId,
+                            contractSelectOptions,
+                            (next) => setForm((prev) => ({ ...prev, contractTemplateId: next })),
+                          )}
+                        </div>
+                        <div className="relative flex items-center gap-3 py-1">
+                          <div className="h-px flex-1 bg-white/10" aria-hidden />
+                          <span className="shrink-0 text-xs font-medium uppercase tracking-wide text-neutral-500">
+                            o
+                          </span>
+                          <div className="h-px flex-1 bg-white/10" aria-hidden />
+                        </div>
+                        <div>
+                          <p className="mb-2.5 text-xs font-medium uppercase tracking-wide text-neutral-500">
+                            Subir PDF nuevo
+                          </p>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            fullWidth
+                            disabled={isSaving || isSavingUpload}
+                            onClick={() => openServiceDocumentUploadModal('contract')}
+                            leftIcon={<FiUpload className="text-base text-[#00d4c8]" aria-hidden />}
+                            className="rounded-xl border-[#00d4c8]/40 py-2.5 text-sm font-semibold text-white hover:border-[#00d4c8]/65 hover:bg-[#00d4c8]/10 hover:text-white"
+                          >
+                            Subir contrato
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
 
-                  {/* Real Rider PDF Upload */}
-                  <div className="space-y-1.5">
-                    <p className="text-sm font-medium text-neutral-300">Adjuntar PDF de Rider</p>
-                    <div className="flex items-center gap-3">
-                      <label className="flex cursor-pointer items-center justify-center rounded-xl border border-white/20 bg-black/20 px-4 py-2.5 text-sm text-white transition hover:border-[#00d4c8]/50 hover:bg-[#00d4c8]/5">
-                        {riderFile ? 'Cambiar PDF' : 'Seleccionar PDF'}
-                        <input
-                          type="file"
-                          accept="application/pdf"
-                          className="hidden"
-                          onChange={(e) => setRiderFile(e.target.files?.[0] ?? null)}
-                        />
-                      </label>
-                      <span className="truncate text-xs text-neutral-500">
-                        {riderFile ? riderFile.name : 'Ningún archivo seleccionado'}
-                      </span>
+                    <div className="rounded-2xl border border-white/10 bg-black/25 p-5 sm:p-6">
+                      <div className="mb-5 flex gap-3">
+                        <div
+                          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[#00d4c8]/25 bg-[#00d4c8]/10 text-[#00d4c8]"
+                          aria-hidden
+                        >
+                          <FiFileText size={20} strokeWidth={1.75} />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-white">Rider técnico</p>
+                          <p className="mt-0.5 text-xs leading-snug text-neutral-500">
+                            Requerimientos técnicos y de montaje.
+                          </p>
+                        </div>
+                      </div>
+                      <div className="space-y-4">
+                        <div>
+                          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-neutral-500">
+                            Usar archivo guardado
+                          </p>
+                          {renderCustomSelect(
+                            'technicalRider',
+                            '',
+                            form.technicalRiderTemplateId,
+                            riderSelectOptions,
+                            (next) => setForm((prev) => ({ ...prev, technicalRiderTemplateId: next })),
+                          )}
+                        </div>
+                        <div className="relative flex items-center gap-3 py-1">
+                          <div className="h-px flex-1 bg-white/10" aria-hidden />
+                          <span className="shrink-0 text-xs font-medium uppercase tracking-wide text-neutral-500">
+                            o
+                          </span>
+                          <div className="h-px flex-1 bg-white/10" aria-hidden />
+                        </div>
+                        <div>
+                          <p className="mb-2.5 text-xs font-medium uppercase tracking-wide text-neutral-500">
+                            Subir PDF nuevo
+                          </p>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            fullWidth
+                            disabled={isSaving || isSavingUpload}
+                            onClick={() => openServiceDocumentUploadModal('technical_rider')}
+                            leftIcon={<FiUpload className="text-base text-[#00d4c8]" aria-hidden />}
+                            className="rounded-xl border-[#00d4c8]/40 py-2.5 text-sm font-semibold text-white hover:border-[#00d4c8]/65 hover:bg-[#00d4c8]/10 hover:text-white"
+                          >
+                            Subir rider
+                          </Button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
+            </div>
 
-            <div className="mt-8 flex flex-col-reverse gap-3 border-t border-white/10 pt-6 sm:flex-row sm:justify-end">
+            <div className="flex shrink-0 flex-col-reverse gap-2 border-t border-white/10 bg-[#111214] px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:flex-row sm:justify-end sm:gap-3 sm:px-7 sm:py-5 sm:pb-5">
               <Button
                 variant="outline"
-                className="rounded-full border-white/25 sm:min-w-[120px]"
-                onClick={() => setIsEditorOpen(false)}
+                className="touch-manipulation min-h-[48px] rounded-full border-white/25 sm:min-h-0 sm:min-w-[120px]"
+                onClick={() => {
+                  setEditorError('');
+                  setIsEditorOpen(false);
+                }}
                 disabled={isSaving}
               >
                 Cancelar
               </Button>
-              <Button className="rounded-full sm:min-w-[120px]" onClick={saveService} loading={isSaving}>
+              <Button
+                className="touch-manipulation min-h-[48px] rounded-full sm:min-h-0 sm:min-w-[120px]"
+                onClick={saveService}
+                loading={isSaving}
+              >
                 Guardar
               </Button>
             </div>
           </div>
         </div>
+
+        {uploadModal.isOpen && (
+          <div className="fixed inset-0 z-[110] flex min-h-0 items-stretch justify-center bg-black/70 p-0 sm:items-center sm:p-4 sm:pt-[max(0.5rem,env(safe-area-inset-top))] sm:pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:pl-[max(0.75rem,env(safe-area-inset-left))] sm:pr-[max(0.75rem,env(safe-area-inset-right))]">
+            <div className="flex h-full min-h-0 max-h-[100dvh] w-full max-w-full flex-col overflow-y-auto overscroll-y-contain rounded-none border-x-0 border-y border-[#00d4c8]/30 bg-[#111214] p-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] shadow-none sm:max-h-[min(90dvh,calc(100dvh-2rem))] sm:max-w-[min(480px,calc(100vw-1.5rem))] sm:rounded-2xl sm:border sm:p-6 sm:pb-6 sm:pt-6 sm:shadow-[0_0_35px_rgba(0,212,200,0.15)]">
+              <div className="mb-4 flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <h3 className="text-lg font-semibold tracking-tight text-white">Subir documento</h3>
+                  <p className="mt-1 text-sm text-neutral-400">
+                    {uploadModal.target === 'contract' ? 'Contrato (PDF)' : 'Rider técnico (PDF)'}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={closeServiceDocumentUploadModal}
+                  disabled={isSavingUpload}
+                  className="touch-manipulation inline-flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-full border border-white/20 text-white/70 transition hover:border-white/35 hover:bg-white/5 hover:text-white disabled:opacity-50"
+                  aria-label="Cerrar"
+                >
+                  <FiX size={20} aria-hidden />
+                </button>
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <p className="mb-1.5 text-sm font-medium text-neutral-300">Nombre</p>
+                  <input
+                    value={uploadModal.name}
+                    onChange={(event) => {
+                      setUploadModalError('');
+                      setUploadModal((prev) => ({ ...prev, name: event.target.value }));
+                    }}
+                    className="w-full rounded-xl border border-white/20 bg-black/20 px-3 py-2.5 text-sm text-white outline-none transition focus:border-[#00d4c8]/50 focus:ring-2 focus:ring-[#00d4c8]/25"
+                  />
+                </div>
+                <div>
+                  <p className="mb-1.5 text-sm font-medium text-neutral-300">PDF</p>
+                  <label className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-full border border-[#00d4c8]/40 px-4 py-2.5 text-sm text-[#00d4c8] touch-manipulation transition-colors hover:border-[#00ece0] hover:text-[#00ece0] sm:min-h-0 sm:py-2">
+                    <FiUpload size={14} aria-hidden />
+                    {uploadModal.file ? uploadModal.file.name : 'Seleccionar PDF'}
+                    <input
+                      type="file"
+                      accept="application/pdf"
+                      className="hidden"
+                      disabled={isSavingUpload}
+                      onChange={(event) => {
+                        setUploadModalError('');
+                        const file = event.target.files?.[0] ?? null;
+                        setUploadModal((prev) => ({ ...prev, file }));
+                        event.currentTarget.value = '';
+                      }}
+                    />
+                  </label>
+                </div>
+              </div>
+              {uploadModalError ? (
+                <p
+                  role="alert"
+                  className="mt-4 rounded-lg border border-red-400/35 bg-red-500/10 px-3 py-2 text-sm text-red-200/95"
+                >
+                  {uploadModalError}
+                </p>
+              ) : null}
+              <div className="mt-6 flex flex-col-reverse gap-2 border-t border-white/10 pt-4 sm:flex-row sm:justify-end">
+                <Button
+                  variant="outline"
+                  className="min-h-[48px] rounded-full border-white/25 sm:min-h-0"
+                  onClick={closeServiceDocumentUploadModal}
+                  disabled={isSavingUpload}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  className="min-h-[48px] rounded-full sm:min-h-0"
+                  loading={isSavingUpload}
+                  disabled={!canSaveUploadModal}
+                  onClick={() => void saveServiceDocumentUploadModal()}
+                >
+                  Guardar Documento
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+        </>
       )}
     </div>
   );

@@ -23,6 +23,12 @@ export type {
   ArtistServiceListResponse,
 } from './artistService';
 export type {
+  ArtistFileRecord,
+  ArtistFileType,
+  ArtistFileListResponse,
+  ArtistFileSingleResponse,
+} from './artistFile';
+export type {
   ArtistSongRecord,
   ArtistSongResponse,
   ArtistSongListResponse,

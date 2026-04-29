@@ -1,6 +1,6 @@
 import type { ArtistProfile } from '../types/profile';
 import type { ArtistServiceRecord } from '../types';
-import type { ArtistRiderItem } from '../components/artist-profile';
+import type { ArtistRiderItem } from '../components/artist-profile/ArtistProfileRidersGrid';
 import { technicalRiderPdfFromProfile } from './artistDocumentUrls';
 
 export const RIDER_SECTION_IMAGES = [

@@ -24,6 +24,7 @@ export {
   ensureArtistProfileListedForDiscovery,
 } from './artistProfileService';
 export {
+  normalizeArtistServiceRecord,
   getMyArtistServices,
   getArtistServicesByArtistId,
   getArtistServiceById,
@@ -33,6 +34,14 @@ export {
   updateArtistServiceWithFormData,
   deleteArtistService,
 } from './artistServiceService';
+export {
+  listMyArtistFiles,
+  uploadArtistFile,
+  replaceArtistFile,
+  updateArtistFile,
+  deleteArtistFile,
+} from './artistFileService';
+export type { UploadArtistFileOptions, UpdateArtistFileOptions } from './artistFileService';
 export type { CreateArtistServiceBody, UpdateArtistServiceBody } from '../types';
 export {
   getMyArtistSongs,
