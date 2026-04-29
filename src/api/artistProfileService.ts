@@ -7,6 +7,12 @@ import type {
 } from '../types';
 import { api, apiPostFormData, apiPutFormData, ApiError } from './client';
 
+export type ArtistAvailabilityResponse = {
+  blocked: string[];
+  reserved: string[];
+  pending: string[];
+};
+
 /** Query params for `GET /artist-profiles` (backend may ignore unknown keys). */
 export type ArtistProfileListFilters = {
   genre?: string;
@@ -93,6 +99,12 @@ export async function getArtistProfile(): Promise<ArtistProfile> {
 /** Get artist profile by id (for clients viewing an artist). */
 export async function getArtistProfileById(id: string): Promise<ArtistProfile & { uid: string }> {
   const res = await api<ApiResponse<ArtistProfile & { uid: string }>>(`artist-profiles/${id}`);
+  return res.data;
+}
+
+/** Get blocked/reserved/pending dates for an artist profile. */
+export async function getArtistAvailabilityById(id: string): Promise<ArtistAvailabilityResponse> {
+  const res = await api<ApiResponse<ArtistAvailabilityResponse>>(`artist-profiles/${id}/availability`);
   return res.data;
 }
 

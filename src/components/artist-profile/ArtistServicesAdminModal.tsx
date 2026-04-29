@@ -13,22 +13,13 @@ import {
   uploadArtistFile,
 } from '../../api';
 import type { ArtistFileRecord } from '../../types/artistFile';
-import {
-  MAX_PINNED_ITEMS,
-  getPinnedItemIds,
-  savePinnedItemIds,
-  sortPinnedFirst,
-  togglePinnedItemId,
-} from '../../helpers/pinnedItems';
 import type { ArtistServiceRecord } from '../../types';
 
 type ArtistServicesAdminModalProps = {
   isOpen: boolean;
-  artistId: string | undefined;
   services: ArtistServiceRecord[];
   onClose: () => void;
   onServicesChange: (next: ArtistServiceRecord[]) => void;
-  onPinnedServicesChange?: (ids: string[]) => void;
   /** When the admin modal opens, open the editor for this service id (e.g. from profile card). */
   openEditorForServiceId?: string | null;
   onOpenEditorForServiceIdConsumed?: () => void;
@@ -93,11 +84,9 @@ const adminServiceCardShell =
 
 export function ArtistServicesAdminModal({
   isOpen,
-  artistId,
   services,
   onClose,
   onServicesChange,
-  onPinnedServicesChange,
   openEditorForServiceId,
   onOpenEditorForServiceIdConsumed,
 }: ArtistServicesAdminModalProps) {
@@ -110,7 +99,6 @@ export function ArtistServicesAdminModal({
   const [editorError, setEditorError] = useState('');
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editorMode, setEditorMode] = useState<EditorMode>('create');
-  const [pinnedServiceIds, setPinnedServiceIds] = useState<string[]>([]);
   const [openCustomSelect, setOpenCustomSelect] = useState<CustomSelectId | null>(null);
   const [contractFiles, setContractFiles] = useState<ArtistFileRecord[]>([]);
   const [riderFiles, setRiderFiles] = useState<ArtistFileRecord[]>([]);
@@ -125,6 +113,7 @@ export function ArtistServicesAdminModal({
   }>({ isOpen: false, target: 'contract', name: '', description: '', file: null });
   const [uploadModalError, setUploadModalError] = useState('');
   const [isSavingUpload, setIsSavingUpload] = useState(false);
+  const [pinLoadingServiceIds, setPinLoadingServiceIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!isOpen) {
@@ -145,21 +134,9 @@ export function ArtistServicesAdminModal({
       setUploadModal({ isOpen: false, target: 'contract', name: '', description: '', file: null });
       setUploadModalError('');
       setIsSavingUpload(false);
+      setPinLoadingServiceIds(new Set());
     }
   }, [isOpen]);
-
-  useEffect(() => {
-    if (!artistId) {
-      setPinnedServiceIds([]);
-      return;
-    }
-    const existingServiceIds = new Set(services.map((service) => service.id));
-    const storedPinned = getPinnedItemIds(artistId, 'services');
-    const sanitizedPinned = storedPinned.filter((id) => existingServiceIds.has(id));
-    const savedPinned = savePinnedItemIds(artistId, 'services', sanitizedPinned);
-    setPinnedServiceIds(savedPinned);
-    onPinnedServicesChange?.(savedPinned);
-  }, [artistId, services, onPinnedServicesChange]);
 
   useEffect(() => {
     return () => {
@@ -233,8 +210,12 @@ export function ArtistServicesAdminModal({
   }, [form.imageUrl, previewUrl]);
 
   const orderedServices = useMemo(
-    () => sortPinnedFirst(services, pinnedServiceIds),
-    [services, pinnedServiceIds],
+    () => {
+      const pinned = services.filter((service) => Boolean(service.isPinned));
+      const normal = services.filter((service) => !service.isPinned);
+      return [...pinned, ...normal];
+    },
+    [services],
   );
 
   const contractSelectOptions = useMemo(() => {
@@ -447,12 +428,6 @@ export function ArtistServicesAdminModal({
       await deleteArtistService(id);
       const next = services.filter((item) => item.id !== id);
       onServicesChange(next);
-      if (artistId) {
-        const nextPinned = pinnedServiceIds.filter((pinnedId) => pinnedId !== id);
-        const savedPinned = savePinnedItemIds(artistId, 'services', nextPinned);
-        setPinnedServiceIds(savedPinned);
-        onPinnedServicesChange?.(savedPinned);
-      }
       if (form.id === id) startCreate();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo eliminar el servicio.');
@@ -520,17 +495,33 @@ export function ArtistServicesAdminModal({
     );
   };
 
-  const toggleServicePin = (serviceId: string) => {
-    if (!artistId) return;
-    const { nextPinnedIds, exceededLimit } = togglePinnedItemId(pinnedServiceIds, serviceId);
-    if (exceededLimit) {
-      setError(`Solo puedes fijar hasta ${MAX_PINNED_ITEMS} servicios.`);
-      return;
-    }
+  const toggleServicePin = async (service: ArtistServiceRecord) => {
+    if (pinLoadingServiceIds.has(service.id)) return;
+    const previousPinned = Boolean(service.isPinned);
+    setPinLoadingServiceIds((prev) => new Set(prev).add(service.id));
     setError('');
-    const savedPinned = savePinnedItemIds(artistId, 'services', nextPinnedIds);
-    setPinnedServiceIds(savedPinned);
-    onPinnedServicesChange?.(savedPinned);
+    onServicesChange(
+      services.map((item) =>
+        item.id === service.id ? { ...item, isPinned: !previousPinned } : item,
+      ),
+    );
+    try {
+      const updated = await updateArtistService(service.id, { isPinned: !service.isPinned });
+      onServicesChange(services.map((item) => (item.id === updated.id ? updated : item)));
+    } catch (err) {
+      onServicesChange(
+        services.map((item) =>
+          item.id === service.id ? { ...item, isPinned: previousPinned } : item,
+        ),
+      );
+      setError(err instanceof Error ? err.message : 'No se pudo actualizar el estado de fijado.');
+    } finally {
+      setPinLoadingServiceIds((prev) => {
+        const next = new Set(prev);
+        next.delete(service.id);
+        return next;
+      });
+    }
   };
 
   return (
@@ -583,7 +574,9 @@ export function ArtistServicesAdminModal({
         >
           <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3 sm:p-5">
             <div className="grid auto-rows-fr grid-cols-1 gap-3 min-[480px]:grid-cols-2 min-[480px]:gap-4 lg:grid-cols-3 xl:grid-cols-4 lg:gap-5">
-              {orderedServices.map((service) => (
+              {orderedServices.map((service) => {
+                const isPinUpdating = pinLoadingServiceIds.has(service.id);
+                return (
                 <article
                   key={service.id}
                   className={`flex h-full min-h-0 min-w-0 flex-col ${adminServiceCardShell}`}
@@ -611,16 +604,23 @@ export function ArtistServicesAdminModal({
                       <div className="mb-2 flex items-center justify-between gap-2">
                         <button
                           type="button"
-                          onClick={() => toggleServicePin(service.id)}
-                          disabled={isSaving}
+                          onClick={() => void toggleServicePin(service)}
+                          disabled={isSaving || isPinUpdating}
                           className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium transition ${
-                            pinnedServiceIds.includes(service.id)
+                            service.isPinned
                               ? 'border-accent/60 bg-accent/20 text-accent'
                               : 'border-white/20 text-neutral-400 hover:border-white/35 hover:text-white'
                           }`}
                         >
-                          <FaThumbtack size={11} className="-rotate-45" aria-hidden />
-                          {pinnedServiceIds.includes(service.id) ? 'Fijado' : 'Fijar'}
+                          {isPinUpdating ? (
+                            <span
+                              className="h-3 w-3 animate-spin rounded-full border border-current border-t-transparent"
+                              aria-hidden
+                            />
+                          ) : (
+                            <FaThumbtack size={11} className="-rotate-45" aria-hidden />
+                          )}
+                          {isPinUpdating ? 'Guardando...' : service.isPinned ? 'Fijado' : 'Fijar'}
                         </button>
                         <p className="text-lg font-semibold tabular-nums leading-none text-accent sm:text-xl">
                           ${service.price}
@@ -671,7 +671,8 @@ export function ArtistServicesAdminModal({
                     </div>
                   </div>
                 </article>
-              ))}
+                );
+              })}
               {services.length === 0 && (
                 <p className="col-span-full rounded-2xl border border-dashed border-white/15 bg-black/20 px-4 py-12 text-center text-sm text-neutral-500 sm:py-14">
                   Aun no tienes servicios. Usa <span className="text-neutral-300">Agregar servicios</span> para crear

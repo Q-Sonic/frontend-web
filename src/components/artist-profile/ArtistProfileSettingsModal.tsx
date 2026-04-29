@@ -194,7 +194,7 @@ export function ArtistProfileSettingsModal({
             </div>
           </div>
 
-          <div className="mt-5 space-y-2">
+          {/* <div className="mt-5 space-y-2">
             <label className="block text-2xl text-white">Redes Sociales</label>
             <input
               value={socialDraft.youtube}
@@ -220,7 +220,7 @@ export function ArtistProfileSettingsModal({
               placeholder="https://www.tiktok.com/..."
               className="w-full rounded-lg border border-white/30 bg-transparent px-3 py-2 text-white"
             />
-          </div>
+          </div> */}
         </div>
 
         <div className="mt-5 flex justify-end gap-3">
