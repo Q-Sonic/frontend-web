@@ -726,7 +726,6 @@ export function ClientBatchContractSigningModal({
                 to="/terms-contract"
                 className="text-accent underline-offset-2 hover:underline"
                 target="_blank"
-                onClick={onClose}
               >
                 términos del contrato
               </Link>{' '}
