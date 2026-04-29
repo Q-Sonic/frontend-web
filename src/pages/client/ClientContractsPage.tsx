@@ -17,6 +17,7 @@ import { appendContractSignedPendingArtistNotifications } from '../../helpers/cl
 import { useAuth } from '../../contexts/AuthContext';
 import { isBackendRoleCliente } from '../../helpers/role';
 import { FiAlertCircle, FiInbox } from 'react-icons/fi';
+import { paymentService } from '../../api/paymentService';
 
 const PAGE_SIZE = 6;
 
@@ -61,7 +62,7 @@ function formatUsd(amount: number | undefined): string {
 }
 
 function isPendingStatus(s: ContractLifecycleStatus): boolean {
-  return s === 'PENDING';
+  return s === 'PENDING' || s === 'PENDING_ARTIST_SIGNATURE';
 }
 
 function isSignedStatus(s: ContractLifecycleStatus): boolean {
@@ -117,7 +118,7 @@ function statusUi(c: ContractRecord): { label: string; icon: ReactNode; lineClas
   }
   if (isPendingStatus(c.status)) {
     return {
-      label: 'Pendiente',
+      label: c.status === 'PENDING_ARTIST_SIGNATURE' ? 'Pendiente firma del artista' : 'Pendiente',
       icon: <FiClock className="text-base text-orange-400" aria-hidden />,
       lineClass: 'text-orange-300',
     };
@@ -220,6 +221,9 @@ function ContractCard({
   const amount = formatUsd(c.financials?.totalAmount);
   const headline = `${name} - ${amount}`;
   const hasUrl = Boolean(c.contractUrl?.trim());
+  const sourceHasUrl = Boolean(c.sourceContractUrl?.trim());
+  const hasSignatureReceipt = Boolean(c.signatureReceiptUrl?.trim());
+  const unpaid = c.financials?.paymentStatus === 'UNPAID';
   const artistLink = c.artistId?.trim() ? `/client/artists/${c.artistId}` : null;
   const showClientSignedNote = isPendingStatus(c.status);
 
@@ -242,6 +246,7 @@ function ContractCard({
             {ui.icon}
             <span>{ui.label}</span>
           </div>
+          {unpaid ? <p className="text-xs font-semibold text-amber-300">Pago pendiente (UNPAID)</p> : null}
           {showClientSignedNote ? (
             <p className="pt-1 text-xs leading-relaxed text-neutral-500">
               Tu firma ya consta en el sistema. Pendiente la confirmación del artista para marcarlo como firmado al
@@ -253,19 +258,6 @@ function ContractCard({
             </p>
           )}
         </div>
-      </div>
-
-      <div className="flex shrink-0 flex-col items-center justify-center gap-3 pr-2 sm:gap-4">
-        {onToggle && isPendingStatus(c.status) && (
-          <label className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl border border-accent/30 bg-accent/5 hover:bg-accent/10">
-            <input
-              type="checkbox"
-              checked={isSelected}
-              onChange={(e) => onToggle(c.id, e.target.checked)}
-              className="h-5 w-5 rounded border-accent/40 bg-transparent accent-accent"
-            />
-          </label>
-        )}
       </div>
 
       <div className="flex shrink-0 flex-col items-stretch gap-3 border-t border-white/[0.06] pt-4 sm:w-[10rem] sm:border-0 sm:pt-0">
@@ -290,6 +282,49 @@ function ContractCard({
             Ver contrato
           </span>
         )}
+        {sourceHasUrl ? (
+          <a
+            href={c.sourceContractUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex w-full items-center justify-center rounded-xl border border-white/20 bg-white/5 py-2.5 text-center text-xs font-semibold text-white/90 transition hover:bg-white/10"
+          >
+            Ver términos base
+          </a>
+        ) : null}
+        {hasSignatureReceipt ? (
+          <a
+            href={c.signatureReceiptUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex w-full items-center justify-center rounded-xl border border-white/20 bg-white/5 py-2.5 text-center text-xs font-semibold text-white/90 transition hover:bg-white/10"
+          >
+            Comprobante firma
+          </a>
+        ) : null}
+        {unpaid ? (
+          <button
+            type="button"
+            className="inline-flex w-full items-center justify-center rounded-xl border border-amber-300/40 bg-amber-400/15 py-2.5 text-center text-xs font-semibold text-amber-100 transition hover:bg-amber-400/25"
+            onClick={async () => {
+              try {
+                const amount = c.financials?.totalAmount || 0;
+                const desc = `Pago contrato ${c.id} - ${c.eventDetails?.name || 'Servicio'}`;
+                const payLink = await paymentService.createLinkToPay({
+                  amount,
+                  description: desc,
+                  dev_reference: c.id,
+                });
+                const url = payLink?.data?.payment_url;
+                if (url) window.location.href = url;
+              } catch (err) {
+                console.error('Error creating payment link for contract:', err);
+              }
+            }}
+          >
+            Pagar ahora
+          </button>
+        ) : null}
         {artistLink ? (
           <Link to={artistLink} className="text-center text-xs font-medium text-accent/90 hover:text-accent">
             Perfil del artista
@@ -308,6 +343,10 @@ export function ClientContractsPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [signModalOpen, setSignModalOpen] = useState(false);
   const [isSigning, setIsSigning] = useState(false);
+  const unpaidCount = useMemo(
+    () => contracts.filter((c) => c.financials?.paymentStatus === 'UNPAID').length,
+    [contracts],
+  );
 
   const toggleSelection = (id: string, val: boolean) => {
     setSelectedIds((prev) => {
@@ -401,6 +440,12 @@ export function ClientContractsPage() {
       </div>
 
       <section className="mt-10" aria-live="polite">
+        {unpaidCount > 0 ? (
+          <div className="mb-5 rounded-2xl border border-amber-300/35 bg-amber-400/10 p-4 text-sm text-amber-100">
+            Tienes {unpaidCount} contrato{unpaidCount === 1 ? '' : 's'} con pago pendiente. Mientras esté UNPAID, el
+            artista no podrá firmar el contrato final.
+          </div>
+        ) : null}
         <div className="mb-5 flex items-center gap-3">
           <h2 className="shrink-0 text-base font-semibold text-white sm:text-lg">
             {sectionTitleForFilter(filter, filtered.length)}

@@ -36,9 +36,20 @@ function SettingsIcon() {
   );
 }
 
+function ContractIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M14 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7z" stroke="white" strokeWidth="1.5" />
+      <path d="M14 2v5h5" stroke="white" strokeWidth="1.5" />
+      <path d="M9 12h6M9 16h6" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 export const artistSidebarMenus: SidebarMenuItem[] = [
   { to: '/artist/profile', label: 'Perfil', icon: <HomeIcon /> },
   { to: '/artist', label: 'Dashboard', icon: <DashboardIcon />, exactPath: true },
   { to: '/artist/calendario', label: 'Calendario', icon: <CalendarIcon /> },
+  { to: '/artist/contracts', label: 'Contratos', icon: <ContractIcon /> },
   { to: '/artist/settings', label: 'Configuración', icon: <SettingsIcon /> },
 ];

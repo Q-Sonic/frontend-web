@@ -9,6 +9,8 @@ import { PageLayout } from '../../layouts';
 import { Button, Skeleton, UserMenu } from '../../components';
 import { FiArrowLeft, FiCalendar, FiChevronLeft, FiChevronRight, FiLock } from 'react-icons/fi';
 import { getArtistProfile, toggleArtistBlockedDate } from '../../api/artistProfileService';
+import { artistAcceptContract, artistRejectContract, dispatchContractsApiRefresh } from '../../api/contractService';
+import { ClientContractSigningModal } from '../../components/client/ClientContractSigningModal';
 
 type CalendarContractEvent = {
   id: string;
@@ -22,6 +24,11 @@ type CalendarContractEvent = {
 
 type ExtendedEventDetail = {
   id: string;
+  status?: string;
+  financials?: {
+    totalAmount?: number;
+    paymentStatus?: string;
+  };
   clientContact?: {
     name?: string;
     email?: string;
@@ -110,6 +117,9 @@ export function ArtistCalendarPage() {
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [isEventLoading, setIsEventLoading] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<ExtendedEventDetail | null>(null);
+  const [artistSigningOpen, setArtistSigningOpen] = useState(false);
+  const [artistSigningLoading, setArtistSigningLoading] = useState(false);
+  const [artistActionError, setArtistActionError] = useState('');
 
   const range = useMemo(() => {
     const start = new Date(weekStart);
@@ -226,6 +236,13 @@ export function ArtistCalendarPage() {
       location: selectedEvent.eventDetails?.location || '',
     };
   }, [selectedEvent]);
+
+  const normalizedSelectedStatus = String(selectedEvent?.status || '').trim().toLowerCase();
+  const pendingArtistSignature =
+    normalizedSelectedStatus === 'pending_artist_signature' || normalizedSelectedStatus === 'pending';
+  const acceptedSignature = normalizedSelectedStatus === 'accepted' || normalizedSelectedStatus === 'completed';
+  const paymentStatus = String(selectedEvent?.financials?.paymentStatus || '').trim().toUpperCase();
+  const isPaymentPending = paymentStatus === 'UNPAID' || paymentStatus === 'PARTIAL' || paymentStatus === '';
 
   if (!user) return null;
   if (!isArtista) {
@@ -429,6 +446,22 @@ export function ArtistCalendarPage() {
 
                   <div className="space-y-1 text-neutral-300 text-sm">
                     <div>
+                      <span className="text-neutral-500">Estado: </span>
+                      <span>
+                        {acceptedSignature
+                          ? 'Firmado'
+                          : pendingArtistSignature
+                            ? 'Pendiente firma del artista'
+                            : selectedEvent.status || '—'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-neutral-500">Pago: </span>
+                      <span className={isPaymentPending ? 'text-amber-300 font-medium' : 'text-emerald-300 font-medium'}>
+                        {paymentStatus || 'UNPAID'}
+                      </span>
+                    </div>
+                    <div>
                       <span className="text-neutral-500">Tiempo: </span>
                       <span>90 mins</span>
                     </div>
@@ -441,6 +474,47 @@ export function ArtistCalendarPage() {
                       <span>{selectedEvent.clientContact?.phone || selectedEvent.clientContact?.email || '—'}</span>
                     </div>
                   </div>
+                  {artistActionError ? <p className="text-sm text-red-400">{artistActionError}</p> : null}
+                  {pendingArtistSignature ? (
+                    <div className="flex flex-wrap items-center gap-3 pt-2">
+                      {isPaymentPending ? (
+                        <span className="inline-flex items-center rounded-md border border-amber-300/40 bg-amber-400/15 px-3 py-2 text-xs font-semibold text-amber-100">
+                          Pendiente de pago del cliente
+                        </span>
+                      ) : (
+                        <Button
+                          variant="primary"
+                          onClick={() => {
+                            setArtistActionError('');
+                            setArtistSigningOpen(true);
+                          }}
+                          disabled={artistSigningLoading}
+                        >
+                          {artistSigningLoading ? 'Procesando...' : 'Firmar y aceptar'}
+                        </Button>
+                      )}
+                      <Button
+                        variant="outline"
+                        onClick={async () => {
+                          if (!selectedEventId || artistSigningLoading) return;
+                          setArtistActionError('');
+                          setArtistSigningLoading(true);
+                          try {
+                            await artistRejectContract(selectedEventId, 'Rechazado por artista');
+                            dispatchContractsApiRefresh();
+                            await openEvent(selectedEventId);
+                          } catch (err) {
+                            setArtistActionError(err instanceof Error ? err.message : 'No se pudo rechazar el contrato.');
+                          } finally {
+                            setArtistSigningLoading(false);
+                          }
+                        }}
+                        disabled={artistSigningLoading}
+                      >
+                        {artistSigningLoading ? 'Procesando...' : 'Rechazar'}
+                      </Button>
+                    </div>
+                  ) : null}
                 </div>
               ) : (
                 <div className="text-neutral-500 text-sm">No se pudo cargar el detalle del evento.</div>
@@ -449,6 +523,49 @@ export function ArtistCalendarPage() {
           </div>
         </div>
       )}
+
+      <ClientContractSigningModal
+        isOpen={artistSigningOpen}
+        onClose={() => {
+          if (!artistSigningLoading) setArtistSigningOpen(false);
+        }}
+        artistParty={{
+          roleLabel: 'Artista',
+          name: user.displayName || 'Artista',
+          signed: false,
+        }}
+        clientParty={{
+          roleLabel: 'Cliente',
+          name: selectedEvent?.clientContact?.name || 'Cliente',
+          signed: true,
+        }}
+        summary={{
+          event: selectedEvent?.eventDetails?.name || 'Evento',
+          dateLabel: modalEvent?.dateTimeLabel || '—',
+          location: selectedEvent?.eventDetails?.location || '—',
+          totalValue: `$${Math.round(Number(selectedEvent?.financials?.totalAmount || 0))}`,
+          duration: '90 mins',
+          service: selectedEvent?.eventDetails?.name || 'Servicio artístico',
+        }}
+        onSign={async ({ dataUrl, acceptedTerms }) => {
+          if (!selectedEventId) return;
+          setArtistActionError('');
+          setArtistSigningLoading(true);
+          try {
+            await artistAcceptContract(selectedEventId, {
+              artistSignatureDataUrl: dataUrl,
+              acceptedTerms,
+            });
+            setArtistSigningOpen(false);
+            dispatchContractsApiRefresh();
+            await openEvent(selectedEventId);
+          } catch (err) {
+            setArtistActionError(err instanceof Error ? err.message : 'No se pudo firmar el contrato.');
+          } finally {
+            setArtistSigningLoading(false);
+          }
+        }}
+      />
     </div>
   );
 }

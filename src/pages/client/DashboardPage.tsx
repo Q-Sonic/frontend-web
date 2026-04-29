@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { listArtistProfiles, type ArtistProfileListFilters } from '../../api';
 import { ClientAreaHeader } from '../../components/client/ClientAreaHeader';
 import { ClientFloatingChatButton } from '../../components/client/ClientFloatingChatButton';
@@ -10,6 +11,7 @@ import type { DiscoverArtistCardDisplay } from '../../helpers/discoverArtistCard
 import { useArtistDiscoveryList } from '../../hooks/useArtistDiscoveryList';
 import { DiscoverArtistCardSkeleton } from '../../components/Skeleton';
 import { FiSearch } from 'react-icons/fi';
+import { useClientMyContracts } from '../../hooks/useClientMyContracts';
 
 export function DashboardPage() {
   const [filters, setFilters] = useState<ArtistProfileListFilters>({});
@@ -17,6 +19,11 @@ export function DashboardPage() {
   const [cityOptions, setCityOptions] = useState<string[]>([]);
   const [search, setSearch] = useState('');
   const [playingCardKey, setPlayingCardKey] = useState<string | null>(null);
+  const { contracts } = useClientMyContracts();
+  const unpaidContracts = useMemo(
+    () => contracts.filter((c) => c.financials?.paymentStatus === 'UNPAID').length,
+    [contracts],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -102,6 +109,14 @@ export function DashboardPage() {
           <p className="mt-2 text-sm md:text-base text-neutral-500">
             Explora cantantes disponibles cerca de ti, incluidos los artistas que se acaban de unir.
           </p>
+          {unpaidContracts > 0 ? (
+            <div className="mt-4 rounded-xl border border-amber-300/35 bg-amber-400/10 p-3 text-sm text-amber-100">
+              Tienes {unpaidContracts} contrato{unpaidContracts === 1 ? '' : 's'} pendiente{unpaidContracts === 1 ? '' : 's'} de pago.
+              <Link to="/client/contracts" className="ml-2 font-semibold underline">
+                Ir a pagar
+              </Link>
+            </div>
+          ) : null}
         </section>
 
         <DiscoverFilterBar
