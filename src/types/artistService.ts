@@ -9,6 +9,7 @@ export interface ArtistServiceRecord {
   duration?: string;
   features?: string[];
   imageUrl?: string;
+  isPinned?: boolean;
   createdAt: string;
   updatedAt: string;
   /** Optional PDF / document URL per service (if backend returns it on list/detail). */
@@ -42,6 +43,7 @@ export interface CreateArtistServiceBody {
   description?: string;
   duration?: string;
   features?: string[];
+  isPinned?: boolean;
   /** Artist file id; sent to API as `contractId`. */
   contractTemplateId?: string;
   /** Artist file id; sent to API as `technicalRiderId`. */
@@ -54,6 +56,7 @@ export interface UpdateArtistServiceBody {
   description?: string;
   duration?: string;
   features?: string[];
+  isPinned?: boolean;
   contractTemplateId?: string;
   technicalRiderTemplateId?: string;
 }

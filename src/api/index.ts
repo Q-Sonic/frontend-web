@@ -17,6 +17,7 @@ export {
   listArtistProfiles,
   getArtistProfile,
   getArtistProfileById,
+  getArtistAvailabilityById,
   updateArtistProfile,
   updateArtistProfileWithFormData,
   addArtistProfileMedia,

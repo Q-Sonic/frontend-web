@@ -22,9 +22,8 @@ import {
   localDateKey,
   weekdayShortEs,
 } from '../../components';
-import { ensureArtistProfileListedForDiscovery, getArtistSongsByArtistId } from '../../api';
+import { ensureArtistProfileListedForDiscovery, getArtistAvailabilityById, getArtistSongsByArtistId } from '../../api';
 import { isArtistServiceBookable } from '../../helpers/artistServiceVisibility';
-import { getPinnedItemIds, savePinnedItemIds, sortPinnedFirst } from '../../helpers/pinnedItems';
 import type { ArtistMediaItem, ArtistProfile, ArtistServiceRecord, ArtistSongRecord } from '../../types';
 import { FiPlay, FiPause, FiSkipBack, FiSkipForward, FiUser, FiAlertCircle } from 'react-icons/fi';
 import { useArtistProfileById } from '../../hooks/useArtistProfileById';
@@ -61,9 +60,16 @@ export function ArtistProfileMainPage() {
   const [songs, setSongs] = useState<ArtistSongRecord[]>([]);
   const [playingSongId, setPlayingSongId] = useState<string | null>(null);
   const [servicesExpanded, setServicesExpanded] = useState(false);
-  const [pinnedServiceIds, setPinnedServiceIds] = useState<string[]>([]);
   const [servicesAdminModalOpen, setServicesAdminModalOpen] = useState(false);
   const [adminModalEditorServiceId, setAdminModalEditorServiceId] = useState<string | null>(null);
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const [songsModalOpen, setSongsModalOpen] = useState(false);
+  const [featuredSongModalOpen, setFeaturedSongModalOpen] = useState(false);
+  const [availabilityDates, setAvailabilityDates] = useState<{ blocked: string[]; reserved: string[]; pending: string[] }>({
+    blocked: [],
+    reserved: [],
+    pending: [],
+  });
 
   // Missing state for build fix
   const [artistDisplayName, setArtistDisplayName] = useState('');
@@ -96,16 +102,19 @@ export function ArtistProfileMainPage() {
   }, [effectiveId]);
 
   useEffect(() => {
-    if (!effectiveId) {
-      setPinnedServiceIds([]);
-      return;
-    }
-    const validIds = new Set(localServices.map((service) => service.id));
-    const storedPinned = getPinnedItemIds(effectiveId, 'services');
-    const sanitizedPinned = storedPinned.filter((id) => validIds.has(id));
-    const savedPinned = savePinnedItemIds(effectiveId, 'services', sanitizedPinned);
-    setPinnedServiceIds(savedPinned);
-  }, [effectiveId, localServices]);
+    if (!effectiveId) return;
+    void getArtistAvailabilityById(effectiveId)
+      .then((data) => {
+        setAvailabilityDates({
+          blocked: data.blocked ?? [],
+          reserved: data.reserved ?? [],
+          pending: data.pending ?? [],
+        });
+      })
+      .catch(() => {
+        setAvailabilityDates({ blocked: [], reserved: [], pending: [] });
+      });
+  }, [effectiveId, localProfile?.blockedDates, servicesAdminModalOpen]);
 
   const availabilityDays = useMemo(() => {
     return Array.from({ length: 7 }, (_, idx) => {
@@ -116,8 +125,8 @@ export function ArtistProfileMainPage() {
   }, []);
 
   const blockedSet = useMemo(
-    () => new Set<string>(localProfile?.blockedDates ?? []),
-    [localProfile?.blockedDates],
+    () => new Set<string>([...(availabilityDates.blocked ?? []), ...(availabilityDates.reserved ?? []), ...(availabilityDates.pending ?? [])]),
+    [availabilityDates.blocked, availabilityDates.reserved, availabilityDates.pending],
   );
 
   const [, setSelectedAvailabilityKey] = useState<string>(() =>
@@ -175,14 +184,17 @@ export function ArtistProfileMainPage() {
     [duration],
   );
 
-  const orderedServices = useMemo(
-    () => sortPinnedFirst(localServices, pinnedServiceIds),
-    [localServices, pinnedServiceIds],
-  );
+  const orderedServices = useMemo(() => {
+    const pinned = localServices.filter((service) => Boolean(service.isPinned));
+    const normal = localServices.filter((service) => !service.isPinned);
+    return [...pinned, ...normal];
+  }, [localServices]);
   const orderedServicesPublic = useMemo(() => {
     const bookable = localServices.filter(isArtistServiceBookable);
-    return sortPinnedFirst(bookable, pinnedServiceIds);
-  }, [localServices, pinnedServiceIds]);
+    const pinned = bookable.filter((service) => Boolean(service.isPinned));
+    const normal = bookable.filter((service) => !service.isPinned);
+    return [...pinned, ...normal];
+  }, [localServices]);
   const servicesForGrid = isSelfArtist ? orderedServices : orderedServicesPublic;
   const reserveService = useMemo(
     () => getPrimaryReservationService(orderedServices),
@@ -303,14 +315,23 @@ export function ArtistProfileMainPage() {
               </h1>
               <p className="text-white/80 text-sm sm:text-base pt-1">{heroSubtitle}</p>
             </div>
+            {isSelfArtist ? (
+              <Button
+                variant="outline"
+                className="rounded-full border-white/25 px-4 py-2 text-sm"
+                onClick={() => setProfileModalOpen(true)}
+              >
+                Editar perfil
+              </Button>
+            ) : null}
           </div>
 
-          <div className="flex flex-wrap items-center gap-3 mt-8">
+          {/* <div className="flex flex-wrap items-center gap-3 mt-8">
             <ArtistProfileSocialNetworkLink network="tiktok" href={social.tiktok} />
             <ArtistProfileSocialNetworkLink network="youtube" href={social.youtube} />
             <ArtistProfileSocialNetworkLink network="instagram" href={social.instagram} />
             <ArtistProfileSocialNetworkLink network="facebook" href={social.facebook} />
-          </div>
+          </div> */}
 
           <div className="mt-8">
             <Button
@@ -319,7 +340,7 @@ export function ArtistProfileMainPage() {
               disabled={isSelfArtist || !reserveService}
               onClick={isSelfArtist ? () => navigate('/artist/settings') : () => goToReservation()}
             >
-              {isSelfArtist ? 'Gestionar Perfil' : 'Reservar Fecha'}
+              Reservar Fecha
             </Button>
           </div>
         </div>
@@ -333,12 +354,23 @@ export function ArtistProfileMainPage() {
           >
             <div className="flex items-center justify-between gap-2">
               <h2 className="text-base font-bold text-white tracking-wide">Disponibilidad</h2>
-              <Link
-                className="text-sm font-normal text-white/90 hover:text-white transition"
-                to={calendarMoreHref}
-              >
-                Ver todo
-              </Link>
+              <div className="flex items-center gap-3">
+                {isSelfArtist ? (
+                  <Button
+                    variant="outline"
+                    className="rounded-full border-white/25 px-3 py-1.5 text-xs"
+                    onClick={() => navigate('/artist/calendario')}
+                  >
+                    Editar
+                  </Button>
+                ) : null}
+                <Link
+                  className="text-sm font-normal text-white/90 hover:text-white transition"
+                  to={calendarMoreHref}
+                >
+                  Ver todo
+                </Link>
+              </div>
             </div>
             <div className="flex flex-wrap items-center gap-5 text-xs text-white">
               <span className="inline-flex items-center gap-2">
@@ -379,6 +411,15 @@ export function ArtistProfileMainPage() {
           <div className="rounded-4xl bg-card/86 p-8 flex flex-col min-h-[200px]">
             <div className="flex items-center justify-between gap-2 mb-4">
               <h2 className="font-bold text-white tracking-wide">Música</h2>
+              {isSelfArtist ? (
+                <Button
+                  variant="outline"
+                  className="rounded-full border-white/25 px-3 py-1.5 text-xs"
+                  onClick={() => setSongsModalOpen(true)}
+                >
+                  Editar
+                </Button>
+              ) : null}
             </div>
             {songs.length === 0 ? (
               <p className="text-neutral-500 text-sm mt-auto">Sin canciones.</p>
@@ -448,6 +489,15 @@ export function ArtistProfileMainPage() {
         <div className="rounded-4xl bg-card/86 p-8 flex flex-col">
           <div className="flex items-center justify-between gap-2 mb-4">
             <h2 className="font-bold text-white tracking-wide">Canción destacada</h2>
+            {isSelfArtist ? (
+              <Button
+                variant="outline"
+                className="rounded-full border-white/25 px-3 py-1.5 text-xs"
+                onClick={() => setFeaturedSongModalOpen(true)}
+              >
+                Editar
+              </Button>
+            ) : null}
           </div>
           {featuredSong?.streamUrl ? (
             <>
@@ -590,7 +640,7 @@ export function ArtistProfileMainPage() {
                     features={features}
                     isSelfArtist={isSelfArtist}
                     hireLinkTo={`${basePath}/services/${s.id}`}
-                    isPinned={pinnedServiceIds.includes(s.id)}
+                    isPinned={Boolean(s.isPinned)}
                     documentsComplete={isArtistServiceBookable(s)}
                     documentsHref={isSelfArtist ? `${basePath}/documents` : undefined}
                     onContinueEditingDraft={
@@ -625,16 +675,39 @@ export function ArtistProfileMainPage() {
 
       <ArtistServicesAdminModal
         isOpen={servicesAdminModalOpen}
-        artistId={effectiveId}
         services={localServices}
         onClose={() => {
           setServicesAdminModalOpen(false);
           setAdminModalEditorServiceId(null);
         }}
         onServicesChange={setLocalServices}
-        onPinnedServicesChange={setPinnedServiceIds}
         openEditorForServiceId={adminModalEditorServiceId}
         onOpenEditorForServiceIdConsumed={() => setAdminModalEditorServiceId(null)}
+      />
+      <ArtistProfileSettingsModal
+        isOpen={profileModalOpen}
+        profile={localProfile}
+        artistDisplayName={artistDisplayName}
+        onClose={() => setProfileModalOpen(false)}
+        onSaved={(saved) => {
+          setLocalProfile((prev: ArtistProfile | null) => (prev ? { ...prev, ...saved } : prev));
+        }}
+        onArtistNameSaved={setArtistDisplayName}
+      />
+      <ArtistSongsModal
+        isOpen={songsModalOpen}
+        profile={localProfile}
+        artistDisplayName={artistDisplayName}
+        onClose={() => setSongsModalOpen(false)}
+        onSongsChange={setSongs}
+      />
+      <ArtistFeaturedSongModal
+        isOpen={featuredSongModalOpen}
+        profile={localProfile}
+        artistDisplayName={artistDisplayName}
+        songs={songs}
+        onClose={() => setFeaturedSongModalOpen(false)}
+        onSongsChange={setSongs}
       />
     </div>
   );

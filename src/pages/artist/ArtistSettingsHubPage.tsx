@@ -230,7 +230,6 @@ export function ArtistSettingsHubPage() {
 
       <ArtistServicesAdminModal
         isOpen={activeModal === 'services'}
-        artistId={user.uid}
         services={localServices}
         onClose={closeModal}
         onServicesChange={setLocalServices}

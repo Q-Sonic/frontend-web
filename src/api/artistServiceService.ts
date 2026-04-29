@@ -83,6 +83,7 @@ function buildArtistServiceUpdateJson(body: UpdateArtistServiceBody): Record<str
   if (body.duration !== undefined) o.duration = body.duration;
 
   if (body.features !== undefined) o.features = body.features;
+  if (body.isPinned !== undefined) o.isPinned = body.isPinned;
 
   if (body.contractTemplateId !== undefined) {
 
@@ -237,6 +238,7 @@ export async function createArtistServiceWithFormData(
     formData.append('features', JSON.stringify(body.features));
 
   }
+  if (body.isPinned != null) formData.append('isPinned', String(body.isPinned));
 
   appendContractRiderFormFields(formData, body);
 
@@ -301,6 +303,7 @@ export async function updateArtistServiceWithFormData(
   if (body.duration != null) formData.append('duration', body.duration);
 
   if (body.features != null) formData.append('features', JSON.stringify(body.features));
+  if (body.isPinned != null) formData.append('isPinned', String(body.isPinned));
 
   appendContractRiderFormFields(formData, body);
 

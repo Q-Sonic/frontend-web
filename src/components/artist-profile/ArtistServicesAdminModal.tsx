@@ -13,22 +13,13 @@ import {
   uploadArtistFile,
 } from '../../api';
 import type { ArtistFileRecord } from '../../types/artistFile';
-import {
-  MAX_PINNED_ITEMS,
-  getPinnedItemIds,
-  savePinnedItemIds,
-  sortPinnedFirst,
-  togglePinnedItemId,
-} from '../../helpers/pinnedItems';
 import type { ArtistServiceRecord } from '../../types';
 
 type ArtistServicesAdminModalProps = {
   isOpen: boolean;
-  artistId: string | undefined;
   services: ArtistServiceRecord[];
   onClose: () => void;
   onServicesChange: (next: ArtistServiceRecord[]) => void;
-  onPinnedServicesChange?: (ids: string[]) => void;
   /** When the admin modal opens, open the editor for this service id (e.g. from profile card). */
   openEditorForServiceId?: string | null;
   onOpenEditorForServiceIdConsumed?: () => void;
@@ -87,17 +78,15 @@ const emptyForm: ServiceFormState = {
 
 /** Matches public `ArtistServiceCard` shell: teal border, glass fill, hover glow. */
 const adminServiceCardShell =
-  'group relative overflow-hidden rounded-3xl border border-[#00d4c8]/20 bg-white/[0.04] ' +
+  'group relative overflow-hidden rounded-3xl border border-[#00d4c8]/15 bg-white/[0.03] ' +
   'transition-all duration-300 hover:-translate-y-0.5 hover:border-[#00d4c8]/45 ' +
   'hover:shadow-[0_0_22px_rgba(0,212,200,0.28)]';
 
 export function ArtistServicesAdminModal({
   isOpen,
-  artistId,
   services,
   onClose,
   onServicesChange,
-  onPinnedServicesChange,
   openEditorForServiceId,
   onOpenEditorForServiceIdConsumed,
 }: ArtistServicesAdminModalProps) {
@@ -110,7 +99,6 @@ export function ArtistServicesAdminModal({
   const [editorError, setEditorError] = useState('');
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editorMode, setEditorMode] = useState<EditorMode>('create');
-  const [pinnedServiceIds, setPinnedServiceIds] = useState<string[]>([]);
   const [openCustomSelect, setOpenCustomSelect] = useState<CustomSelectId | null>(null);
   const [contractFiles, setContractFiles] = useState<ArtistFileRecord[]>([]);
   const [riderFiles, setRiderFiles] = useState<ArtistFileRecord[]>([]);
@@ -125,6 +113,7 @@ export function ArtistServicesAdminModal({
   }>({ isOpen: false, target: 'contract', name: '', description: '', file: null });
   const [uploadModalError, setUploadModalError] = useState('');
   const [isSavingUpload, setIsSavingUpload] = useState(false);
+  const [pinLoadingServiceIds, setPinLoadingServiceIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!isOpen) {
@@ -145,21 +134,9 @@ export function ArtistServicesAdminModal({
       setUploadModal({ isOpen: false, target: 'contract', name: '', description: '', file: null });
       setUploadModalError('');
       setIsSavingUpload(false);
+      setPinLoadingServiceIds(new Set());
     }
   }, [isOpen]);
-
-  useEffect(() => {
-    if (!artistId) {
-      setPinnedServiceIds([]);
-      return;
-    }
-    const existingServiceIds = new Set(services.map((service) => service.id));
-    const storedPinned = getPinnedItemIds(artistId, 'services');
-    const sanitizedPinned = storedPinned.filter((id) => existingServiceIds.has(id));
-    const savedPinned = savePinnedItemIds(artistId, 'services', sanitizedPinned);
-    setPinnedServiceIds(savedPinned);
-    onPinnedServicesChange?.(savedPinned);
-  }, [artistId, services, onPinnedServicesChange]);
 
   useEffect(() => {
     return () => {
@@ -233,8 +210,12 @@ export function ArtistServicesAdminModal({
   }, [form.imageUrl, previewUrl]);
 
   const orderedServices = useMemo(
-    () => sortPinnedFirst(services, pinnedServiceIds),
-    [services, pinnedServiceIds],
+    () => {
+      const pinned = services.filter((service) => Boolean(service.isPinned));
+      const normal = services.filter((service) => !service.isPinned);
+      return [...pinned, ...normal];
+    },
+    [services],
   );
 
   const contractSelectOptions = useMemo(() => {
@@ -447,12 +428,6 @@ export function ArtistServicesAdminModal({
       await deleteArtistService(id);
       const next = services.filter((item) => item.id !== id);
       onServicesChange(next);
-      if (artistId) {
-        const nextPinned = pinnedServiceIds.filter((pinnedId) => pinnedId !== id);
-        const savedPinned = savePinnedItemIds(artistId, 'services', nextPinned);
-        setPinnedServiceIds(savedPinned);
-        onPinnedServicesChange?.(savedPinned);
-      }
       if (form.id === id) startCreate();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo eliminar el servicio.');
@@ -520,23 +495,39 @@ export function ArtistServicesAdminModal({
     );
   };
 
-  const toggleServicePin = (serviceId: string) => {
-    if (!artistId) return;
-    const { nextPinnedIds, exceededLimit } = togglePinnedItemId(pinnedServiceIds, serviceId);
-    if (exceededLimit) {
-      setError(`Solo puedes fijar hasta ${MAX_PINNED_ITEMS} servicios.`);
-      return;
-    }
+  const toggleServicePin = async (service: ArtistServiceRecord) => {
+    if (pinLoadingServiceIds.has(service.id)) return;
+    const previousPinned = Boolean(service.isPinned);
+    setPinLoadingServiceIds((prev) => new Set(prev).add(service.id));
     setError('');
-    const savedPinned = savePinnedItemIds(artistId, 'services', nextPinnedIds);
-    setPinnedServiceIds(savedPinned);
-    onPinnedServicesChange?.(savedPinned);
+    onServicesChange(
+      services.map((item) =>
+        item.id === service.id ? { ...item, isPinned: !previousPinned } : item,
+      ),
+    );
+    try {
+      const updated = await updateArtistService(service.id, { isPinned: !service.isPinned });
+      onServicesChange(services.map((item) => (item.id === updated.id ? updated : item)));
+    } catch (err) {
+      onServicesChange(
+        services.map((item) =>
+          item.id === service.id ? { ...item, isPinned: previousPinned } : item,
+        ),
+      );
+      setError(err instanceof Error ? err.message : 'No se pudo actualizar el estado de fijado.');
+    } finally {
+      setPinLoadingServiceIds((prev) => {
+        const next = new Set(prev);
+        next.delete(service.id);
+        return next;
+      });
+    }
   };
 
   return (
     <div className="fixed inset-0 z-50 flex min-h-0 items-stretch justify-center bg-black/70 p-0 sm:items-center sm:p-4 sm:pt-[max(0.5rem,env(safe-area-inset-top))] sm:pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:pl-[max(0.5rem,env(safe-area-inset-left))] sm:pr-[max(0.5rem,env(safe-area-inset-right))]">
       <div
-        className={`flex h-full min-h-0 max-h-[100dvh] w-full max-w-full flex-col overflow-hidden rounded-none border-x-0 border-y border-[#00d4c8]/35 bg-[#111214] shadow-none sm:h-auto sm:max-h-[min(92dvh,calc(100dvh-2rem))] sm:max-w-[min(1240px,calc(100vw-1.5rem))] sm:rounded-3xl sm:border sm:shadow-[0_0_40px_rgba(0,212,200,0.2)] ${subtleScrollbarClass}`}
+        className={`flex h-full min-h-0 max-h-[100dvh] w-full max-w-full flex-col overflow-hidden rounded-none border-x-0 border-y border-[#00d4c8]/35 bg-[#111214] shadow-none sm:h-auto sm:max-h-[90vh] sm:max-w-[min(1240px,calc(100vw-1.5rem))] sm:rounded-3xl sm:border sm:shadow-[0_0_40px_rgba(0,212,200,0.2)] ${subtleScrollbarClass}`}
       >
         <div className="shrink-0 px-4 pb-3 pt-[max(1rem,env(safe-area-inset-top))] sm:px-6 sm:pb-4 sm:pt-6 md:px-8 md:pt-8">
           <div className="grid grid-cols-[1fr_auto] gap-x-3 gap-y-3 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center sm:gap-x-4">
@@ -560,7 +551,7 @@ export function ArtistServicesAdminModal({
               <FiX size={20} aria-hidden />
             </button>
           </div>
-          <div className="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+          <div className="mt-3 flex flex-wrap items-baseline gap-x-3 gap-y-1 border-t border-white/10 pt-3">
             <p className="max-w-2xl text-sm leading-relaxed text-neutral-400 sm:text-base">
               Añade, edita y gestiona tus servicios
             </p>
@@ -581,9 +572,11 @@ export function ArtistServicesAdminModal({
         <div
           className={`min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 sm:px-6 sm:pb-6 sm:pt-4 md:px-8 md:pb-6 md:pt-4 ${subtleScrollbarClass}`}
         >
-          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3 sm:p-5">
+          <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-3 sm:p-5">
             <div className="grid auto-rows-fr grid-cols-1 gap-3 min-[480px]:grid-cols-2 min-[480px]:gap-4 lg:grid-cols-3 xl:grid-cols-4 lg:gap-5">
-              {orderedServices.map((service) => (
+              {orderedServices.map((service) => {
+                const isPinUpdating = pinLoadingServiceIds.has(service.id);
+                return (
                 <article
                   key={service.id}
                   className={`flex h-full min-h-0 min-w-0 flex-col ${adminServiceCardShell}`}
@@ -604,23 +597,30 @@ export function ArtistServicesAdminModal({
                         }}
                       />
                     )}
-                    <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-neutral-950/45 to-transparent" />
+                    <div className="pointer-events-none absolute inset-0 bg-linear-to-t from-neutral-950/45 to-transparent" />
                   </div>
                   <div className="flex min-h-0 flex-1 flex-col px-4 pb-4 pt-4 sm:px-5 sm:pb-5 sm:pt-5">
                     <div className="border-b border-white/10 pb-3">
                       <div className="mb-2 flex items-center justify-between gap-2">
                         <button
                           type="button"
-                          onClick={() => toggleServicePin(service.id)}
-                          disabled={isSaving}
+                          onClick={() => void toggleServicePin(service)}
+                          disabled={isSaving || isPinUpdating}
                           className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium transition ${
-                            pinnedServiceIds.includes(service.id)
+                            service.isPinned
                               ? 'border-accent/60 bg-accent/20 text-accent'
                               : 'border-white/20 text-neutral-400 hover:border-white/35 hover:text-white'
                           }`}
                         >
-                          <FaThumbtack size={11} className="-rotate-45" aria-hidden />
-                          {pinnedServiceIds.includes(service.id) ? 'Fijado' : 'Fijar'}
+                          {isPinUpdating ? (
+                            <span
+                              className="h-3 w-3 animate-spin rounded-full border border-current border-t-transparent"
+                              aria-hidden
+                            />
+                          ) : (
+                            <FaThumbtack size={11} className="-rotate-45" aria-hidden />
+                          )}
+                          {isPinUpdating ? 'Guardando...' : service.isPinned ? 'Fijado' : 'Fijar'}
                         </button>
                         <p className="text-lg font-semibold tabular-nums leading-none text-accent sm:text-xl">
                           ${service.price}
@@ -653,7 +653,7 @@ export function ArtistServicesAdminModal({
                     <div className="mt-auto flex gap-2 border-t border-white/10 pt-4">
                       <Button
                         variant="outline"
-                        className="min-h-[44px] flex-1 rounded-full border-white/25 px-3 py-2 text-xs hover:border-white/40 hover:bg-white/[0.06] sm:min-h-[38px] sm:text-sm"
+                        className="min-h-[44px] flex-1 rounded-full border-white/20 bg-white/[0.02] px-3 py-2 text-xs hover:border-white/35 hover:bg-white/[0.06] sm:min-h-[38px] sm:text-sm"
                         onClick={() => startEdit(service)}
                         disabled={isSaving}
                       >
@@ -671,7 +671,8 @@ export function ArtistServicesAdminModal({
                     </div>
                   </div>
                 </article>
-              ))}
+                );
+              })}
               {services.length === 0 && (
                 <p className="col-span-full rounded-2xl border border-dashed border-white/15 bg-black/20 px-4 py-12 text-center text-sm text-neutral-500 sm:py-14">
                   Aun no tienes servicios. Usa <span className="text-neutral-300">Agregar servicios</span> para crear
@@ -686,7 +687,7 @@ export function ArtistServicesAdminModal({
       {isEditorOpen && (
         <>
         <div className="fixed inset-0 z-[100] flex min-h-0 items-stretch justify-center bg-black/60 p-0 backdrop-blur-[2px] sm:items-center sm:p-4 sm:pt-[max(0.5rem,env(safe-area-inset-top))] sm:pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:pl-[max(0.5rem,env(safe-area-inset-left))] sm:pr-[max(0.5rem,env(safe-area-inset-right))]">
-          <div className="flex h-full min-h-0 max-h-[100dvh] w-full max-w-full flex-col overflow-hidden rounded-none border-x-0 border-y border-[#00d4c8]/35 bg-[#111214] shadow-none sm:h-auto sm:max-h-[min(96dvh,calc(100dvh-2rem))] sm:max-w-[min(1120px,calc(100vw-1.5rem))] sm:rounded-3xl sm:border sm:shadow-[0_0_40px_rgba(0,212,200,0.18)]">
+          <div className="flex h-full min-h-0 max-h-[100dvh] w-full max-w-full flex-col overflow-hidden rounded-none border-x-0 border-y border-[#00d4c8]/35 bg-[#111214] shadow-none sm:h-auto sm:max-h-[90vh] sm:max-w-[min(1120px,calc(100vw-1.5rem))] sm:rounded-3xl sm:border sm:shadow-[0_0_40px_rgba(0,212,200,0.18)]">
             <div className="flex shrink-0 items-start justify-between gap-3 border-b border-white/10 px-4 pb-3 pt-[max(1rem,env(safe-area-inset-top))] sm:gap-4 sm:px-7 sm:pb-5 sm:pt-6">
               <div className="min-w-0 pr-2">
                 <h4 className="text-xl font-semibold tracking-tight text-white sm:text-2xl md:text-3xl">
