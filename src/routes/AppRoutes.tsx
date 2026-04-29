@@ -46,6 +46,7 @@ import {
   ArtistProfileGalleryPage,
   ArtistProfileCalendarPage,
   ArtistProfileMainPage,
+  ArtistContractsPage,
   ArtistServicesPage,
   ArtistSettingsHubPage,
   ArtistProfileIdRedirect,
@@ -159,6 +160,14 @@ export function AppRoutes() {
           }
         />
         <Route path="/artist/calendario" element={<ArtistCalendarPage />} />
+        <Route
+          path="/artist/contracts"
+          element={
+            <SidebarLayout sidebar={artistSidebar}>
+              <ArtistContractsPage />
+            </SidebarLayout>
+          }
+        />
         <Route
           path="/artist/services"
           element={

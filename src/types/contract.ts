@@ -2,8 +2,10 @@
 
 export type ContractLifecycleStatus =
   | 'PENDING'
+  | 'PENDING_ARTIST_SIGNATURE'
   | 'ACCEPTED'
   | 'REJECTED'
+  | 'EXPIRED'
   | 'COMPLETED'
   | 'CANCELLED';
 
@@ -29,10 +31,19 @@ export type ContractRecord = {
   eventDetails?: ContractEventDetails;
   financials?: ContractFinancials;
   contractUrl?: string;
+  signatureReceiptUrl?: string;
+  sourceContractUrl?: string;
+  sourceContractFileId?: string;
+  sourceContractOriginalName?: string;
   riderUrl?: string;
   /** Optional if backend adds them later (not in minimal OpenAPI). */
   artistId?: string;
   serviceId?: string;
+  clientSignatureUrl?: string;
+  clientSignedAt?: string | { _seconds?: number; _nanoseconds?: number };
+  artistSignatureUrl?: string;
+  artistSignedAt?: string | { _seconds?: number; _nanoseconds?: number };
+  artistDecisionDeadlineAt?: string | { _seconds?: number; _nanoseconds?: number };
   /**
    * Optional enrichment from API (e.g. joined profile). When set, the client contracts UI
    * shows this as the card headline and uses `artistPhotoUrl` for the avatar.

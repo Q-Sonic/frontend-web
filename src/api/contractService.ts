@@ -9,6 +9,40 @@ export function dispatchContractsApiRefresh(): void {
   window.dispatchEvent(new CustomEvent(STAGEGO_CLIENT_CONTRACTS_API_REFRESH_EVENT));
 }
 
+function normalizeLifecycleStatus(raw: unknown): ContractRecord['status'] {
+  const normalized = String(raw || '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '_');
+  switch (normalized) {
+    case 'pending':
+      return 'PENDING';
+    case 'pending_artist_signature':
+      return 'PENDING_ARTIST_SIGNATURE';
+    case 'accepted':
+      return 'ACCEPTED';
+    case 'rejected':
+      return 'REJECTED';
+    case 'completed':
+      return 'COMPLETED';
+    case 'cancelled':
+      return 'CANCELLED';
+    case 'expired':
+      return 'EXPIRED';
+    default:
+      return 'PENDING';
+  }
+}
+
+function normalizePaymentStatus(raw: unknown): 'UNPAID' | 'PARTIAL' | 'PAID' {
+  const normalized = String(raw || '')
+    .trim()
+    .toLowerCase();
+  if (normalized === 'paid') return 'PAID';
+  if (normalized === 'partial') return 'PARTIAL';
+  return 'UNPAID';
+}
+
 function stringFromUnknown(v: unknown): string | undefined {
   if (typeof v !== 'string') return undefined;
   const t = v.trim();
@@ -30,7 +64,13 @@ function enrichContractRecord(row: ContractRecord): ContractRecord {
     stringFromUnknown(x.artist_photo_url) ||
     stringFromUnknown(x.image_url) ||
     stringFromUnknown(x.artistImageUrl);
-  const out: ContractRecord = { ...row };
+  const out: ContractRecord = { ...row, status: normalizeLifecycleStatus(x.status) };
+  if (out.financials) {
+    out.financials = {
+      ...out.financials,
+      paymentStatus: normalizePaymentStatus((out.financials as Record<string, unknown>).paymentStatus),
+    };
+  }
   if (artistDisplayName) out.artistDisplayName = artistDisplayName;
   if (artistPhotoUrl) out.artistPhotoUrl = artistPhotoUrl;
   return out;
@@ -84,16 +124,21 @@ export async function fetchMyContractHistory(): Promise<ContractRecord[]> {
   return normalizeContractListPayload(raw);
 }
 
+export async function fetchArtistContractHistory(): Promise<ContractRecord[]> {
+  const raw = await api<unknown>('contracts/artist-history');
+  return normalizeContractListPayload(raw);
+}
+
 export async function createContract(body: CreateContractBody): Promise<ContractRecord | undefined> {
   const res = await api<ApiResponse<ContractRecord> | ContractRecord>('contracts', {
     method: 'POST',
     body: JSON.stringify(body),
   });
   if (res && typeof res === 'object' && 'data' in res && (res as ApiResponse<ContractRecord>).data) {
-    return (res as ApiResponse<ContractRecord>).data;
+    return enrichContractRecord((res as ApiResponse<ContractRecord>).data);
   }
   if (res && typeof res === 'object' && 'id' in res) {
-    return res as ContractRecord;
+    return enrichContractRecord(res as ContractRecord);
   }
   return undefined;
 }
@@ -220,4 +265,42 @@ export function contractRecordsToSignedMockRecords(contracts: ContractRecord[]):
 export async function fetchSignedCartMockRecordsFromApi(): Promise<SignedCartMockRecord[]> {
   const rows = await fetchMyContractHistorySafe();
   return contractRecordsToSignedMockRecords(rows);
+}
+
+export async function artistAcceptContract(
+  contractId: string,
+  payload: { artistSignatureDataUrl: string; acceptedTerms: boolean },
+): Promise<ContractRecord | undefined> {
+  const res = await api<ApiResponse<ContractRecord> | ContractRecord>(`contracts/${contractId}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({
+      status: 'ACCEPTED',
+      artistSignatureDataUrl: payload.artistSignatureDataUrl,
+      acceptedTerms: payload.acceptedTerms,
+    }),
+  });
+  if (res && typeof res === 'object' && 'data' in res && (res as ApiResponse<ContractRecord>).data) {
+    return enrichContractRecord((res as ApiResponse<ContractRecord>).data);
+  }
+  if (res && typeof res === 'object' && 'id' in res) {
+    return enrichContractRecord(res as ContractRecord);
+  }
+  return undefined;
+}
+
+export async function artistRejectContract(contractId: string, rejectionReason?: string): Promise<ContractRecord | undefined> {
+  const res = await api<ApiResponse<ContractRecord> | ContractRecord>(`contracts/${contractId}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({
+      status: 'REJECTED',
+      rejectionReason,
+    }),
+  });
+  if (res && typeof res === 'object' && 'data' in res && (res as ApiResponse<ContractRecord>).data) {
+    return enrichContractRecord((res as ApiResponse<ContractRecord>).data);
+  }
+  if (res && typeof res === 'object' && 'id' in res) {
+    return enrichContractRecord(res as ContractRecord);
+  }
+  return undefined;
 }
