@@ -143,11 +143,14 @@ export function ArtistFeaturedSongModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-      <div className="w-full max-w-5xl rounded-3xl border border-[#00d4c8]/35 bg-[#111214] p-6 shadow-[0_0_40px_rgba(0,212,200,0.2)]">
-        <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-4xl font-semibold text-white">Editando canción destacada</h3>
-          <button type="button" onClick={onClose} className="rounded-full border border-white/20 p-2 text-white/70 hover:text-white">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
+      <div className="max-h-[90vh] w-full max-w-6xl overflow-y-auto rounded-3xl border border-[#00d4c8]/25 bg-[#0f1115] p-5 shadow-[0_18px_60px_rgba(0,0,0,0.45)] sm:p-6">
+        <div className="mb-5 flex items-center justify-between border-b border-white/10 pb-4">
+          <div>
+            <h3 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">Canción destacada</h3>
+            <p className="mt-1 text-sm text-neutral-400">Elige la canción principal que verán tus clientes.</p>
+          </div>
+          <button type="button" onClick={onClose} className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-white/20 text-white/70 transition hover:border-white/35 hover:bg-white/5 hover:text-white">
             <FiX />
           </button>
         </div>
@@ -156,36 +159,49 @@ export function ArtistFeaturedSongModal({
 
         <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
           <div>
-            <div className="mb-3 flex items-center gap-2 rounded-lg border border-white/20 px-3 py-2 text-white/80">
+            <div className="mb-3 flex items-center gap-2 rounded-xl border border-white/20 bg-black/25 px-3 py-2.5 text-white/80">
               <FiSearch />
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Seleccionar canción destacada"
-                className="w-full bg-transparent text-white outline-none"
+                className="w-full bg-transparent text-sm text-white outline-none placeholder:text-neutral-500"
               />
             </div>
-            <div className={`max-h-[350px] overflow-auto rounded-xl border border-white/10 ${subtleScrollbarClass}`}>
+            <div className={`max-h-[350px] overflow-auto rounded-xl border border-white/10 bg-white/3 ${subtleScrollbarClass}`}>
               {filteredSongs.map((song) => (
                 <button
                   key={song.id}
                   type="button"
                   onClick={() => setSelectedId(song.id)}
-                  className={`flex w-full items-center justify-between border-b border-white/5 px-4 py-3 text-left hover:bg-white/5 ${
-                    selectedId === song.id ? 'bg-[#00d4c8]/10' : ''
+                  className={`flex w-full cursor-pointer items-center justify-between border-b border-white/5 px-4 py-3 text-left transition hover:bg-white/5 ${
+                    selectedId === song.id ? 'bg-[#00d4c8]/12' : ''
                   }`}
                 >
-                  <div>
-                    <p className="text-2xl font-semibold text-white">{song.title}</p>
-                    <p className="text-sm text-white/60">{artistDisplayName}</p>
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className="h-12 w-12 shrink-0 overflow-hidden rounded-lg border border-white/10 bg-black/30">
+                      {song.coverUrl || profile.photo ? (
+                        <img
+                          src={song.coverUrl || profile.photo}
+                          alt=""
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center text-xs text-white/45">
+                          ♪
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-base font-semibold text-white sm:text-lg">{song.title}</p>
+                    <p className="text-sm text-white/60 truncate">{artistDisplayName}</p>
                   </div>
                   {selectedId === song.id && <FiCheck className="text-[#00d4c8]" size={20} />}
                 </button>
               ))}
               {filteredSongs.length === 0 && <p className="p-4 text-sm text-white/60">No hay canciones para mostrar.</p>}
             </div>
-            <div className="mt-3 flex gap-2">
-              <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-white/25 px-4 py-2 text-white">
+            <div className="mt-3 flex flex-wrap gap-2">
+              <label className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-xl border border-white/25 bg-black/25 px-4 py-2 text-sm font-medium text-white transition hover:border-[#00d4c8]/40">
                 <FiUpload /> Audio
                 <input
                   type="file"
@@ -200,7 +216,7 @@ export function ArtistFeaturedSongModal({
                   }}
                 />
               </label>
-              <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-white/25 px-4 py-2 text-white">
+              <label className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-xl border border-white/25 bg-black/25 px-4 py-2 text-sm font-medium text-white transition hover:border-[#00d4c8]/40">
                 <FiUpload /> Portada
                 <input
                   type="file"
@@ -215,12 +231,12 @@ export function ArtistFeaturedSongModal({
                   }}
                 />
               </label>
-              <Button variant="secondary" onClick={uploadSong} loading={isSaving} disabled={!uploadingAudio}>
+              <Button variant="secondary" onClick={uploadSong} loading={isSaving} disabled={!uploadingAudio} className="min-h-[44px] rounded-xl">
                 {uploadStatus === 'uploading' ? 'Subiendo...' : uploadStatus === 'success' ? 'Subida completa' : 'Subir'}
               </Button>
             </div>
             <div className="mt-3 grid gap-3 md:grid-cols-2">
-              <div className="rounded-xl border border-white/10 p-3">
+              <div className="rounded-xl border border-white/10 bg-black/20 p-3">
                 <p className="mb-2 text-xs text-white/60">Preview audio</p>
                 {audioPreview ? (
                   <audio controls className="w-full" src={audioPreview} />
@@ -228,7 +244,7 @@ export function ArtistFeaturedSongModal({
                   <p className="text-xs text-white/40">Sin audio seleccionado.</p>
                 )}
               </div>
-              <div className="rounded-xl border border-white/10 p-3">
+              <div className="rounded-xl border border-white/10 bg-black/20 p-3">
                 <p className="mb-2 text-xs text-white/60">Preview portada</p>
                 <div className="aspect-video w-full overflow-hidden rounded-lg bg-black/30">
                   {coverPreview ? (
@@ -241,22 +257,22 @@ export function ArtistFeaturedSongModal({
             </div>
           </div>
 
-          <div className="rounded-xl bg-white/10 p-4">
-            <div className="mx-auto aspect-3/4 w-full max-w-[220px] overflow-hidden rounded-2xl bg-black/40">
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+            <div className="mx-auto aspect-3/4 w-full max-w-[220px] overflow-hidden rounded-2xl border border-white/10 bg-black/40 shadow-[0_10px_24px_rgba(0,0,0,0.35)]">
               {(selectedSong?.coverUrl || profile.photo) && (
                 <img src={selectedSong?.coverUrl || profile.photo} alt="" className="h-full w-full object-cover" />
               )}
             </div>
-            <p className="mt-4 text-center text-2xl font-semibold text-white">{selectedSong?.title ?? 'Sin selección'}</p>
+            <p className="mt-4 text-center text-xl font-semibold text-white">{selectedSong?.title ?? 'Sin selección'}</p>
             <p className="text-center text-sm text-white/60">{artistDisplayName}</p>
           </div>
         </div>
 
-        <div className="mt-4 flex justify-end gap-3">
-          <Button variant="outline" onClick={onClose} disabled={isSaving}>
+        <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-3">
+          <Button variant="outline" onClick={onClose} disabled={isSaving} className="min-h-[44px] rounded-full">
             Cancelar
           </Button>
-          <Button onClick={saveFeaturedSong} loading={isSaving} disabled={!selectedSong}>
+          <Button onClick={saveFeaturedSong} loading={isSaving} disabled={!selectedSong} className="min-h-[44px] rounded-full px-6">
             Guardar
           </Button>
         </div>

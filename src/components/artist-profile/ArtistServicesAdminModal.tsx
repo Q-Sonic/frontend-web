@@ -78,7 +78,7 @@ const emptyForm: ServiceFormState = {
 
 /** Matches public `ArtistServiceCard` shell: teal border, glass fill, hover glow. */
 const adminServiceCardShell =
-  'group relative overflow-hidden rounded-3xl border border-[#00d4c8]/20 bg-white/[0.04] ' +
+  'group relative overflow-hidden rounded-3xl border border-[#00d4c8]/15 bg-white/[0.03] ' +
   'transition-all duration-300 hover:-translate-y-0.5 hover:border-[#00d4c8]/45 ' +
   'hover:shadow-[0_0_22px_rgba(0,212,200,0.28)]';
 
@@ -527,7 +527,7 @@ export function ArtistServicesAdminModal({
   return (
     <div className="fixed inset-0 z-50 flex min-h-0 items-stretch justify-center bg-black/70 p-0 sm:items-center sm:p-4 sm:pt-[max(0.5rem,env(safe-area-inset-top))] sm:pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:pl-[max(0.5rem,env(safe-area-inset-left))] sm:pr-[max(0.5rem,env(safe-area-inset-right))]">
       <div
-        className={`flex h-full min-h-0 max-h-[100dvh] w-full max-w-full flex-col overflow-hidden rounded-none border-x-0 border-y border-[#00d4c8]/35 bg-[#111214] shadow-none sm:h-auto sm:max-h-[min(92dvh,calc(100dvh-2rem))] sm:max-w-[min(1240px,calc(100vw-1.5rem))] sm:rounded-3xl sm:border sm:shadow-[0_0_40px_rgba(0,212,200,0.2)] ${subtleScrollbarClass}`}
+        className={`flex h-full min-h-0 max-h-[100dvh] w-full max-w-full flex-col overflow-hidden rounded-none border-x-0 border-y border-[#00d4c8]/35 bg-[#111214] shadow-none sm:h-auto sm:max-h-[90vh] sm:max-w-[min(1240px,calc(100vw-1.5rem))] sm:rounded-3xl sm:border sm:shadow-[0_0_40px_rgba(0,212,200,0.2)] ${subtleScrollbarClass}`}
       >
         <div className="shrink-0 px-4 pb-3 pt-[max(1rem,env(safe-area-inset-top))] sm:px-6 sm:pb-4 sm:pt-6 md:px-8 md:pt-8">
           <div className="grid grid-cols-[1fr_auto] gap-x-3 gap-y-3 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center sm:gap-x-4">
@@ -551,7 +551,7 @@ export function ArtistServicesAdminModal({
               <FiX size={20} aria-hidden />
             </button>
           </div>
-          <div className="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+          <div className="mt-3 flex flex-wrap items-baseline gap-x-3 gap-y-1 border-t border-white/10 pt-3">
             <p className="max-w-2xl text-sm leading-relaxed text-neutral-400 sm:text-base">
               Añade, edita y gestiona tus servicios
             </p>
@@ -572,7 +572,7 @@ export function ArtistServicesAdminModal({
         <div
           className={`min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 sm:px-6 sm:pb-6 sm:pt-4 md:px-8 md:pb-6 md:pt-4 ${subtleScrollbarClass}`}
         >
-          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3 sm:p-5">
+          <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-3 sm:p-5">
             <div className="grid auto-rows-fr grid-cols-1 gap-3 min-[480px]:grid-cols-2 min-[480px]:gap-4 lg:grid-cols-3 xl:grid-cols-4 lg:gap-5">
               {orderedServices.map((service) => {
                 const isPinUpdating = pinLoadingServiceIds.has(service.id);
@@ -597,7 +597,7 @@ export function ArtistServicesAdminModal({
                         }}
                       />
                     )}
-                    <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-neutral-950/45 to-transparent" />
+                    <div className="pointer-events-none absolute inset-0 bg-linear-to-t from-neutral-950/45 to-transparent" />
                   </div>
                   <div className="flex min-h-0 flex-1 flex-col px-4 pb-4 pt-4 sm:px-5 sm:pb-5 sm:pt-5">
                     <div className="border-b border-white/10 pb-3">
@@ -653,7 +653,7 @@ export function ArtistServicesAdminModal({
                     <div className="mt-auto flex gap-2 border-t border-white/10 pt-4">
                       <Button
                         variant="outline"
-                        className="min-h-[44px] flex-1 rounded-full border-white/25 px-3 py-2 text-xs hover:border-white/40 hover:bg-white/[0.06] sm:min-h-[38px] sm:text-sm"
+                        className="min-h-[44px] flex-1 rounded-full border-white/20 bg-white/[0.02] px-3 py-2 text-xs hover:border-white/35 hover:bg-white/[0.06] sm:min-h-[38px] sm:text-sm"
                         onClick={() => startEdit(service)}
                         disabled={isSaving}
                       >
@@ -687,7 +687,7 @@ export function ArtistServicesAdminModal({
       {isEditorOpen && (
         <>
         <div className="fixed inset-0 z-[100] flex min-h-0 items-stretch justify-center bg-black/60 p-0 backdrop-blur-[2px] sm:items-center sm:p-4 sm:pt-[max(0.5rem,env(safe-area-inset-top))] sm:pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:pl-[max(0.5rem,env(safe-area-inset-left))] sm:pr-[max(0.5rem,env(safe-area-inset-right))]">
-          <div className="flex h-full min-h-0 max-h-[100dvh] w-full max-w-full flex-col overflow-hidden rounded-none border-x-0 border-y border-[#00d4c8]/35 bg-[#111214] shadow-none sm:h-auto sm:max-h-[min(96dvh,calc(100dvh-2rem))] sm:max-w-[min(1120px,calc(100vw-1.5rem))] sm:rounded-3xl sm:border sm:shadow-[0_0_40px_rgba(0,212,200,0.18)]">
+          <div className="flex h-full min-h-0 max-h-[100dvh] w-full max-w-full flex-col overflow-hidden rounded-none border-x-0 border-y border-[#00d4c8]/35 bg-[#111214] shadow-none sm:h-auto sm:max-h-[90vh] sm:max-w-[min(1120px,calc(100vw-1.5rem))] sm:rounded-3xl sm:border sm:shadow-[0_0_40px_rgba(0,212,200,0.18)]">
             <div className="flex shrink-0 items-start justify-between gap-3 border-b border-white/10 px-4 pb-3 pt-[max(1rem,env(safe-area-inset-top))] sm:gap-4 sm:px-7 sm:pb-5 sm:pt-6">
               <div className="min-w-0 pr-2">
                 <h4 className="text-xl font-semibold tracking-tight text-white sm:text-2xl md:text-3xl">

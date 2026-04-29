@@ -21,6 +21,8 @@ export function ArtistSongsModal({ isOpen, profile, artistDisplayName, onClose, 
   const [songsState, setSongsState] = useState<ArtistSongRecord[]>([]);
   const [editingSongId, setEditingSongId] = useState('');
   const [titleDraft, setTitleDraft] = useState('');
+  const [editingCoverFile, setEditingCoverFile] = useState<File | null>(null);
+  const [editingCoverPreview, setEditingCoverPreview] = useState('');
   const [newTitle, setNewTitle] = useState('');
   const [newAudioFile, setNewAudioFile] = useState<File | null>(null);
   const [newCoverFile, setNewCoverFile] = useState<File | null>(null);
@@ -29,6 +31,7 @@ export function ArtistSongsModal({ isOpen, profile, artistDisplayName, onClose, 
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success'>('idle');
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
+  const [editSavingSongId, setEditSavingSongId] = useState<string | null>(null);
 
   const subtleScrollbarClass =
     'scrollbar-thin [scrollbar-color:rgba(255,255,255,0.20)_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/20 hover:[&::-webkit-scrollbar-thumb]:bg-white/30';
@@ -39,6 +42,8 @@ export function ArtistSongsModal({ isOpen, profile, artistDisplayName, onClose, 
     if (!isOpen) {
       setEditingSongId('');
       setTitleDraft('');
+      setEditingCoverFile(null);
+      setEditingCoverPreview('');
       setNewTitle('');
       setNewAudioFile(null);
       setNewCoverFile(null);
@@ -46,16 +51,18 @@ export function ArtistSongsModal({ isOpen, profile, artistDisplayName, onClose, 
       setNewCoverPreview('');
       setUploadStatus('idle');
       setIsSaving(false);
+      setEditSavingSongId(null);
       setError('');
     }
   }, [isOpen]);
 
   useEffect(() => {
     return () => {
+      if (editingCoverPreview.startsWith('blob:')) URL.revokeObjectURL(editingCoverPreview);
       if (newAudioPreview.startsWith('blob:')) URL.revokeObjectURL(newAudioPreview);
       if (newCoverPreview.startsWith('blob:')) URL.revokeObjectURL(newCoverPreview);
     };
-  }, [newAudioPreview, newCoverPreview]);
+  }, [editingCoverPreview, newAudioPreview, newCoverPreview]);
 
   const loadSongs = async () => {
     const list = await getMyArtistSongs();
@@ -75,22 +82,34 @@ export function ArtistSongsModal({ isOpen, profile, artistDisplayName, onClose, 
   const startEdit = (song: ArtistSongRecord) => {
     setEditingSongId(song.id);
     setTitleDraft(song.title);
+    setEditingCoverFile(null);
+    setEditingCoverPreview('');
     setError('');
   };
 
   const saveEdit = async () => {
-    if (!editingSongId || !titleDraft.trim()) return;
+    if (!editingSongId || !titleDraft.trim()) {
+      setError('El nombre de la canción es obligatorio.');
+      return;
+    }
     setIsSaving(true);
+    setEditSavingSongId(editingSongId);
     setError('');
     try {
-      await updateArtistSongWithFormData(editingSongId, { title: titleDraft.trim() });
+      await updateArtistSongWithFormData(editingSongId, {
+        title: titleDraft.trim(),
+        cover: editingCoverFile,
+      });
       await loadSongs();
       setEditingSongId('');
       setTitleDraft('');
+      setEditingCoverFile(null);
+      setEditingCoverPreview('');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo actualizar la canción.');
     } finally {
       setIsSaving(false);
+      setEditSavingSongId(null);
     }
   };
 
@@ -108,6 +127,10 @@ export function ArtistSongsModal({ isOpen, profile, artistDisplayName, onClose, 
   };
 
   const addSong = async () => {
+    if (!newTitle.trim()) {
+      setError('Escribe un nombre para la canción.');
+      return;
+    }
     if (!newAudioFile) {
       setError('Selecciona un archivo de audio.');
       return;
@@ -156,18 +179,22 @@ export function ArtistSongsModal({ isOpen, profile, artistDisplayName, onClose, 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-      <div className={`w-full max-w-5xl rounded-3xl border border-[#00d4c8]/35 bg-[#111214] p-6 ${subtleScrollbarClass}`}>
-        <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-4xl font-semibold text-white">Musica</h3>
-          <button type="button" onClick={onClose} className="rounded-full border border-white/20 p-2 text-white/70 hover:text-white">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
+      <div className={`max-h-[90vh] w-full max-w-6xl overflow-y-auto rounded-3xl border border-[#00d4c8]/25 bg-[#0f1115] p-5 shadow-[0_18px_60px_rgba(0,0,0,0.45)] sm:p-6 ${subtleScrollbarClass}`}>
+        <div className="mb-5 flex items-center justify-between border-b border-white/10 pb-4">
+          <div>
+            <h3 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">Gestionar música</h3>
+            <p className="mt-1 text-sm text-neutral-400">Sube canciones, edita títulos y define la destacada.</p>
+          </div>
+          <button type="button" onClick={onClose} className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-white/20 text-white/70 transition hover:border-white/35 hover:bg-white/5 hover:text-white">
             <FiX />
           </button>
         </div>
 
         {error && <p className="mb-3 rounded-lg border border-red-500/35 bg-red-500/10 px-3 py-2 text-sm text-red-300">{error}</p>}
 
-        <div className="mb-4 rounded-2xl border border-[#00d4c8]/30 p-3">
+        <div className="mb-5 rounded-2xl border border-white/10 bg-white/[0.02] p-4">
+          <p className="mb-3 text-sm font-semibold text-white">Agregar nueva canción</p>
           <div className="grid gap-3 md:grid-cols-[1fr_auto_auto_auto]">
             <input
               value={newTitle}
@@ -176,9 +203,9 @@ export function ArtistSongsModal({ isOpen, profile, artistDisplayName, onClose, 
                 setUploadStatus('idle');
               }}
               placeholder="Nombre de la canción"
-              className="rounded-lg border border-white/20 bg-transparent px-3 py-2 text-white"
+              className="h-11 rounded-xl border border-white/20 bg-black/30 px-3.5 text-sm text-white outline-none transition focus:border-[#00d4c8]/60 focus:ring-2 focus:ring-[#00d4c8]/25"
             />
-            <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-white/25 px-4 py-2 text-white">
+            <label className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-xl border border-white/25 bg-black/20 px-4 py-2 text-sm font-medium text-white transition hover:border-[#00d4c8]/40">
               <FiUpload /> Audio
               <input
                 type="file"
@@ -193,7 +220,7 @@ export function ArtistSongsModal({ isOpen, profile, artistDisplayName, onClose, 
                 }}
               />
             </label>
-            <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-white/25 px-4 py-2 text-white">
+            <label className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-xl border border-white/25 bg-black/20 px-4 py-2 text-sm font-medium text-white transition hover:border-[#00d4c8]/40">
               <FiUpload /> Portada
               <input
                 type="file"
@@ -208,13 +235,18 @@ export function ArtistSongsModal({ isOpen, profile, artistDisplayName, onClose, 
                 }}
               />
             </label>
-            <Button onClick={addSong} loading={isSaving}>
+            <Button
+              onClick={addSong}
+              loading={isSaving}
+              disabled={!newTitle.trim() || !newAudioFile}
+              className="min-h-[44px] rounded-xl"
+            >
               {uploadStatus === 'uploading' ? 'Subiendo...' : uploadStatus === 'success' ? 'Subida completa' : '+ Agregar canción'}
             </Button>
           </div>
 
           <div className="mt-3 grid gap-3 md:grid-cols-2">
-            <div className="rounded-xl border border-white/10 p-3">
+            <div className="rounded-xl border border-white/10 bg-black/20 p-3">
               <p className="mb-2 text-xs text-white/60">Preview audio</p>
               {newAudioPreview ? (
                 <audio controls className="w-full" src={newAudioPreview} />
@@ -222,7 +254,7 @@ export function ArtistSongsModal({ isOpen, profile, artistDisplayName, onClose, 
                 <p className="text-xs text-white/40">Selecciona un audio para escuchar preview.</p>
               )}
             </div>
-            <div className="rounded-xl border border-white/10 p-3">
+            <div className="rounded-xl border border-white/10 bg-black/20 p-3">
               <p className="mb-2 text-xs text-white/60">Preview portada</p>
               <div className="aspect-video w-full overflow-hidden rounded-lg bg-black/30">
                 {newCoverPreview ? (
@@ -235,45 +267,104 @@ export function ArtistSongsModal({ isOpen, profile, artistDisplayName, onClose, 
           </div>
         </div>
 
-        <div className={`max-h-[420px] overflow-auto rounded-2xl border border-white/10 bg-white/5 ${subtleScrollbarClass}`}>
+        <div className={`max-h-[420px] overflow-auto rounded-2xl border border-white/10 bg-white/4 ${subtleScrollbarClass}`}>
           <div className="p-4">
-            <p className="mb-3 text-3xl text-white">Musica</p>
-            <div className="space-y-2">
+            <p className="mb-3 text-lg font-semibold text-white">Tus canciones</p>
+            <div className="space-y-2.5">
               {songs.map((song) => (
-                <div key={song.id} className="flex items-center justify-between gap-3 rounded-lg border border-white/10 px-3 py-2">
-                  <div className="h-14 w-24 overflow-hidden rounded-md bg-black/30">
+                <div key={song.id} className="rounded-xl border border-white/10 bg-black/25 px-3 py-2.5">
+                  <div className="flex flex-wrap items-center gap-3 sm:flex-nowrap">
+                  <div className="h-14 w-24 shrink-0 overflow-hidden rounded-md bg-black/30">
                     {song.coverUrl && <img src={song.coverUrl} alt="" className="h-full w-full object-cover" />}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-2xl font-semibold text-white">{song.title}</p>
+                    <p className="truncate text-base font-semibold text-white sm:text-lg">{song.title}</p>
                     <p className="truncate text-sm text-white/60">{artistDisplayName}</p>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:flex-nowrap">
                     <Button
                       variant={song.isFeatured ? 'secondary' : 'outline'}
                       onClick={() => markAsFeatured(song.id)}
-                      disabled={isSaving || song.isFeatured}
+                      disabled={isSaving || song.isFeatured || editingSongId === song.id}
+                      className="min-h-[38px] rounded-full px-3 text-xs sm:text-sm"
                     >
                       {song.isFeatured ? 'Destacada' : 'Marcar destacada'}
                     </Button>
-                    {editingSongId === song.id ? (
-                      <>
-                        <input
-                          value={titleDraft}
-                          onChange={(e) => setTitleDraft(e.target.value)}
-                          className="w-56 rounded-lg border border-white/20 bg-transparent px-3 py-2 text-white"
-                        />
-                        <Button variant="secondary" onClick={saveEdit} disabled={isSaving}>Guardar</Button>
-                      </>
-                    ) : (
-                      <Button variant="outline" onClick={() => startEdit(song)} disabled={isSaving}>
+                    {editingSongId !== song.id ? (
+                      <Button variant="outline" onClick={() => startEdit(song)} disabled={isSaving} className="min-h-[38px] rounded-full px-3 text-xs sm:text-sm">
                         <FiEdit2 /> Editar
                       </Button>
-                    )}
-                    <Button variant="danger" onClick={() => deleteSong(song.id)} disabled={isSaving}>
+                    ) : null}
+                    <Button variant="danger" onClick={() => deleteSong(song.id)} disabled={isSaving} className="min-h-[38px] rounded-full px-3 text-xs sm:text-sm">
                       <FiTrash2 /> Eliminar
                     </Button>
                   </div>
+                  </div>
+
+                  {editingSongId === song.id ? (
+                    <div className="mt-3 grid gap-3 rounded-xl border border-[#00d4c8]/25 bg-[#00d4c8]/6 p-3 sm:grid-cols-[1fr_auto_auto_auto] sm:items-center">
+                      <input
+                        value={titleDraft}
+                        onChange={(e) => {
+                          setTitleDraft(e.target.value);
+                          setError('');
+                        }}
+                        placeholder="Nombre de la canción"
+                        className="h-10 w-full rounded-lg border border-[#00d4c8]/35 bg-black/40 px-3 text-sm text-white outline-none focus:border-[#00d4c8]/70"
+                      />
+                      <label className="inline-flex min-h-[38px] cursor-pointer items-center justify-center gap-2 rounded-full border border-white/25 bg-black/20 px-3 text-xs text-white transition hover:border-[#00d4c8]/40 sm:text-sm">
+                        <FiUpload /> Portada
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0] ?? null;
+                            setEditingCoverFile(file);
+                            setError('');
+                            if (editingCoverPreview.startsWith('blob:')) URL.revokeObjectURL(editingCoverPreview);
+                            setEditingCoverPreview(file ? URL.createObjectURL(file) : '');
+                          }}
+                        />
+                      </label>
+                      {(editingCoverPreview || song.coverUrl) ? (
+                        <div className="h-10 w-14 overflow-hidden rounded-md border border-white/10 bg-black/30">
+                          <img
+                            src={editingCoverPreview || song.coverUrl}
+                            alt=""
+                            className="h-full w-full object-cover"
+                          />
+                        </div>
+                      ) : (
+                        <div className="h-10 w-14 rounded-md border border-white/10 bg-black/20" />
+                      )}
+                      <div className="flex gap-2 justify-end">
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            setEditingSongId('');
+                            setTitleDraft('');
+                            setEditingCoverFile(null);
+                            setEditingCoverPreview('');
+                            setError('');
+                          }}
+                          disabled={isSaving}
+                          className="min-h-[38px] rounded-full px-3 text-xs sm:text-sm"
+                        >
+                          Cancelar
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          onClick={saveEdit}
+                          loading={editSavingSongId === song.id}
+                          disabled={isSaving || !titleDraft.trim()}
+                          className="min-h-[38px] rounded-full px-4 text-xs sm:text-sm"
+                        >
+                          {editSavingSongId === song.id ? 'Guardando...' : 'Guardar'}
+                        </Button>
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
               ))}
               {songs.length === 0 && <p className="text-sm text-white/60">No tienes canciones cargadas.</p>}
