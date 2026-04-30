@@ -9,6 +9,7 @@ import { PageLayout } from '../../layouts';
 import { Button, Skeleton, UserMenu } from '../../components';
 import { FiArrowLeft, FiCalendar, FiChevronLeft, FiChevronRight, FiLock } from 'react-icons/fi';
 import { getArtistProfile, toggleArtistBlockedDate } from '../../api/artistProfileService';
+import { acceptContract, dispatchContractsApiRefresh } from '../../api/contractService';
 
 type CalendarContractEvent = {
   id: string;
@@ -18,6 +19,7 @@ type CalendarContractEvent = {
     location?: string;
     description?: string;
   };
+  status?: string;
 };
 
 type ExtendedEventDetail = {
@@ -33,6 +35,7 @@ type ExtendedEventDetail = {
     location?: string;
     description?: string;
   };
+  status?: string;
 };
 
 type NextShow = {
@@ -110,6 +113,7 @@ export function ArtistCalendarPage() {
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [isEventLoading, setIsEventLoading] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<ExtendedEventDetail | null>(null);
+  const [isAccepting, setIsAccepting] = useState(false);
 
   const range = useMemo(() => {
     const start = new Date(weekStart);
@@ -137,6 +141,7 @@ export function ArtistCalendarPage() {
           getArtistProfile()
         ]);
 
+        console.log('::::::: CALENDAR EVENTS RECEIVED :::::::', res.data);
         if (cancelled) return;
         setEvents(res.data ?? []);
         setBlockedDates(profile.blockedDates || []);
@@ -177,6 +182,27 @@ export function ArtistCalendarPage() {
       setSelectedEvent(null);
     } finally {
       setIsEventLoading(false);
+    }
+  }
+
+  async function handleAccept(id: string) {
+    if (isAccepting) return;
+    setIsAccepting(true);
+    try {
+      await acceptContract(id);
+      dispatchContractsApiRefresh();
+      // Reload this event to see status change
+      await openEvent(id);
+      // Reload all events to update calendar colors
+      const startIso = range.start.toISOString();
+      const endIso = range.end.toISOString();
+      const res = await api<ApiResponse<CalendarContractEvent[]>>(`events/calendar?start=${encodeURIComponent(startIso)}&end=${encodeURIComponent(endIso)}`);
+      setEvents(res.data ?? []);
+    } catch (err) {
+      console.error('Accept error:', err);
+      alert(err instanceof Error ? err.message : 'Error al aceptar el contrato.');
+    } finally {
+      setIsAccepting(false);
     }
   }
 
@@ -376,14 +402,19 @@ export function ArtistCalendarPage() {
                                 const title = ev.eventDetails?.name || 'Show';
                                 const subtitle = ev.eventDetails?.location || '';
 
-                                return (
-                                  <button
-                                    key={ev.id}
-                                    type="button"
-                                    className="absolute left-3 right-3 rounded-lg bg-[#00d4c8]/25 border border-[#00d4c8]/40 px-2 py-2 text-left text-white/90 hover:bg-[#00d4c8]/30 transition-colors cursor-pointer"
-                                    style={{ top, height }}
-                                    onClick={() => openEvent(ev.id)}
-                                  >
+                                  const isPending = ev.status === 'pending';
+                                  const colorClass = isPending
+                                    ? 'bg-orange-500/25 border-orange-500/40 hover:bg-orange-500/35'
+                                    : 'bg-[#00d4c8]/25 border-[#00d4c8]/40 hover:bg-[#00d4c8]/30';
+
+                                  return (
+                                    <button
+                                      key={ev.id}
+                                      type="button"
+                                      className={`absolute left-3 right-3 rounded-lg border px-2 py-2 text-left text-white/90 transition-colors cursor-pointer ${colorClass}`}
+                                      style={{ top, height }}
+                                      onClick={() => openEvent(ev.id)}
+                                    >
                                     <div className="text-[12px] font-semibold leading-tight truncate">{title}</div>
                                     <div className="text-[11px] text-white/70 leading-tight truncate">{subtitle}</div>
                                   </button>
@@ -441,6 +472,31 @@ export function ArtistCalendarPage() {
                       <span>{selectedEvent.clientContact?.phone || selectedEvent.clientContact?.email || '—'}</span>
                     </div>
                   </div>
+
+                  {selectedEvent.status === 'pending' && (
+                    <div className="pt-4 border-t border-white/5">
+                      <Button
+                        variant="primary"
+                        className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3"
+                        onClick={() => handleAccept(selectedEvent.id)}
+                        disabled={isAccepting}
+                      >
+                        {isAccepting ? 'Firmando...' : 'Aceptar y Firmar Reserva'}
+                      </Button>
+                      <p className="text-[10px] text-center text-neutral-500 mt-2">
+                        Al aceptar, se generará el contrato legal y se notificará al cliente.
+                      </p>
+                    </div>
+                  )}
+
+                  {selectedEvent.status === 'accepted' && (
+                    <div className="pt-4 border-t border-white/5">
+                      <div className="flex items-center justify-center gap-2 text-green-400 text-sm font-semibold py-2 bg-green-400/10 rounded-lg">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                        Reserva Confirmada
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="text-neutral-500 text-sm">No se pudo cargar el detalle del evento.</div>

@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Outlet } from 'react-router-dom';
 import { ChatManager } from '../components/chat/ChatManager';
+import { Footer } from '../components';
 
 interface AuthenticatedLayoutProps {
   children?: ReactNode;
@@ -16,6 +17,8 @@ export function AuthenticatedLayout({ children }: AuthenticatedLayoutProps) {
       <main className="flex-1 flex flex-col min-h-0">
         {children || <Outlet />}
       </main>
+
+      <Footer />
       
       {/* Global Chat UI */}
       <ChatManager />

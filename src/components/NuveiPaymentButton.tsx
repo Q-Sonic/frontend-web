@@ -4,7 +4,10 @@ import { paymentService } from '../api/paymentService';
 import type { CreateLinkToPayRequest } from '../types';
 
 
-interface NuveiPaymentButtonProps extends CreateLinkToPayRequest {
+interface NuveiPaymentButtonProps extends Partial<CreateLinkToPayRequest> {
+  contractId?: string;
+  amount: number;
+  description: string;
   children?: React.ReactNode;
   className?: string;
   onSuccess?: (url: string) => void;
@@ -19,6 +22,7 @@ export const NuveiPaymentButton: React.FC<NuveiPaymentButtonProps> = ({
   amount,
   description,
   dev_reference,
+  contractId,
   children = 'Pagar Ahora',
   className = '',
   onSuccess,
@@ -32,7 +36,7 @@ export const NuveiPaymentButton: React.FC<NuveiPaymentButtonProps> = ({
       const response = await paymentService.createLinkToPay({
         amount,
         description,
-        dev_reference,
+        dev_reference: dev_reference || contractId || '',
       });
 
       if (response.success && response.data.payment_url) {

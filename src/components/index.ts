@@ -13,6 +13,7 @@ export { AppSidebar } from './AppSidebar';
 export { ArtistServiceCard, ARTIST_SERVICE_LINK_STATE_KEY } from './ArtistServiceCard';
 export { NuveiPaymentButton } from './NuveiPaymentButton';
 export { Skeleton, SkeletonText, SkeletonHeading } from './Skeleton';
+export { Footer } from './shared/Footer';
 
 export {
   ARTIST_PROFILE_ACCENT,

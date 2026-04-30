@@ -3,6 +3,7 @@ import { FiCheck, FiChevronRight, FiClock, FiShield, FiXCircle } from 'react-ico
 import { Link } from 'react-router-dom';
 import { Skeleton, ContractCardSkeleton } from '../../components/Skeleton';
 import { ClientAreaHeader } from '../../components/client/ClientAreaHeader';
+import { NuveiPaymentButton } from '../../components/NuveiPaymentButton';
 import { ClientFloatingChatButton } from '../../components/client/ClientFloatingChatButton';
 import { ClientAreaPageShell } from '../../components/shared/ClientAreaPageShell';
 import { useClientMyContracts } from '../../hooks/useClientMyContracts';
@@ -61,15 +62,18 @@ function formatUsd(amount: number | undefined): string {
 }
 
 function isPendingStatus(s: ContractLifecycleStatus): boolean {
-  return s === 'PENDING';
+  const status = s?.toLowerCase();
+  return status === 'pending';
 }
 
 function isSignedStatus(s: ContractLifecycleStatus): boolean {
-  return s === 'ACCEPTED' || s === 'COMPLETED';
+  const status = s?.toLowerCase();
+  return status === 'accepted' || status === 'completed';
 }
 
 function isCancelledStatus(s: ContractLifecycleStatus): boolean {
-  return s === 'CANCELLED' || s === 'REJECTED';
+  const status = s?.toLowerCase();
+  return status === 'cancelled' || status === 'rejected';
 }
 
 function matchesFilter(c: ContractRecord, filter: StatusFilter): boolean {
@@ -289,6 +293,16 @@ function ContractCard({
           >
             Ver contrato
           </span>
+        )}
+        
+        {isSignedStatus(c.status) && c.financials?.paymentStatus !== 'PAID' && (
+          <NuveiPaymentButton
+            contractId={c.id}
+            amount={c.financials?.totalAmount || 0}
+            artistName={c.artistDisplayName || 'Artista'}
+            description={c.eventDetails?.name || 'Servicio'}
+            className="w-full py-2.5"
+          />
         )}
         {artistLink ? (
           <Link to={artistLink} className="text-center text-xs font-medium text-accent/90 hover:text-accent">

@@ -192,7 +192,8 @@ export function contractRecordsToSignedMockRecords(contracts: ContractRecord[]):
     const name = c.eventDetails?.name?.trim();
     const dateKey = dateKeyFromContractEvent(c.eventDetails?.date);
     if (!name || !dateKey || !c.id) continue;
-    const artistComplete = c.status === 'ACCEPTED' || c.status === 'COMPLETED';
+    const s = c.status?.toLowerCase();
+    const artistComplete = s === 'accepted' || s === 'completed';
     const signedAt = signedAtIsoFromContract(c);
     out.push({
       signedAt,
@@ -230,4 +231,25 @@ export async function fetchBookedDates(artistId: string): Promise<string[]> {
     console.error('Failed to fetch booked dates:', error);
     return [];
   }
+}
+
+export async function signArtistContracts(): Promise<{ successCount: number; errors: string[] }> {
+  const res = await api<ApiResponse<{ successCount: number; errors: string[] }>>('contracts/sign-all', {
+    method: 'POST',
+  });
+  if (!res.success || !res.data) {
+    throw new Error(res.message || 'Error al firmar los contratos');
+  }
+  return res.data;
+}
+
+export async function acceptContract(contractId: string): Promise<ContractRecord> {
+  const res = await api<ApiResponse<ContractRecord>>(`contracts/${contractId}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status: 'ACCEPTED' }),
+  });
+  if (!res.success || !res.data) {
+    throw new Error(res.message || 'Error al aceptar el contrato');
+  }
+  return res.data;
 }

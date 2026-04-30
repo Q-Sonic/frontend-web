@@ -16,7 +16,9 @@ import {
   fetchDashboardStats,
   fetchArtistContracts,
   fetchArtistWithdrawals,
+  signArtistContracts,
 } from '../../api';
+import type { ContractRecord } from '../../types/contract';
 
 type CalendarEvent = {
   id: string;
@@ -62,6 +64,9 @@ export function HomeArtistaPage() {
   const [nextShow, setNextShow] = useState<NextShow | null>(null);
   const [nextShowLoading, setNextShowLoading] = useState(true);
   const [nextShowError, setNextShowError] = useState('');
+
+  const [contracts, setContracts] = useState<ContractRecord[]>([]);
+  const [signing, setSigning] = useState(false);
 
   const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
 
@@ -144,6 +149,10 @@ export function HomeArtistaPage() {
       try {
         const data = await withMinimumDelay(1000, async () => {
           const events = await fetchArtistContracts();
+          console.log('::::::: DASHBOARD CONTRACTS RECEIVED :::::::', events);
+          if (!cancelled?.current) {
+            setContracts(events);
+          }
           const nextContract = pickNextUpcomingEvent(events, now);
           if (!nextContract) return null;
 
@@ -165,6 +174,28 @@ export function HomeArtistaPage() {
       }
     },
     [isArtista, user?.uid],
+  );
+
+  const handleSignAll = async () => {
+    if (signing) return;
+    setSigning(true);
+    try {
+      await signArtistContracts();
+      // Refresh everything
+      void loadStats();
+      void loadNextShow();
+      // Show success or something? The refresh will clear the pending ones
+    } catch (err) {
+      console.error('Sign all failed:', err);
+      alert(err instanceof Error ? err.message : 'Error al firmar los contratos.');
+    } finally {
+      setSigning(false);
+    }
+  };
+
+  const pendingContracts = useMemo(
+    () => contracts.filter((c) => c.status === 'pending'),
+    [contracts],
   );
 
   useEffect(() => {
@@ -224,6 +255,13 @@ export function HomeArtistaPage() {
     <div className="w-full max-w-[1600px] mx-auto px-6 pb-6 pt-8 md:pt-10">
       <div className="flex flex-col gap-6 xl:flex-row">
         <div className="min-w-0 flex-1 space-y-6 rounded-2xl bg-card p-6">
+          {pendingContracts.length > 0 && (
+            <PendingContractsCard
+              count={pendingContracts.length}
+              onSign={handleSignAll}
+              loading={signing}
+            />
+          )}
           <SummaryCard stats={stats} loading={statsLoading} error={statsError} />
 
           <section>
@@ -374,9 +412,9 @@ function SummaryCard({
           </div>
           <div>
             <p>Visitas de tu perfil</p>
-            <p className="text-xl font-semibold text-white">
+            <div className="text-xl font-semibold text-white">
               {loading ? <Skeleton className="h-6 w-16 rounded" /> : visitsValue}
-            </p>
+            </div>
           </div>
         </div>
       </div>
@@ -698,4 +736,40 @@ function toVisitsBars(
     ...item,
     heightPct: (item.count / max) * 100,
   }));
+}
+
+function PendingContractsCard({
+  count,
+  onSign,
+  loading,
+}: {
+  count: number;
+  onSign: () => void;
+  loading: boolean;
+}) {
+  return (
+    <div className="relative overflow-hidden rounded-2xl bg-linear-to-r from-orange-500/20 to-orange-600/10 p-6 border border-orange-500/30">
+      <div className="relative z-10 flex flex-col items-center justify-between gap-4 md:flex-row">
+        <div className="flex items-center gap-4">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-orange-500/20 text-orange-400">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="M12 18v-6"/><path d="m9 15 3 3 3-3"/></svg>
+          </div>
+          <div>
+            <h3 className="text-lg font-bold text-white">Tienes {count} {count === 1 ? 'contrato pendiente' : 'contratos pendientes'}</h3>
+            <p className="text-sm text-orange-200/70">Debes firmar tus contratos para confirmar las fechas en tu calendario.</p>
+          </div>
+        </div>
+        <button
+          onClick={onSign}
+          disabled={loading}
+          className="w-full rounded-full bg-orange-500 px-8 py-3 font-bold text-white transition hover:bg-orange-600 disabled:opacity-50 md:w-auto shadow-lg shadow-orange-500/20"
+        >
+          {loading ? 'Firmando...' : 'Firmar todos ahora'}
+        </button>
+      </div>
+      {/* Decorative blobs */}
+      <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-orange-500/10 blur-3xl" />
+      <div className="absolute -bottom-10 -left-10 h-32 w-32 rounded-full bg-orange-500/5 blur-3xl" />
+    </div>
+  );
 }

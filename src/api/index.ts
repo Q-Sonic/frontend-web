@@ -54,6 +54,8 @@ export {
   contractRecordsToSignedMockRecords,
   dispatchContractsApiRefresh,
   fetchBookedDates,
+  signArtistContracts,
+  acceptContract,
   STAGEGO_CLIENT_CONTRACTS_API_REFRESH_EVENT,
 } from './contractService';
 export { fetchDashboardStats, fetchArtistContracts, fetchArtistWithdrawals } from './dashboardService';

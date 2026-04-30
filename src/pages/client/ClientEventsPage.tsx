@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { FaBuilding, FaChurch, FaMicrophone } from 'react-icons/fa';
+import { Link } from 'react-router-dom';
 import { ClientAreaHeader } from '../../components/client/ClientAreaHeader';
 import { ClientFloatingChatButton } from '../../components/client/ClientFloatingChatButton';
 import { ClientAreaPageShell } from '../../components/shared/ClientAreaPageShell';
@@ -218,9 +219,10 @@ export function ClientEventsPage() {
                         {dayEvents.map((ev) => {
                           const status = eventStatusLabel(ev.kind);
                           return (
-                            <div
+                            <Link
                               key={ev.id}
-                              className={`rounded-lg border px-1.5 py-1 text-[10px] leading-snug ${gridEventTileClass(
+                              to="/client/contracts"
+                              className={`block rounded-lg border px-1.5 py-1 text-[10px] leading-snug transition hover:scale-[1.02] active:scale-95 ${gridEventTileClass(
                                 ev.kind,
                               )}`}
                             >
@@ -245,7 +247,7 @@ export function ClientEventsPage() {
                                   ) : null}
                                 </div>
                               </div>
-                            </div>
+                            </Link>
                           );
                         })}
                       </div>
@@ -266,7 +268,10 @@ export function ClientEventsPage() {
               <ul className="space-y-3">
                 {upcomingEvents.map((ev) => (
                   <li key={ev.id}>
-                    <div className={`rounded-xl border p-3 flex gap-3 ${upcomingCardClass(ev.kind)}`}>
+                    <Link
+                      to="/client/contracts"
+                      className={`block rounded-xl border p-3 flex gap-3 transition hover:scale-[1.02] active:scale-95 ${upcomingCardClass(ev.kind)}`}
+                    >
                       <div className="flex flex-col items-center justify-center w-14 shrink-0 rounded-lg bg-black/25 px-1 py-2">
                         <span className="text-xl font-bold text-white leading-none">{ev.dayLabel}</span>
                         <span className="text-[10px] font-semibold text-neutral-400 mt-1 tracking-wide">
@@ -286,7 +291,7 @@ export function ClientEventsPage() {
                           </span>
                         ) : null}
                       </div>
-                    </div>
+                    </Link>
                   </li>
                 ))}
               </ul>
