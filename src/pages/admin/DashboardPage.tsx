@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Topbar, UserMenu, Card } from '../../components';
+import { UserMenu, Card } from '../../components';
 import { getAllUsers } from '../../api';
 import type { UserRecord } from '../../types';
 
@@ -44,8 +44,10 @@ export function HomeAdminPage() {
 
   return (
     <div className="min-h-screen bg-neutral-950 text-neutral-100">
-      <Topbar variant="dark" right={<UserMenu />} />
       <main className="max-w-4xl mx-auto px-4 py-8">
+        <div className="flex justify-end mb-4">
+          <UserMenu />
+        </div>
         <section className="mb-6 flex flex-wrap items-center gap-4">
           <h1 className="text-2xl font-bold text-white">Usuarios por rol</h1>
           <select

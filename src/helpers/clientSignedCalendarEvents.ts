@@ -1,4 +1,4 @@
-import type { ClientCalendarGridEvent, ClientUpcomingEvent } from '../mocks/client/types';
+import type { ClientCalendarGridEvent, ClientUpcomingEvent } from '../types/clientCalendar';
 import type { SignedCartMockRecord } from './clientServiceCart';
 
 export function parseContractDateKey(key: string): { y: number; m0: number; d: number } | null {
@@ -21,6 +21,18 @@ function fallbackDateKeyFromSignedAt(iso: string): string | null {
   const m = String(dt.getMonth() + 1).padStart(2, '0');
   const d = String(dt.getDate()).padStart(2, '0');
   return `${y}-${m}-${d}`;
+}
+
+function dedupeCalendarGridEvents(grid: ClientCalendarGridEvent[]): ClientCalendarGridEvent[] {
+  const seen = new Set<string>();
+  const out: ClientCalendarGridEvent[] = [];
+  for (const ev of grid) {
+    const k = `${ev.year}-${ev.monthIndex0}-${ev.dayOfMonth}|${ev.title.trim()}|${ev.subtitle.trim()}`;
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push(ev);
+  }
+  return out;
 }
 
 export function buildCalendarGridEventsFromSignedRecords(
@@ -56,7 +68,7 @@ export function buildCalendarGridEventsFromSignedRecords(
       }
     }
   }
-  return grid;
+  return dedupeCalendarGridEvents(grid);
 }
 
 const MONTH_LABELS = [

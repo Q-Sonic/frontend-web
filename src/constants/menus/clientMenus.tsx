@@ -37,5 +37,5 @@ function FileIcon() {
 export const clientSidebarMenus: SidebarMenuItem[] = [
     { to: '/client', label: 'Inicio', icon: <HomeIcon />, exactPath: true },
     { to: '/client/events', label: 'Mis eventos', icon: <CalendarIcon />, exactPath: true },
-    { to: '/client/contracts', label: 'Contratos', icon: <FileIcon />, exactPath: true },
+    { to: '/client/contracts', label: 'Mis Reservas', icon: <FileIcon />, exactPath: true },
 ];

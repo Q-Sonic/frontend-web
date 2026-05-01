@@ -34,6 +34,9 @@ export function useArtistProfileById(
   const [artistDisplayName, setArtistDisplayName] = useState<string>('Artista');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [version, setVersion] = useState(0);
+
+  const refetch = () => setVersion(v => v + 1);
 
   const allowEmpty = options?.allowEmptyProfileForUid;
   const fallbackName = options?.fallbackDisplayName;
@@ -107,7 +110,7 @@ export function useArtistProfileById(
     return () => {
       cancelled = true;
     };
-  }, [artistUid, allowEmpty, fallbackName]);
+  }, [artistUid, allowEmpty, fallbackName, version]);
 
-  return { profile, services, artistDisplayName, loading, error };
+  return { profile, services, artistDisplayName, loading, error, refetch };
 }

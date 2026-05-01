@@ -41,6 +41,43 @@ function formatDateKeyEsLong(key: string): string {
   return raw.charAt(0).toUpperCase() + raw.slice(1);
 }
 
+function formatDateKeyEsShort(key: string): string {
+  const [y, m, d] = key.split('-').map(Number);
+  if (!y || !m || !d) return key;
+  const dt = new Date(y, m - 1, d);
+  return dt.toLocaleDateString('es', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+  });
+}
+
+function CompactDatePills({ keys }: { keys: string[] }) {
+  if (keys.length === 0) {
+    return <p className="text-xs text-amber-200/90 md:text-sm">Sin fechas</p>;
+  }
+  const sorted = [...keys].sort();
+  const visible = sorted.slice(0, 3);
+  const remaining = Math.max(0, sorted.length - visible.length);
+  return (
+    <div className="mt-1.5 flex flex-wrap gap-1.5">
+      {visible.map((key) => (
+        <span
+          key={key}
+          className="rounded-md border border-[#00d4c8]/25 bg-[#00d4c8]/10 px-2 py-0.5 text-xs font-medium text-[#9cfbf4]"
+        >
+          {formatDateKeyEsShort(key)}
+        </span>
+      ))}
+      {remaining > 0 ? (
+        <span className="rounded-md border border-white/20 bg-white/5 px-2 py-0.5 text-xs font-medium text-white/75">
+          +{remaining} más
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
 function initialsFromName(name: string): string {
   const parts = name.split(/\s+/).filter(Boolean);
   if (parts.length >= 2) {
@@ -294,12 +331,6 @@ export function ClientBatchContractSigningModal({
     }
   };
 
-  const dateLineFor = useCallback((line: ServiceCartLine) => {
-    const keys = [...line.selectedDateKeys].sort();
-    if (keys.length === 0) return 'Sin fechas';
-    return keys.map(formatDateKeyEsLong).join(' · ');
-  }, []);
-
   const confirmRemoveLine = useCallback(() => {
     if (!linePendingRemoval) return;
     removeServiceCartLine(linePendingRemoval.id);
@@ -468,9 +499,9 @@ export function ClientBatchContractSigningModal({
                     <p className="font-semibold text-white">{artistName}</p>
                     <p className="mt-1 text-sm text-white/55">{line.serviceName}</p>
                     <p className="mt-2 text-sm text-white/70">
-                      <span className="text-white/45">Fecha: </span>
-                      {dateLineFor(line)}
+                      <span className="text-white/45">Fechas ({line.selectedDateKeys.length}): </span>
                     </p>
+                    <CompactDatePills keys={line.selectedDateKeys} />
                     <p className="mt-0.5 text-sm text-white/70">
                       <span className="text-white/45">Ubicación: </span>
                       {location}
@@ -574,8 +605,9 @@ export function ClientBatchContractSigningModal({
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-white md:text-base">Contrato con {artistName}</p>
                   <p className="mt-1 text-xs text-white/50 md:text-sm">
-                    Fecha: {dateLineFor(line)}
+                    Fechas ({line.selectedDateKeys.length}):
                   </p>
+                  <CompactDatePills keys={line.selectedDateKeys} />
                   <p className="text-xs text-white/50 md:text-sm">Ubicación: {location}</p>
                 </div>
                 <span className="inline-flex w-fit items-center gap-1.5 rounded-md border border-emerald-500/55 bg-emerald-950/70 px-3 py-1.5 text-xs font-semibold text-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.15)]">
@@ -596,8 +628,9 @@ export function ClientBatchContractSigningModal({
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-white md:text-base">Contrato con {artistName}</p>
                   <p className="mt-1 text-xs text-white/50 md:text-sm">
-                    Fecha: {dateLineFor(line)}
+                    Fechas ({line.selectedDateKeys.length}):
                   </p>
+                  <CompactDatePills keys={line.selectedDateKeys} />
                   <p className="text-xs text-white/50 md:text-sm">Ubicación: {location}</p>
                 </div>
                 <div className="flex flex-wrap items-center sm:justify-end">
@@ -690,9 +723,9 @@ export function ClientBatchContractSigningModal({
             <span>
               Acepto los{' '}
               <Link
-                to="/client/contracts"
-                className="text-[#00CCCB] underline-offset-2 hover:underline"
-                onClick={onClose}
+                to="/terms-contract"
+                className="text-accent underline-offset-2 hover:underline"
+                target="_blank"
               >
                 términos del contrato
               </Link>{' '}
@@ -711,22 +744,36 @@ export function ClientBatchContractSigningModal({
           >
             Cancelar
           </Button>
-          <Button
-            type="button"
-            fullWidth
-            loading={signing}
-            disabled={
-              !hasSignature ||
-              !termsAccepted ||
-              pendingCount === 0 ||
-              !hasSelectedPending
-            }
-            className="py-3 text-base md:py-3.5 md:text-lg"
-            onClick={() => void handleSign()}
-            leftIcon={<FiEdit3 className="h-5 w-5" />}
-          >
-            Firma contratos
-          </Button>
+          <div className="relative flex-1 group">
+            <Button
+              type="button"
+              fullWidth
+              loading={signing}
+              disabled={
+                !hasSignature ||
+                !termsAccepted ||
+                pendingCount === 0 ||
+                !hasSelectedPending
+              }
+              className="py-3 text-base md:py-3.5 md:text-lg"
+              onClick={() => void handleSign()}
+              leftIcon={<FiEdit3 className="h-5 w-5" />}
+            >
+              Firma contratos
+            </Button>
+            
+            {(!hasSignature || !termsAccepted || !hasSelectedPending) && pendingCount > 0 && !signing && (
+              <div className="pointer-events-none absolute bottom-full left-0 mb-3 w-64 translate-y-2 rounded-xl bg-black border border-white/10 p-3 text-xs text-white opacity-0 shadow-2xl transition-all group-hover:translate-y-0 group-hover:opacity-100 z-50">
+                <p className="font-semibold text-amber-400 mb-1">Para continuar:</p>
+                <ul className="space-y-1 text-white/70">
+                  {!hasSelectedPending && <li>• Selecciona al menos un contrato</li>}
+                  {!hasSignature && <li>• Dibuja o sube tu firma</li>}
+                  {!termsAccepted && <li>• Acepta los términos y condiciones</li>}
+                </ul>
+                <div className="absolute -bottom-1 left-6 h-2 w-2 rotate-45 border-b border-r border-white/10 bg-black" />
+              </div>
+            )}
+          </div>
         </div>
 
         <p className="mt-5 flex items-center justify-center gap-2 text-center text-sm text-white/45 md:text-base">

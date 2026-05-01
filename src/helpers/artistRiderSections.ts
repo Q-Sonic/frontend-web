@@ -1,6 +1,6 @@
 import type { ArtistProfile } from '../types/profile';
 import type { ArtistServiceRecord } from '../types';
-import type { ArtistRiderItem } from '../components/artist-profile';
+import type { ArtistRiderItem } from '../components/artist-profile/ArtistProfileRidersGrid';
 import { technicalRiderPdfFromProfile } from './artistDocumentUrls';
 
 export const RIDER_SECTION_IMAGES = [
@@ -44,6 +44,7 @@ export function buildArtistRiderItems(
   profile: ArtistProfile | null,
 ): ArtistRiderItem[] {
   const riderPdfUrl = technicalRiderPdfFromProfile(profile);
+  if (!riderPdfUrl) return [];
   return DEFAULT_RIDER_SECTIONS.map((section, index) => {
     const matchingService = services.find((service) =>
       service.name.toLowerCase().includes(section.title.toLowerCase().split(' ')[0]),

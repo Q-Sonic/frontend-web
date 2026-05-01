@@ -23,10 +23,22 @@ export type {
   ArtistServiceListResponse,
 } from './artistService';
 export type {
+  ArtistFileRecord,
+  ArtistFileType,
+  ArtistFileListResponse,
+  ArtistFileSingleResponse,
+} from './artistFile';
+export type {
   ArtistSongRecord,
   ArtistSongResponse,
   ArtistSongListResponse,
 } from './artistSong';
+export type {
+  ContractRecord,
+  CreateContractBody,
+  ContractLifecycleStatus,
+  ContractPaymentStatus,
+} from './contract';
 export type {
   CreateLinkToPayRequest,
   CreateLinkToPayResponse,
@@ -34,4 +46,3 @@ export type {
   NuveiPayment,
   WebhookProcessedResponse,
 } from './payment';
-

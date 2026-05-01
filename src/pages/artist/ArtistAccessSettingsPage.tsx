@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Navigate, useNavigate, useParams } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { Button } from '../../components';
 import {
   ApiError,
@@ -11,7 +11,6 @@ import {
 } from '../../api';
 import type { AccountChangeStatus } from '../../api';
 import { useAuth } from '../../contexts/AuthContext';
-import { useArtistProfileNav } from '../../contexts/ArtistProfileNavContext';
 import { isBackendRoleArtista } from '../../helpers/role';
 
 const ACCENT_BORDER = 'border-[#38BACC]/35';
@@ -35,10 +34,9 @@ function AutoFillDecoyFields() {
 }
 
 export function ArtistAccessSettingsPage() {
-  const { id } = useParams<{ id: string }>();
   const { user, refreshUser, logout } = useAuth();
-  const { basePath, exitHomePath } = useArtistProfileNav();
   const navigate = useNavigate();
+  const formScope = user?.uid ?? 'self';
 
   const [newEmail, setNewEmail] = useState('');
   const [confirmEmail, setConfirmEmail] = useState('');
@@ -58,7 +56,7 @@ export function ArtistAccessSettingsPage() {
   const [sendingCode, setSendingCode] = useState(false);
   const [verifyingCode, setVerifyingCode] = useState(false);
 
-  const isSelfArtist = !!id && !!user?.uid && isBackendRoleArtista(user.role) && user.uid === id;
+  const isArtist = isBackendRoleArtista(user?.role);
 
   const displayName = useMemo(() => user?.displayName?.trim() || 'Artista', [user?.displayName]);
   const accountEmail = useMemo(() => user?.email?.trim() ?? '', [user?.email]);
@@ -86,8 +84,8 @@ export function ArtistAccessSettingsPage() {
   const clearEmailMessages = () => setEmailMessage(null);
   const clearPasswordMessages = () => setPasswordMessage(null);
 
-  if (!id) return <Navigate to={exitHomePath} replace />;
-  if (!isSelfArtist) return <Navigate to={basePath} replace />;
+  if (!user?.uid) return <Navigate to="/login" replace />;
+  if (!isArtist) return <Navigate to="/artist" replace />;
 
   const verified = changeStatus?.verified === true;
   const pendingCode = changeStatus?.pendingCode === true;
@@ -223,7 +221,7 @@ export function ArtistAccessSettingsPage() {
             Primero verifica tu identidad con un código que enviamos a tu correo. Después podrás cambiar el correo o la
             contraseña. Cuentas solo con Google: pueden usar el código para el correo; la contraseña de la app no aplica.
           </p>
-          <div className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm">
+          <div className="rounded-xl border border-white/10 bg-white/4 px-4 py-3 text-sm">
             <span className="text-white/50">Correo actual (cuenta)</span>
             <p className="mt-1 font-medium text-white">{accountEmail || '—'}</p>
           </div>
@@ -269,7 +267,7 @@ export function ArtistAccessSettingsPage() {
                     <input
                       type="text"
                       inputMode="numeric"
-                      name={`artist-verify-code-${id}`}
+                      name={`artist-verify-code-${formScope}`}
                       autoComplete="one-time-code"
                       maxLength={6}
                       value={codeInput}
@@ -297,7 +295,7 @@ export function ArtistAccessSettingsPage() {
           <form
             onSubmit={handleSaveEmail}
             autoComplete="off"
-            className="relative space-y-4 rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-6"
+            className="relative space-y-4 rounded-2xl border border-white/10 bg-white/3 p-5 sm:p-6"
           >
             <AutoFillDecoyFields />
             <h2 className="text-lg font-semibold text-white">Cambiar correo</h2>
@@ -317,8 +315,8 @@ export function ArtistAccessSettingsPage() {
               <input
                 type="text"
                 inputMode="email"
-                name={`artist-settings-mail-a-${id}`}
-                id={`artist-settings-mail-a-${id}`}
+                name={`artist-settings-mail-a-${formScope}`}
+                id={`artist-settings-mail-a-${formScope}`}
                 autoComplete="off"
                 spellCheck={false}
                 readOnly
@@ -340,8 +338,8 @@ export function ArtistAccessSettingsPage() {
               <input
                 type="text"
                 inputMode="email"
-                name={`artist-settings-mail-b-${id}`}
-                id={`artist-settings-mail-b-${id}`}
+                name={`artist-settings-mail-b-${formScope}`}
+                id={`artist-settings-mail-b-${formScope}`}
                 autoComplete="off"
                 spellCheck={false}
                 readOnly
@@ -366,7 +364,7 @@ export function ArtistAccessSettingsPage() {
           <form
             onSubmit={handleSavePassword}
             autoComplete="off"
-            className="relative space-y-4 rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-6"
+            className="relative space-y-4 rounded-2xl border border-white/10 bg-white/3 p-5 sm:p-6"
           >
             <AutoFillDecoyFields />
             <h2 className="text-lg font-semibold text-white">Cambiar contraseña</h2>
@@ -388,8 +386,8 @@ export function ArtistAccessSettingsPage() {
               <span className="text-xs font-medium text-white/60">Nueva contraseña</span>
               <input
                 type="password"
-                name={`artist-settings-pw-a-${id}`}
-                id={`artist-settings-pw-a-${id}`}
+                name={`artist-settings-pw-a-${formScope}`}
+                id={`artist-settings-pw-a-${formScope}`}
                 autoComplete="new-password"
                 readOnly
                 onFocus={unlockReadOnlyOnFocus}
@@ -409,8 +407,8 @@ export function ArtistAccessSettingsPage() {
               <span className="text-xs font-medium text-white/60">Confirmar nueva contraseña</span>
               <input
                 type="password"
-                name={`artist-settings-pw-b-${id}`}
-                id={`artist-settings-pw-b-${id}`}
+                name={`artist-settings-pw-b-${formScope}`}
+                id={`artist-settings-pw-b-${formScope}`}
                 autoComplete="new-password"
                 readOnly
                 onFocus={unlockReadOnlyOnFocus}

@@ -10,3 +10,5 @@ export { ArtistProfileDocumentsPage } from './ArtistProfileDocumentsPage';
 export { ArtistProfileCalendarPage } from './ArtistProfileCalendarPage';
 export { ArtistCalendarPage } from './ArtistCalendarPage';
 export { ArtistAccessSettingsPage } from './ArtistAccessSettingsPage';
+export { ArtistSettingsHubPage } from './ArtistSettingsHubPage';
+export { ArtistContractsPage } from './ArtistContractsPage';

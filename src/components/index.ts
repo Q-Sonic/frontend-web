@@ -26,6 +26,8 @@ export {
   ArtistGalleryWavePlayer,
   ArtistProfileAvailabilityDay,
   ArtistProfileDocumentsServicesTable,
+  ArtistDocumentLinkServiceModal,
+  ArtistDocumentLinkedServicesModal,
   ArtistProfileEditButton,
   ArtistProfileGalleryGrid,
   ArtistProfileSettingsModal,
@@ -36,6 +38,7 @@ export {
   ArtistProfileRidersGrid,
   ArtistProfileSectionTitle,
   ArtistProfileSocialNetworkLink,
+  ArtistCalendarSettings,
   type GalleryFilterKey,
   type ArtistRiderItem,
 } from './artist-profile';

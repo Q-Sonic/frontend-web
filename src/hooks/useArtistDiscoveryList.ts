@@ -16,7 +16,9 @@ export function useArtistDiscoveryList(filters: ArtistProfileListFilters) {
 
     listArtistProfiles(filters)
       .then((rows) => {
-        if (!cancelled) setData(rows);
+        if (cancelled) return;
+
+        setData(rows);
       })
       .catch((err) => {
         if (!cancelled) {

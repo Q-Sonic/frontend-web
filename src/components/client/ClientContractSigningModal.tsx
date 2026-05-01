@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   FiCheck,
   FiEdit3,
@@ -10,6 +10,7 @@ import {
   FiX,
 } from 'react-icons/fi';
 import { Button } from '../Button';
+import { Link } from 'react-router-dom';
 
 export type ContractSigningParty = {
   roleLabel: string;
@@ -21,7 +22,7 @@ export type ContractSigningParty = {
 
 export type ContractSummaryFields = {
   event: string;
-  dateLabel: string;
+  dateLabel: ReactNode;
   location: string;
   totalValue: string;
   duration: string;
@@ -349,7 +350,7 @@ export function ClientContractSigningModal({
             </div>
             <div>
               <p className="text-sm text-white/45 md:text-base">Fecha</p>
-              <p className="mt-0.5 text-white">{summary.dateLabel}</p>
+              <div className="mt-0.5 text-white">{summary.dateLabel}</div>
             </div>
             <div>
               <p className="text-sm text-white/45 md:text-base">Ubicación</p>
@@ -439,7 +440,15 @@ export function ClientContractSigningModal({
               className="mt-1 h-5 w-5 shrink-0 rounded border-white/30 bg-transparent accent-[#00CCCB]"
             />
             <span>
-              Acepto los términos del contrato y confirmo mi firma electrónica
+              Acepto los{' '}
+              <Link
+                to="/terms-contract"
+                className="text-accent underline-offset-2 hover:underline"
+                target="_blank"
+              >
+                términos del contrato
+              </Link>{' '}
+              y confirmo mi firma electrónica
             </span>
           </label>
         </div>
@@ -485,31 +494,3 @@ export function ClientContractSigningModal({
     </div>
   );
 }
-
-/** Example props for Storybook or temporary wiring; replace with API data when the flow exists. */
-export const demoContractSigningModalProps: Pick<
-  ClientContractSigningModalProps,
-  'artistParty' | 'clientParty' | 'summary'
-> = {
-  artistParty: {
-    roleLabel: 'Artista',
-    name: 'Godly',
-    signed: true,
-    avatarUrl: undefined,
-    initials: 'G',
-  },
-  clientParty: {
-    roleLabel: 'Cliente',
-    name: 'Juan Pérez',
-    signed: false,
-    initials: 'JP',
-  },
-  summary: {
-    event: 'Show en vivo',
-    dateLabel: 'Sábado, 20 de Abril 2026',
-    location: 'Quito, Ecuador',
-    totalValue: '$ 500 USD',
-    duration: '2 horas de presentación',
-    service: 'Show + DJ + Luces',
-  },
-};

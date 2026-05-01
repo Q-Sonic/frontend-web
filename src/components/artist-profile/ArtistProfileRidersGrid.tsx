@@ -12,9 +12,21 @@ export interface ArtistRiderItem {
 interface ArtistProfileRidersGridProps {
   items: ArtistRiderItem[];
   onMissingDocumentClick?: () => void;
+  pinnedIds?: string[];
+  canTogglePin?: boolean;
+  onTogglePin?: (id: string) => void;
+  /** Per card: opens linked-services UI (client view). */
+  getOnViewLinkedServices?: (item: ArtistRiderItem) => (() => void) | undefined;
 }
 
-export function ArtistProfileRidersGrid({ items, onMissingDocumentClick }: ArtistProfileRidersGridProps) {
+export function ArtistProfileRidersGrid({
+  items,
+  onMissingDocumentClick,
+  pinnedIds = [],
+  canTogglePin = false,
+  onTogglePin,
+  getOnViewLinkedServices,
+}: ArtistProfileRidersGridProps) {
   if (items.length === 0) {
     return (
       <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-8 text-center">
@@ -28,12 +40,17 @@ export function ArtistProfileRidersGrid({ items, onMissingDocumentClick }: Artis
       {items.map((item) => (
         <ArtistProfileRiderCard
           key={item.id}
+          id={item.id}
           title={item.title}
           description={item.description}
           bulletItems={item.bulletItems}
           imageUrl={item.imageUrl}
           documentUrl={item.documentUrl}
           onMissingDocumentClick={onMissingDocumentClick}
+          onViewLinkedServices={getOnViewLinkedServices?.(item)}
+          isPinned={pinnedIds.includes(item.id)}
+          canTogglePin={canTogglePin}
+          onTogglePin={onTogglePin}
         />
       ))}
     </div>

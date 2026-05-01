@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { Button, Input } from '../components';
 import { AuthLayout } from '../components/AuthLayout';
 
@@ -9,13 +8,6 @@ const MailIcon = () => (
     strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
     <rect x="2" y="4" width="20" height="16" rx="2" />
     <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
-  </svg>
-);
-
-const ArrowLeftIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-    strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-    <path d="M19 12H5M12 5l-7 7 7 7" />
   </svg>
 );
 
@@ -40,7 +32,7 @@ export function ForgotPasswordPage() {
   }
 
   return (
-    <AuthLayout>
+    <AuthLayout backLink={{ to: '/login', label: 'Volver atrás' }}>
       {/* Icon badge */}
       <div className="mb-8 flex flex-col items-start gap-6">
         <div className="w-16 h-16 rounded-2xl bg-[#00d4c8]/10 border border-[#00d4c8]/20
@@ -111,17 +103,6 @@ export function ForgotPasswordPage() {
         </form>
       )}
 
-      {/* Volver al inicio de sesión */}
-      <div className="mt-8 flex justify-center">
-        <Link
-          to="/login"
-          className="inline-flex items-center gap-2 text-sm text-white/40
-                     hover:text-white/70 transition-colors duration-150"
-        >
-          <ArrowLeftIcon />
-          Volver a iniciar sesión
-        </Link>
-      </div>
     </AuthLayout>
   );
 }

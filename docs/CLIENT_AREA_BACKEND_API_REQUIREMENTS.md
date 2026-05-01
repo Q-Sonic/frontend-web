@@ -1,257 +1,292 @@
-# Requisitos de API — área Cliente (Stage Go / frontend-web)
+# Especificación API — dominio Cliente (backend)
 
-Documento para **backend**: describe qué consume hoy el frontend real y qué **endpoints y modelos** harían falta para **reemplazar `localStorage` y mocks** del flujo cliente (carrito, contratos, eventos, notificaciones).
-
-**Convenciones asumidas (alineadas con `src/api/client.ts`):**
-
-- Base: `config.apiBaseUrl` (sin barra final).
-- Autenticación: header `Authorization: Bearer <idToken>` en rutas de cliente autenticado.
-- Respuestas de éxito: el proyecto ya acepta envoltorios tipo `{ data: T }` en varios servicios; conviene **unificar** (ej. siempre `{ data: ... }` o siempre cuerpo plano) y documentarlo.
+Documento para **implementación en servidor**: contrato HTTP, persistencia, reglas de negocio y criterios de aceptación. El cliente web consumirá estos endpoints; los **nombres de rutas** pueden ajustarse si se documenta el estándar final (p. ej. todo bajo `/api`).
 
 ---
 
-## 1. Contexto: qué está en backend hoy vs qué es mock
+## 1. Contexto de negocio
 
-### Ya integrado con API (referencia)
+**Requisito:** cualquier dato de “reservé fechas”, “mis contratos” y “notificaciones” debe vivir en **base de datos**, asociado al **usuario autenticado**. Así, el mismo usuario puede cerrar sesión, usar otro navegador o modo incógnito y seguir viendo la misma información.
 
-| Funcionalidad | Ejemplo de ruta usada en front |
-|---------------|--------------------------------|
-| Listado / filtros de artistas | `GET artist-profiles?...` |
-| Perfil de artista | `GET artist-profiles/:uid` |
-| Servicios del artista | Servicios por `artistId` (ver `artistServiceService.ts`) |
-| Detalle servicio | `GET` servicio por id |
-| Usuario (nombre público) | `GET` user por uid |
-| Perfil del cliente | `GET client-profiles/me`, `PUT client-profiles` |
-
-### Simulado solo en frontend (sustituir por API)
-
-| Mock | Ubicación conceptual |
-|------|----------------------|
-| Carrito de reservas | `localStorage` `stagego_client_service_cart_v1` |
-| Registros de firma / “contratos firmados” | `localStorage` `stagego_client_signed_cart_mock_v1` |
-| Notificaciones (campana) | `localStorage` `stagego_client_notifications_v1` |
-| Calendario “Mis eventos” | Derivado de los registros firmados mock |
-| Bloqueos en calendario artista (vista cliente) | Si `blockedDates` vacío → fechas demo en código |
+**Implicación técnica:** no basta con que el navegador guarde estado local; el backend debe ser la **fuente de verdad** y las respuestas deben filtrarse siempre por el **identificador del cliente** obtenido del token (no confiar en `clientId` arbitrario en el body).
 
 ---
 
-## 2. Modelo de datos que el front ya maneja (DTO de referencia)
+## 2. Convenciones transversales
 
-Estos campos salen de los tipos actuales; el backend puede nombrarlos distinto si mapeamos en front, pero la **semántica** debe cubrirse.
+### 2.1 Autenticación y autorización
 
-### 2.1 Línea de carrito (`ServiceCartLine`)
+| Aspecto | Requisito |
+|---------|-----------|
+| Header | `Authorization: Bearer <Firebase ID Token>` |
+| Validación | Verificar JWT con Firebase Admin (o flujo equivalente del proyecto). |
+| Identidad | Obtener `uid` del token; ese `uid` es el **cliente** en rutas “mi historial”, “mis notificaciones”, etc. |
+| Autorización | Rutas de esta spec aplican a usuarios con rol **cliente** (o el criterio de negocio que definan). Otros roles → `403` si no corresponde. |
+| Sin token / token inválido | `401` con cuerpo de error coherente con el resto de la API. |
 
-Representa una línea de “servicio + fechas elegidas” antes de firmar.
+### 2.2 Formato de respuesta y errores
+
+Se recomenda unificar con el resto del backend:
+
+- **Éxito:** `{ "success": true, "data": ... }` (o el patrón que ya usen).
+- **Error:** `{ "success": false, "error": "mensaje legible" }` (y opcionalmente `code` para el cliente).
+
+**Códigos HTTP sugeridos:**
+
+| Código | Uso |
+|--------|-----|
+| `200` | GET/PATCH correctos. |
+| `201` | POST que crea recurso (p. ej. contrato). |
+| `400` | Body inválido, validación de negocio. |
+| `401` | No autenticado. |
+| `403` | Autenticado pero no autorizado (rol / recurso ajeno). |
+| `404` | Recurso inexistente o no accesible para ese usuario. |
+| `409` | Conflicto (p. ej. duplicado si implementan idempotencia explícita). |
+| `500` | Error interno. |
+
+### 2.3 Fechas y zona horaria
+
+- Acordar si `eventDetails.date` es **instante UTC** o “día lógico” del evento.
+- Si usan solo fecha sin hora, documentar formato (`YYYY-MM-DD`) y evitar ambigüedades en zonas horarias.
+- El cliente actual envía fechas en ISO (ej. `YYYY-MM-DD` + `T12:00:00.000Z`) al crear contratos; el backend debe serializar de forma **estable** en `GET` (string ISO o timestamp con regla clara).
+
+---
+
+## 3. Dominio: contratos / reservas (prioridad alta)
+
+### 3.1 Modelo lógico (persistencia)
+
+Cada llamada de creación representa **una reserva/contrato asociado a una fecha concreta** (un servicio con un artista en un día). Si el usuario elige **3 fechas**, el cliente enviará **3 peticiones `POST`**: en BD deben existir **3 registros** (o 3 filas hijas equivalentes), todos ligados al mismo `clientUid`.
+
+**Campos mínimos recomendados en almacenamiento:**
+
+- `id` (generado por servidor)
+- `clientUid` (del token; no editable por el cliente)
+- `artistId`, `serviceId`
+- `status` (ver enumeración más abajo)
+- `eventDetails`: nombre, fecha, ubicación, descripción opcional
+- `financials` (opcional en v1): total, pagado, estado de pago
+- `contractUrl` / `riderUrl` (opcional)
+- `createdAt`, `updatedAt`
+
+**Enumeración `status` (alineada al OpenAPI actual del proyecto):**
+
+`PENDING` | `ACCEPTED` | `REJECTED` | `COMPLETED` | `CANCELLED`
+
+**Semántica orientada a UI (referencia para el equipo de producto):**
+
+- “Listo” en calendario: típicamente `ACCEPTED` o `COMPLETED`.
+- “Pendiente” (esperando artista / trámite): típicamente `PENDING` u otros según definan el flujo.
+
+---
+
+### 3.2 `POST /contracts`
+
+| Campo | Valor |
+|-------|--------|
+| **Método / ruta** | `POST /contracts` (prefijo `/api` según despliegue) |
+| **Auth** | Obligatoria; rol cliente. |
+| **Comportamiento** | Crear **un** registro de contrato/reserva para el `clientUid` del token. Persistir en BD. Opcional: disparar creación de **notificaciones** (sección 4). |
+
+**Cuerpo JSON (entrada):**
 
 ```json
 {
-  "id": "string (id de línea; hoy generado en cliente)",
-  "artistId": "string (uid artista)",
+  "artistId": "string",
   "serviceId": "string",
-  "serviceName": "string",
-  "price": 0,
-  "selectedDateKeys": ["2026-04-09", "2026-04-10"],
-  "addedAt": "ISO-8601",
-  "artistDisplayName": "string (opcional, denormalizado UI)",
-  "artistPhotoUrl": "string (opcional)",
-  "locationLabel": "string (opcional, ej. ciudad)",
-  "serviceFeatures": ["string"] 
+  "totalAmount": 0,
+  "eventDetails": {
+    "name": "string",
+    "date": "2026-04-15T12:00:00.000Z",
+    "location": "string",
+    "description": "string (opcional)"
+  }
 }
 ```
 
-- `selectedDateKeys`: formato **`YYYY-MM-DD`** (zona/local acordada con backend).
-- `price`: hoy es el precio mostrado; idealmente el **servidor recalcula** o valida frente al servicio vigente.
+**Reglas de negocio / validación (backend):**
 
-### 2.2 Registro de firma (mock `SignedCartMockRecord`)
+- Comprobar que `artistId` y `serviceId` existen y que el servicio pertenece a ese artista (o regla de catálogo equivalente).
+- **No** aceptar ciegamente `totalAmount`: recalcular desde precio oficial del servicio y/o aplicar reglas de negocio; rechazar con `400` si no cuadra (o documentar si en v1 solo se registra el valor enviado).
+- Asociar siempre el registro al `uid` del token, no a un campo enviado por el cliente.
 
-Hoy agrupa una o varias líneas firmadas en una misma acción (firma en canvas una vez para N contratos).
+**Respuesta:** `201` + recurso creado (misma forma que en `GET` listado / detalle).
+
+**Idempotencia (recomendado):** el cliente puede reintentar o doble-enviar al firmar. Opciones: header `Idempotency-Key`, o restricción única en BD `(clientUid, serviceId, fecha_normalizada)` y respuesta `409` o devolver el existente — documentar el criterio elegido.
+
+---
+
+### 3.3 `GET /contracts/my-history`
+
+| Campo | Valor |
+|-------|--------|
+| **Método / ruta** | `GET /contracts/my-history` |
+| **Auth** | Obligatoria; rol cliente. |
+| **Comportamiento** | Devolver **solo** contratos del `clientUid` del token. No exponer datos de otros clientes. |
+
+**Query opcional:**
+
+- `from=YYYY-MM-DD`, `to=YYYY-MM-DD` — filtrar por fecha de evento (recomendado para rendimiento y vistas de calendario).
+
+**Ordenación recomendada:** por fecha de evento descendente, o por `updatedAt` descendente (documentar cuál aplican).
+
+**Cuerpo de respuesta (ejemplo):**
 
 ```json
 {
-  "signedAt": "ISO-8601",
-  "signatureDataUrl": "data:image/png;base64,...",
-  "applyToAll": true,
-  "artistSignatureComplete": false,
-  "lines": [ { "...": "ServiceCartLine" } ]
+  "success": true,
+  "data": [
+    {
+      "id": "string",
+      "status": "PENDING",
+      "eventDetails": {
+        "name": "string",
+        "date": "ISO-8601",
+        "location": "string",
+        "description": "string (opcional)"
+      },
+      "financials": {
+        "totalAmount": 0,
+        "paidAmount": 0,
+        "paymentStatus": "UNPAID"
+      },
+      "contractUrl": "string (opcional)",
+      "riderUrl": "string (opcional)",
+      "artistId": "string (recomendado)",
+      "serviceId": "string (recomendado)"
+    }
+  ]
 }
 ```
 
-- `applyToAll`: en UI indica si la misma firma aplicó a varias líneas.
-- `artistSignatureComplete`: en UI → estado **“Listo”** (verde) vs **“Pendiente”** (esperando firma del artista). El backend debería exponer un **estado de contrato/reserva** equivalente.
+**Nota:** incluir `artistId` y `serviceId` en la respuesta facilita enlaces y evolución de la UI sin joins adicionales en cliente.
 
-### 2.3 Notificación (`ClientNotificationRecord`)
+---
+
+### 3.4 `GET /contracts/{id}` (opcional)
+
+| **Comportamiento** | Detalle de un contrato. Responder `404` si el id no existe o **no pertenece** al `clientUid` del token. |
+| **Uso** | PDF, pagos, historial de cambios. No es estrictamente necesario para el MVP de calendario + notificaciones si `my-history` es suficientemente completo. |
+
+---
+
+## 4. Dominio: notificaciones (prioridad alta)
+
+Sin persistencia en servidor, las notificaciones **no sobreviven** a otro dispositivo o sesión nueva.
+
+### 4.1 Modelo lógico (persistencia)
+
+Tabla/colección **por usuario destino** (`clientUid`).
+
+| Campo | Tipo | Notas |
+|-------|------|--------|
+| `id` | string | Generado por servidor (UUID, etc.). |
+| `kind` | string | Extensible. Valor inicial usado por producto: `contract_signed_pending_artist`. |
+| `createdAt` | ISO-8601 | Para ordenación y antigüedad. |
+| `read` | boolean | Default `false`. |
+| `artistId` | string? | Opcional. |
+| `artistDisplayName` | string | Texto para listado (denormalizar al crear si hace falta). |
+| `serviceName` | string? | Opcional. |
+| `lineId` | string? | Opcional; referencia a recurso de negocio (contrato, línea, etc.). |
+
+**Índices sugeridos:** `(clientUid, createdAt desc)`, `(clientUid, read)` para filtros.
+
+---
+
+### 4.2 `GET /me/notifications` (nombre de ruta ajustable)
+
+| Campo | Valor |
+|-------|--------|
+| **Auth** | Obligatoria; rol cliente. |
+| **Comportamiento** | Listar notificaciones donde `clientUid` coincide con el token. |
+
+**Query opcional:**
+
+- `unreadOnly=true`
+- `limit=50` (y paginación por `cursor` o `page` si el volumen lo requiere)
+
+**Respuesta:** `{ "success": true, "data": [ /* objetos según §4.1 */ ] }`
+
+---
+
+### 4.3 `PATCH /me/notifications/{id}`
+
+| Campo | Valor |
+|-------|--------|
+| **Auth** | Obligatoria. |
+| **Comportamiento** | Actualizar notificación **solo si** `id` pertenece al `clientUid` del token; si no, `404` o `403` según política del proyecto. |
+
+**Body:**
 
 ```json
-{
-  "id": "string",
-  "kind": "contract_signed_pending_artist",
-  "createdAt": "ISO-8601",
-  "read": false,
-  "artistId": "string (opcional)",
-  "artistDisplayName": "string",
-  "serviceName": "string (opcional)",
-  "lineId": "string (opcional, id de línea de carrito / booking line)"
-}
+{ "read": true }
 ```
 
-**Extensión esperada:** más `kind` en el futuro (`booking_confirmed`, `message_received`, etc.).
-
-### 2.4 Evento en calendario “Mis eventos” (derivado en UI)
-
-Por cada **día** de cada `selectedDateKeys` de cada línea firmada, el front muestra:
-
-- Título: `serviceName`
-- Subtítulo: `artistDisplayName`
-- Estado visual: **pendiente** / **listo** según equivalencia de `artistSignatureComplete` (o estado server-side).
-- Hora mostrada hoy: derivada de `signedAt` (placeholder); lo ideal es **`eventStartAt`** o similar por día desde backend.
+**Respuesta:** `200` + recurso actualizado o `204` si prefieren sin cuerpo.
 
 ---
 
-## 3. Endpoints sugeridos (REST orientativo)
+### 4.4 `POST /me/notifications/read-all` (opcional)
 
-Los paths son **propuestas**. Lo crítico es cubrir operaciones y relaciones.
-
-### 3.1 Carrito / borrador de reserva
-
-| Método | Ruta propuesta | Descripción |
-|--------|----------------|-------------|
-| `GET` | `/me/cart` o `/client/cart` | Lista líneas del carrito del usuario autenticado. |
-| `POST` | `/me/cart/items` | Añade línea (payload alineado con `ServiceCartLine` sin `id` o con id server-generated). |
-| `PATCH` | `/me/cart/items/:itemId` | Actualiza fechas / cantidad si aplica. |
-| `DELETE` | `/me/cart/items/:itemId` | Elimina línea. |
-| `DELETE` | `/me/cart` | Vaciar carrito (opcional). |
-
-**Respuesta:** array de items con los mismos campos que necesita el modal de firma por lotes.
+| **Comportamiento** | Marcar todas las notificaciones del usuario como `read: true`. |
+| **Respuesta** | `200` o `204`. |
 
 ---
 
-### 3.2 Reservas / bookings (alternativa o complemento al carrito)
+### 4.5 Efectos secundarios (lógica servidor)
 
-Si el flujo oficial es “booking” en servidor:
+| Evento | Acción sugerida |
+|--------|------------------|
+| Tras `POST /contracts` exitoso (cliente crea reserva) | Insertar una o más notificaciones según reglas de producto (ej. `contract_signed_pending_artist` con nombres de artista/servicio). |
+| Cambio de estado del contrato | Actualizar o crear notificaciones si el producto lo requiere (ej. artista aceptó). |
 
-| Método | Ruta propuesta | Descripción |
-|--------|----------------|-------------|
-| `POST` | `/me/bookings` | Crea reserva(s) desde carrito o desde “Reservar fechas” en ficha de servicio. Body: `artistId`, `serviceId`, `dateKeys[]`, etc. |
-| `GET` | `/me/bookings` | Listado con estados. |
-| `GET` | `/me/bookings/:bookingId` | Detalle. |
-
-El front necesita al menos: fechas, servicio, artista, **estado**, enlace a contrato si existe.
+La creación debe ser **transaccional** o eventualmente consistente según arquitectura; lo crítico es que al hacer `GET` notificaciones al día siguiente el usuario vea lo persistido.
 
 ---
 
-### 3.3 Contratos y firmas
+## 5. Calendario “Mis eventos” (prioridad media)
 
-| Método | Ruta propuesta | Descripción |
-|--------|----------------|-------------|
-| `POST` | `/me/contracts` o `/bookings/:id/contract` | Genera instancia de contrato para una o N líneas/fechas. |
-| `GET` | `/me/contracts` | Lista contratos del cliente (para `/client/contracts` y sidebar). |
-| `GET` | `/me/contracts/:contractId` | Detalle + estados + URLs de PDF. |
-| `POST` | `/me/contracts/:contractId/signatures/client` | Cliente firma: **multipart** (`image/png`) o subida a storage + `fileUrl` + metadata. Evitar `data:` enormes en JSON si es posible. |
-| `POST` | `/me/contracts/:contractId/signatures/artist` | Firma del artista (rol artista). |
+**Opción A — Reutilizar contratos (recomendada si el volumen es bajo):**  
+No hace falta un endpoint nuevo: `GET /contracts/my-history` con `from`/`to` permite al cliente armar el calendario agregando por `eventDetails.date`.
 
-**Estados sugeridos** (alinear con UI naranja/verde):
+**Opción B — Vista agregada:**  
+`GET /me/events?from=YYYY-MM-DD&to=YYYY-MM-DD` devuelve ítems ya preparados (fecha, título, subtítulo, estado, ids de contrato/artista). Útil si el cálculo mezcla varias fuentes o es costoso en el cliente.
 
-- `draft` | `awaiting_client_signature` | `awaiting_artist_signature` | `fully_signed` | `cancelled` | `expired` (según negocio)
-
-Tras `POST` firma cliente, el backend puede **crear notificación** para el cliente y/o push al artista.
+Elegir **A o B** y documentar; con **una** basta.
 
 ---
 
-### 3.4 Eventos / calendario del cliente (`/client/events`)
+## 6. Carrito (prioridad baja)
 
-| Método | Ruta propuesta | Descripción |
-|--------|----------------|-------------|
-| `GET` | `/me/events?from=YYYY-MM-DD&to=YYYY-MM-DD` | Eventos agregados por día para el calendario. |
-
-**Ítem sugerido:**
-
-```json
-{
-  "id": "string",
-  "date": "2026-04-09",
-  "title": "Nombre servicio",
-  "subtitle": "Nombre artista",
-  "status": "pending_artist_signature | confirmed",
-  "startTime": "20:00",
-  "bookingId": "string",
-  "contractId": "string",
-  "artistId": "string"
-}
-```
-
-El front puede mapear `status` a colores **Pendiente / Listo** sin depender de `localStorage`.
+| **Propósito** | Borrador de reserva sincronizado entre dispositivos. |
+| **Necesidad** | **No** es imprescindible para el escenario “ya contraté y quiero verlo mañana en incógnito” si contratos + notificaciones están en BD. |
+| **Si se implementa** | CRUD típico: `GET /me/cart`, `POST /me/cart/items`, `PATCH /me/cart/items/:id`, `DELETE ...`, siempre scoped por `clientUid`. |
 
 ---
 
-### 3.5 Notificaciones
+## 7. Seguridad y buenas prácticas (checklist backend)
 
-| Método | Ruta propuesta | Descripción |
-|--------|----------------|-------------|
-| `GET` | `/me/notifications?unreadOnly=true&limit=50` | Lista. |
-| `PATCH` | `/me/notifications/:id` | Body: `{ "read": true }`. |
-| `POST` | `/me/notifications/read-all` | Marcar todas leídas (opcional). |
-
-**Ítem:** alinear con sección 2.3; incluir `kind` estable para que el front traduzca textos.
+- [ ] Nunca devolver contratos o notificaciones de otro `uid`.
+- [ ] Validar pertenencia de `artistId` / `serviceId` al catálogo real.
+- [ ] Rate limiting razonable en `POST /contracts` y creación de notificaciones.
+- [ ] Logs sin datos sensibles del usuario; trazabilidad con `contractId` / `notificationId`.
+- [ ] Paginación en listados que puedan crecer (`my-history`, notificaciones).
 
 ---
 
-### 3.6 Disponibilidad del artista (calendario en perfil)
+## 8. Criterios de aceptación (QA / definición de hecho)
 
-Hoy: `blockedDates[]` en `GET artist-profiles/:id`.
-
-Opciones:
-
-- **A)** Mantener y **garantizar** que el backend rellena `blockedDates` (y reservas confirmadas) para que el front **elimine el mock** demo.
-- **B)** Añadir `GET /artists/:uid/availability?month=2026-04` que devuelva días bloqueados/ocupados.
+- [ ] **N fechas** en una misma contratación desde cliente resultan en **N registros** persistidos (N llamadas `POST /contracts` o equivalente documentado).
+- [ ] Mismo usuario, **nueva sesión / incógnito**: `GET /contracts/my-history` devuelve los mismos datos que la sesión anterior.
+- [ ] Tras crear contrato, existe notificación en BD y `GET` notificaciones la devuelve en sesión futura.
+- [ ] `PATCH` notificación persiste `read` y se refleja en el siguiente `GET`.
 
 ---
 
-### 3.7 Mensajería / chat (pendiente en UI)
+## 9. Nota para alineación con el cliente web
 
-Botón flotante y icono de sobre **no** llaman API hoy.
-
-| Método | Ruta propuesta | Descripción |
-|--------|----------------|-------------|
-| `GET` | `/me/conversations` | … |
-| `GET` | `/me/conversations/:id/messages` | … |
-| `POST` | `/me/conversations/:id/messages` | … |
-
-Definir si es chat interno o integración externa.
+El frontend actual puede enviar ya `POST /contracts` y `GET /contracts/my-history` y espera envoltorios del estilo `{ success, data }`. Las notificaciones siguen en almacenamiento local hasta que existan los endpoints de la sección 4. Cualquier cambio de path o de nombres de campos debe **versionarse o documentarse** para que el equipo frontend actualice el cliente HTTP en un solo lugar.
 
 ---
 
-## 4. Flujos que el front debe poder reproducir con API
-
-1. **Añadir al carrito** desde ficha de servicio → persistir en servidor; reflejar badge del carrito.
-2. **Abrir modal de firma múltiple** → `GET cart` + PDFs/documentos ya cubiertos por URLs de servicio/perfil.
-3. **Firmar** → subir firma + crear/actualizar contrato + devolver estado; generar notificación si aplica.
-4. **Firmar desde servicio (sin carrito)** → mismo contrato/booking que una línea con `selectedDateKeys`.
-5. **Mis eventos** → calendario solo desde datos de servidor.
-6. **Campana** → notificaciones desde servidor; marcar leídas.
-7. **Listado global de contratos** (`/client/contracts`) → `GET /me/contracts`.
-
----
-
-## 5. Notas para implementación
-
-- **Idempotencia:** doble clic en “Firmar” no debe duplicar contratos; usar idempotency key o estado en booking.
-- **Precios:** validar en servidor frente a `serviceId` y fechas.
-- **Zona horaria:** acordar si `YYYY-MM-DD` es “día local del evento” o UTC.
-- **Tamaño de firma:** preferir **storage + URL** en lugar de guardar solo base64 en BD.
-- **Paginación:** notificaciones y contratos deberían soportar `cursor`/`page` a medio plazo.
-
----
-
-## 6. Referencia de código en el repo
-
-| Concepto | Archivo |
-|----------|---------|
-| Tipos carrito / firmados mock | `src/helpers/clientServiceCart.ts` |
-| Notificaciones mock | `src/helpers/clientNotifications.ts` |
-| Eventos calendario cliente | `src/helpers/clientSignedCalendarEvents.ts`, `src/hooks/useClientSignedContractCalendar.ts` |
-| Context carrito + modal firma | `src/contexts/ClientServiceCartContext.tsx` |
-| API cliente existente | `src/api/clientProfileService.ts`, `src/api/artistProfileService.ts`, `src/api/artistServiceService.ts` |
-
----
-
-*Última actualización: generado desde el estado del frontend; los paths exactos pueden ajustarse al estándar del backend siempre que las operaciones y campos anteriores queden cubiertos.*
+*Última actualización: spec orientada a implementación backend; rutas bajo el prefijo `/api` según el despliegue del proyecto.*
