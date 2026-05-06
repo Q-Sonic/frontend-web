@@ -96,16 +96,6 @@ export function ArtistServicesPage() {
 
   const isFormValid = !nameError && !priceError;
 
-  function openCreate() {
-    setEditingId(null);
-    setName('');
-    setPrice('');
-    setDescription('');
-    setShowForm(true);
-    setSubmitError('');
-    setIsSubmitted(false);
-  }
-
   function openEdit(service: ArtistServiceRecord) {
     setEditingId(service.id);
     setName(service.name);
@@ -209,14 +199,18 @@ export function ArtistServicesPage() {
         )}
         <p className="text-neutral-600 text-sm mb-4">
           Configura tipos de espectáculo con nombre, precio y descripción (ej. concierto, acústico,
-          evento privado).
+          evento privado). Puedes vincular contrato y rider técnico desde «Administrar servicios» en tu
+          perfil.
         </p>
 
         {!showForm ? (
           <>
             <div className="space-y-3 mb-4">
               {services.length === 0 ? (
-                <p className="text-neutral-500 text-sm">Aún no tienes servicios. Crea el primero.</p>
+                <p className="text-neutral-500 text-sm">
+                  Aún no tienes servicios. Créalos desde «Administrar servicios» en tu perfil de artista
+                  (necesitas contrato y rider técnico en PDF).
+                </p>
               ) : (
                 services.map((s) => (
                   <div

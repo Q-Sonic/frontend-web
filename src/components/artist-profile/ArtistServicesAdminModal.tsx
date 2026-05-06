@@ -695,7 +695,7 @@ export function ArtistServicesAdminModal({
                 </h4>
                 <p className="mt-1 text-xs leading-relaxed text-neutral-500 sm:text-sm">
                   {editorMode === 'create'
-                    ? 'Nombre y precio son obligatorios. Puedes añadir foto, descripción y documentos después.'
+                    ? 'Nombre y precio son obligatorios. Contrato, rider, foto y descripción puedes añadirlos ahora o después (edita el servicio para vincular PDFs).'
                     : 'Completa los campos y guarda los cambios.'}
                 </p>
               </div>

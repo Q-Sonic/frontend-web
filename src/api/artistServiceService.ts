@@ -101,30 +101,38 @@ function buildArtistServiceUpdateJson(body: UpdateArtistServiceBody): Record<str
 
 }
 
-
+/** POST /artist-services JSON body — Firestore allows `null`; `undefined` must not be sent. */
+function buildArtistServiceCreatePayload(body: CreateArtistServiceBody): Record<string, unknown> {
+  const contractId = body.contractTemplateId?.trim() || null;
+  const technicalRiderId = body.technicalRiderTemplateId?.trim() || null;
+  const o: Record<string, unknown> = {
+    name: body.name,
+    price: body.price,
+    contractId,
+    technicalRiderId,
+  };
+  if (body.description != null && body.description !== '') o.description = body.description;
+  if (body.duration != null && body.duration !== '') o.duration = body.duration;
+  if (body.features != null && body.features.length > 0) o.features = body.features;
+  if (body.isPinned != null) o.isPinned = body.isPinned;
+  return o;
+}
 
 function appendContractRiderFormFields(formData: FormData, body: CreateArtistServiceBody | UpdateArtistServiceBody) {
-
   const contractId =
-
-    'contractTemplateId' in body && body.contractTemplateId
-
-      ? body.contractTemplateId
-
-      : undefined;
-
+    'contractTemplateId' in body && body.contractTemplateId ? body.contractTemplateId : undefined;
   const riderId =
-
     'technicalRiderTemplateId' in body && body.technicalRiderTemplateId
-
       ? body.technicalRiderTemplateId
-
       : undefined;
-
   if (contractId) formData.append('contractId', contractId);
-
   if (riderId) formData.append('technicalRiderId', riderId);
+}
 
+/** Multipart create: always send keys so the server can coerce "" → null (omit undefined). */
+function appendContractRiderFormFieldsForCreate(formData: FormData, body: CreateArtistServiceBody) {
+  formData.append('contractId', body.contractTemplateId?.trim() ?? '');
+  formData.append('technicalRiderId', body.technicalRiderTemplateId?.trim() ?? '');
 }
 
 
@@ -223,6 +231,16 @@ export async function createArtistServiceWithFormData(
 
 ): Promise<ArtistServiceRecord> {
 
+  const hasBinaryPart = Boolean(imageFile || contractPdf || riderPdf);
+
+  if (!hasBinaryPart) {
+    const res = await api<ApiResponse<ArtistServiceRecord>>('artist-services', {
+      method: 'POST',
+      body: JSON.stringify(buildArtistServiceCreatePayload(body)),
+    });
+    return normalizeArtistServiceRecord(res.data);
+  }
+
   const formData = new FormData();
 
   formData.append('name', body.name);
@@ -240,7 +258,7 @@ export async function createArtistServiceWithFormData(
   }
   if (body.isPinned != null) formData.append('isPinned', String(body.isPinned));
 
-  appendContractRiderFormFields(formData, body);
+  appendContractRiderFormFieldsForCreate(formData, body);
 
   if (imageFile) formData.append('image', imageFile);
 

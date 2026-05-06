@@ -13,6 +13,9 @@ export interface RegisterPayload {
   password: string;
   displayName: string;
   role: RegistrationRole | string;
+  /** Sent only when `VITE_REGISTRATION_IDENTIFICATION_MODE=api`. */
+  identificationType?: string;
+  identificationNumber?: string;
 }
 
 export interface LoginResponseData {

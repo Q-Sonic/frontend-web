@@ -1,5 +1,15 @@
+export type RegistrationIdentificationMode = 'local' | 'api';
+
 export const config = {
   apiBaseUrl: import.meta.env.VITE_API_BASE_URL ?? '/api',
+  /**
+   * `local`: no envía identificación al backend; se guarda en sessionStorage tras registro exitoso.
+   * `api`: incluye `identificationType` e `identificationNumber` en el POST `auth/register`.
+   */
+  registrationIdentificationMode: ((): RegistrationIdentificationMode => {
+    const v = import.meta.env.VITE_REGISTRATION_IDENTIFICATION_MODE;
+    return v === 'api' ? 'api' : 'local';
+  })(),
   /** App name used in Topbar and branding across the app. */
   APP_NAME: 'Stage Go',
   APP_TAGLINE: 'Prime',
