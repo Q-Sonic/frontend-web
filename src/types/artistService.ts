@@ -62,4 +62,19 @@ export interface UpdateArtistServiceBody {
 }
 
 export type ArtistServiceResponse = ApiResponse<ArtistServiceRecord>;
-export type ArtistServiceListResponse = ApiResponse<ArtistServiceRecord[]>;
+
+/** Backend `sendSuccess(res, paginatedResult)` nests services here (not at ApiResponse root). */
+export interface ArtistServicePaginatedList {
+  data: ArtistServiceRecord[];
+  total: number;
+  skip: number;
+  take: number;
+}
+
+/**
+ * GET `/artist-services` and `/artist-services/all/:id` put either a paginated payload or a legacy
+ * flat array inside `ApiResponse.data`.
+ */
+export type ArtistServiceListResponse = ApiResponse<
+  ArtistServiceRecord[] | ArtistServicePaginatedList
+>;

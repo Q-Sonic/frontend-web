@@ -13,7 +13,7 @@ export interface RegisterPayload {
   password: string;
   displayName: string;
   role: RegistrationRole | string;
-  /** Sent only when `VITE_REGISTRATION_IDENTIFICATION_MODE=api`. */
+  /** Identity document fields required by the registration form. */
   identificationType?: string;
   identificationNumber?: string;
 }

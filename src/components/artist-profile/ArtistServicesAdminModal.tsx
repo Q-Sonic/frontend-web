@@ -688,16 +688,11 @@ export function ArtistServicesAdminModal({
         <>
         <div className="fixed inset-0 z-[100] flex min-h-0 items-stretch justify-center bg-black/60 p-0 backdrop-blur-[2px] sm:items-center sm:p-4 sm:pt-[max(0.5rem,env(safe-area-inset-top))] sm:pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:pl-[max(0.5rem,env(safe-area-inset-left))] sm:pr-[max(0.5rem,env(safe-area-inset-right))]">
           <div className="flex h-full min-h-0 max-h-[100dvh] w-full max-w-full flex-col overflow-hidden rounded-none border-x-0 border-y border-[#00d4c8]/35 bg-[#111214] shadow-none sm:h-auto sm:max-h-[90vh] sm:max-w-[min(1120px,calc(100vw-1.5rem))] sm:rounded-3xl sm:border sm:shadow-[0_0_40px_rgba(0,212,200,0.18)]">
-            <div className="flex shrink-0 items-start justify-between gap-3 border-b border-white/10 px-4 pb-3 pt-[max(1rem,env(safe-area-inset-top))] sm:gap-4 sm:px-7 sm:pb-5 sm:pt-6">
+            <div className="flex shrink-0 items-center justify-between gap-2 border-b border-white/10 px-4 pb-2 pt-[max(0.875rem,env(safe-area-inset-top))] sm:gap-3 sm:px-7 sm:pb-4 sm:pt-5">
               <div className="min-w-0 pr-2">
                 <h4 className="text-xl font-semibold tracking-tight text-white sm:text-2xl md:text-3xl">
                   {editorMode === 'create' ? 'Crear nuevo servicio' : 'Editar servicio'}
                 </h4>
-                <p className="mt-1 text-xs leading-relaxed text-neutral-500 sm:text-sm">
-                  {editorMode === 'create'
-                    ? 'Nombre y precio son obligatorios. Contrato, rider, foto y descripción puedes añadirlos ahora o después (edita el servicio para vincular PDFs).'
-                    : 'Completa los campos y guarda los cambios.'}
-                </p>
               </div>
               <button
                 type="button"

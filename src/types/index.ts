@@ -21,6 +21,7 @@ export type {
   UpdateArtistServiceBody,
   ArtistServiceResponse,
   ArtistServiceListResponse,
+  ArtistServicePaginatedList,
 } from './artistService';
 export type {
   ArtistFileRecord,

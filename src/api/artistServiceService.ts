@@ -1,15 +1,10 @@
 import type {
-
   ApiResponse,
-
   ArtistServiceRecord,
-
   ArtistServiceListResponse,
-
+  ArtistServicePaginatedList,
   CreateArtistServiceBody,
-
   UpdateArtistServiceBody,
-
 } from '../types';
 
 import { api, apiPostFormData, apiPutFormData } from './client';
@@ -163,24 +158,27 @@ function unwrapArtistServiceBody(body: unknown): ArtistServiceRecord | null {
 
 }
 
-
-
-export async function getMyArtistServices(): Promise<ArtistServiceRecord[]> {
-
-  const res = await api<ArtistServiceListResponse>('artist-services');
-
-  return (res.data ?? []).map(normalizeArtistServiceRecord);
-
+/**
+ * Backend returns `PaginatedResult` inside `ApiResponse.data` (`{ data: [...], total, skip, take }`).
+ * Older responses may expose a plain array at `data`.
+ */
+export function artistServiceArrayFromListPayload(
+  payload: ArtistServiceRecord[] | ArtistServicePaginatedList | null | undefined,
+): ArtistServiceRecord[] {
+  if (payload == null) return [];
+  if (Array.isArray(payload)) return payload;
+  if (typeof payload === 'object' && Array.isArray(payload.data)) return payload.data;
+  return [];
 }
 
-
+export async function getMyArtistServices(): Promise<ArtistServiceRecord[]> {
+  const res = await api<ArtistServiceListResponse>('artist-services');
+  return artistServiceArrayFromListPayload(res.data).map(normalizeArtistServiceRecord);
+}
 
 export async function getArtistServicesByArtistId(artistId: string): Promise<ArtistServiceRecord[]> {
-
   const res = await api<ArtistServiceListResponse>(`artist-services/all/${artistId}`);
-
-  return (res.data ?? []).map(normalizeArtistServiceRecord);
-
+  return artistServiceArrayFromListPayload(res.data).map(normalizeArtistServiceRecord);
 }
 
 

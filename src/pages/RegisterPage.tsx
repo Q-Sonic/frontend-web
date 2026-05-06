@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Button, Input } from '../components';
 import { AuthLayout } from '../components/AuthLayout';
 import { register, loginWithGoogleBackend } from '../api/authService';
-import { config } from '../config/app';
 import { useAuth } from '../contexts/AuthContext';
 import {
   IDENTITY_DOCUMENT_OPTIONS,
@@ -17,10 +16,7 @@ import {
 import { normalizeRole } from '../helpers/role';
 import type { RegistrationRole } from '../types/auth';
 import { registerErrorMessage } from '../helpers/authErrors';
-import {
-  SESSION_KEY_POST_REGISTER_LOGIN,
-  SESSION_KEY_REGISTRATION_IDENTIFICATION,
-} from '../constants/sessionStorageKeys';
+import { SESSION_KEY_POST_REGISTER_LOGIN } from '../constants/sessionStorageKeys';
 import { signInWithPopup, signInWithCustomToken } from 'firebase/auth';
 import { auth as firebaseAuth, googleProvider } from '../config/firebase';
 
@@ -90,29 +86,6 @@ const ChevronDownIcon = () => (
     <path d="m6 9 6 6 6-6" />
   </svg>
 );
-
-function persistRegistrationIdentification(
-  email: string,
-  role: string,
-  identityType: IdentityDocumentType,
-  rawNumber: string
-) {
-  const identificationNumber = normalizeIdentityNumber(identityType, rawNumber);
-  try {
-    sessionStorage.setItem(
-      SESSION_KEY_REGISTRATION_IDENTIFICATION,
-      JSON.stringify({
-        email,
-        role,
-        identificationType: identityType,
-        identificationNumber,
-        savedAt: new Date().toISOString(),
-      })
-    );
-  } catch {
-    /* private mode */
-  }
-}
 
 function IdentityTypeSelect({
   value,
@@ -292,24 +265,14 @@ export function RegisterPage() {
 
     setIsSubmitting(true);
     try {
-      const basePayload = {
+      await register({
         email: trim(email),
         password,
         displayName: trim(displayName),
         role: accountRole,
-      };
-      await register(
-        config.registrationIdentificationMode === 'api'
-          ? {
-              ...basePayload,
-              identificationType: identityType,
-              identificationNumber: normalizedIdentityNumber,
-            }
-          : basePayload
-      );
-      if (config.registrationIdentificationMode === 'local') {
-        persistRegistrationIdentification(trim(email), accountRole, identityType, identityNumber);
-      }
+        identificationType: identityType,
+        identificationNumber: normalizedIdentityNumber,
+      });
       setShowSuccess(true);
       try {
         sessionStorage.setItem(SESSION_KEY_POST_REGISTER_LOGIN, '1');
@@ -352,14 +315,6 @@ export function RegisterPage() {
       localStorage.setItem('role', normalizeRole(role));
       
       await refreshUser();
-      if (config.registrationIdentificationMode === 'local' && result.user.email) {
-        persistRegistrationIdentification(
-          result.user.email,
-          normalizeRole(role),
-          identityType,
-          identityNumber
-        );
-      }
       navigate('/dashboard', { replace: true });
     } catch (err) {
       console.error('Error en Google Login:', err);
