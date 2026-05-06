@@ -1,1 +1,35 @@
 @import "tailwindcss";
+@config "../tailwind.config.js";
+
+@theme {
+  /* Standard palette – use with var() in SVG/inline or Tailwind classes (bg-surface, text-muted, etc.) */
+  --color-sidebar: #0A0A0A;
+  --color-surface: #121212;
+  --color-card: #1E1E1E;
+  --color-muted: #DADADA;
+  --color-accent: #00CCCB;
+  --color-danger: #FF3D3D;
+  --color-warning: #FFD910;
+
+  /* ── Custom animations ── */
+  @keyframes fadeSlideIn {
+    from {
+      opacity: 0;
+      transform: translateY(-4px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+/* Utilities must be outside @theme in Tailwind 4 */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

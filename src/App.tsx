@@ -1,15 +1,16 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthPage } from './pages/AuthPage';
-import { HomePage } from './pages/HomePage';
+import { BrowserRouter } from 'react-router-dom';
+import { AuthProvider } from './contexts/AuthContext';
+import { ChatProvider } from './contexts/ChatContext';
+import { AppRoutes } from './routes';
 
 export function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Navigate to="/home" replace />} />
-        <Route path="/auth" element={<AuthPage />} />
-        <Route path="/home" element={<HomePage />} />
-      </Routes>
+      <AuthProvider>
+        <ChatProvider>
+          <AppRoutes />
+        </ChatProvider>
+      </AuthProvider>
     </BrowserRouter>
   );
 }

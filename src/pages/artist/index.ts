@@ -1,0 +1,14 @@
+export { HomeArtistaPage } from './DashboardPage';
+export { ArtistServicesPage } from './ArtistServicesPage';
+export { ArtistMediaPage } from './ArtistMediaPage';
+export { ArtistMediaLegacyRedirect } from './ArtistMediaLegacyRedirect';
+export { ArtistProfileIdRedirect } from './ArtistProfileIdRedirect';
+export { ArtistProfileLayout } from './ArtistProfileLayout';
+export { ArtistProfileMainPage } from './ArtistProfileMainPage';
+export { ArtistProfileGalleryPage } from './ArtistProfileGalleryPage';
+export { ArtistProfileDocumentsPage } from './ArtistProfileDocumentsPage';
+export { ArtistProfileCalendarPage } from './ArtistProfileCalendarPage';
+export { ArtistCalendarPage } from './ArtistCalendarPage';
+export { ArtistAccessSettingsPage } from './ArtistAccessSettingsPage';
+export { ArtistSettingsHubPage } from './ArtistSettingsHubPage';
+export { ArtistContractsPage } from './ArtistContractsPage';
