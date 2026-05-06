@@ -96,6 +96,16 @@ export function ArtistServicesPage() {
 
   const isFormValid = !nameError && !priceError;
 
+  function openCreate() {
+    setEditingId(null);
+    setName('');
+    setPrice('');
+    setDescription('');
+    setShowForm(true);
+    setSubmitError('');
+    setIsSubmitted(false);
+  }
+
   function openEdit(service: ArtistServiceRecord) {
     setEditingId(service.id);
     setName(service.name);
