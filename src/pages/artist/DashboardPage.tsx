@@ -338,8 +338,8 @@ function SummaryCard({
         <h1 className="text-3xl font-semibold text-white">Resumen</h1>
 
         <div className="flex items-center gap-3 text-sm text-muted">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted-card">
-            <WorldIcon color="var(--color-muted)" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-accent/10">
+            <WorldIcon color="var(--color-accent)" />
           </div>
           <div>
             <p>Visitas de tu perfil</p>

@@ -5,15 +5,19 @@ import { useAuth } from '../../contexts/AuthContext';
 import { isBackendRoleArtista } from '../../helpers/role';
 import { withMinimumDelay } from '../../helpers/withMinimumDelay';
 import { api } from '../../api';
-import { PageLayout } from '../../layouts';
 import { Button, Skeleton, UserMenu } from '../../components';
-import { FiArrowLeft, FiCalendar, FiChevronLeft, FiChevronRight, FiLock } from 'react-icons/fi';
+import { 
+  FiArrowLeft, FiCalendar, FiChevronLeft, FiChevronRight, FiLock, 
+  FiSearch, FiClock, FiMapPin, FiPhone, FiDownload, FiX, FiCheckCircle, FiInfo 
+} from 'react-icons/fi';
 import { getArtistProfile, toggleArtistBlockedDate } from '../../api/artistProfileService';
 import { artistAcceptContract, artistRejectContract, dispatchContractsApiRefresh } from '../../api/contractService';
 import { ClientContractSigningModal } from '../../components/client/ClientContractSigningModal';
 
+/* ── Types ── */
 type CalendarContractEvent = {
   id: string;
+  status: string;
   eventDetails?: {
     name?: string;
     date?: unknown;
@@ -25,6 +29,9 @@ type CalendarContractEvent = {
 type ExtendedEventDetail = {
   id: string;
   status?: string;
+  duration?: string;
+  serviceName?: string;
+  serviceDescription?: string;
   financials?: {
     totalAmount?: number;
     paymentStatus?: string;
@@ -40,14 +47,11 @@ type ExtendedEventDetail = {
     location?: string;
     description?: string;
   };
+  riderDownloadUrl?: string;
+  contractDownloadUrl?: string;
 };
 
-type NextShow = {
-  clientName: string;
-  dateTimeLabel: string;
-  location: string;
-};
-
+/* ── Helpers ── */
 function parseFirestoreTimestamp(value: unknown): Date | null {
   if (!value) return null;
   if (value instanceof Date) return value;
@@ -70,8 +74,8 @@ function parseFirestoreTimestamp(value: unknown): Date | null {
 
 function startOfWeekMonday(d: Date): Date {
   const date = new Date(d);
-  const day = date.getDay(); // 0 Sun - 6 Sat
-  const diff = day === 0 ? -6 : 1 - day; // shift to Monday
+  const day = date.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
   date.setDate(date.getDate() + diff);
   date.setHours(0, 0, 0, 0);
   return date;
@@ -84,11 +88,12 @@ function addDays(d: Date, days: number): Date {
 }
 
 function formatMonthYear(d: Date): string {
-  return d.toLocaleString('es-ES', { month: 'long', year: 'numeric' });
+  const label = d.toLocaleString('es-ES', { month: 'long', year: 'numeric' });
+  return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
 function formatDateShort(d: Date): string {
-  const day = String(d.getDate()).padStart(2, '0');
+  const day = d.getDate();
   const month = d.toLocaleString('es-ES', { month: 'short' });
   return `${day} ${month}`;
 }
@@ -98,7 +103,9 @@ function formatTime(d: Date): string {
 }
 
 function getDayIndexMonday(date: Date, weekStartMonday: Date): number {
-  const diffDays = Math.floor((date.getTime() - weekStartMonday.getTime()) / (24 * 60 * 60 * 1000));
+  const start = new Date(weekStartMonday.getFullYear(), weekStartMonday.getMonth(), weekStartMonday.getDate()).getTime();
+  const current = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+  const diffDays = Math.floor((current - start) / (24 * 60 * 60 * 1000));
   return diffDays;
 }
 
@@ -117,6 +124,7 @@ export function ArtistCalendarPage() {
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [isEventLoading, setIsEventLoading] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<ExtendedEventDetail | null>(null);
+  
   const [artistSigningOpen, setArtistSigningOpen] = useState(false);
   const [artistSigningLoading, setArtistSigningLoading] = useState(false);
   const [artistActionError, setArtistActionError] = useState('');
@@ -124,45 +132,32 @@ export function ArtistCalendarPage() {
   const range = useMemo(() => {
     const start = new Date(weekStart);
     const end = addDays(weekStart, 7);
-    end.setMilliseconds(end.getMilliseconds() - 1); // include last ms of Sunday
     return { start, end };
   }, [weekStart]);
 
   useEffect(() => {
     if (!user?.uid || !isArtista) return;
-
     setIsLoading(true);
-    setError('');
-
     let cancelled = false;
     async function load() {
       try {
         const startIso = range.start.toISOString();
         const endIso = range.end.toISOString();
-
         const [res, profile] = await Promise.all([
-          withMinimumDelay(1000, () =>
-            api<ApiResponse<CalendarContractEvent[]>>(`events/calendar?start=${encodeURIComponent(startIso)}&end=${encodeURIComponent(endIso)}`)
-          ),
+          api<ApiResponse<CalendarContractEvent[]>>(`events/calendar?start=${encodeURIComponent(startIso)}&end=${encodeURIComponent(endIso)}`),
           getArtistProfile()
         ]);
-
         if (cancelled) return;
         setEvents(res.data ?? []);
         setBlockedDates(profile.blockedDates || []);
       } catch (err) {
-        if (cancelled) return;
-        setError(err instanceof Error ? err.message : 'No se pudo cargar el calendario.');
-        setEvents([]);
+        if (!cancelled) setError('Error al cargar el calendario');
       } finally {
         if (!cancelled) setIsLoading(false);
       }
     }
-
     load();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [user?.uid, isArtista, range.start, range.end]);
 
   const handleDayToggle = async (day: Date) => {
@@ -171,17 +166,15 @@ export function ArtistCalendarPage() {
       const next = await toggleArtistBlockedDate(key);
       setBlockedDates(next);
     } catch (err) {
-      console.error('Error toggling blocked date:', err);
+      console.error(err);
     }
   };
 
   async function openEvent(contractId: string) {
     setSelectedEventId(contractId);
     setIsEventLoading(true);
-    setSelectedEvent(null);
-
     try {
-      const detailRes = await withMinimumDelay(500, () => api<ApiResponse<ExtendedEventDetail>>(`events/${contractId}`));
+      const detailRes = await api<ApiResponse<ExtendedEventDetail>>(`events/${contractId}`);
       setSelectedEvent(detailRes.data ?? null);
     } catch {
       setSelectedEvent(null);
@@ -191,344 +184,362 @@ export function ArtistCalendarPage() {
   }
 
   const weekDates = useMemo(() => Array.from({ length: 7 }).map((_, i) => addDays(weekStart, i)), [weekStart]);
-
-  const timelineStartMinutes = 0;
-  // 23:59 -> minutos máximos 1439; usando 24:00 como límite para cálculo.
-  const timelineEndMinutes = 24 * 60; // 00:00 - 24:00
-  const minutesPerSlot = 30;
-  const rowHeight = 52; // px per 30 min (bigger vertical spacing)
-  const slotCount = Math.max(1, (timelineEndMinutes - timelineStartMinutes) / minutesPerSlot);
-  const timelineHeight = slotCount * rowHeight;
-  const dayHeaderOffsetPx = 40; // debe coincidir con el `top-10` usado en grid/event blocks
-  const eventDurationMinutes = 90; // matches the design screenshot
-
   const eventsByDay = useMemo(() => {
     const map: Record<number, CalendarContractEvent[]> = {};
     for (let i = 0; i < 7; i++) map[i] = [];
-
     for (const ev of events) {
       const d = parseFirestoreTimestamp(ev.eventDetails?.date);
       if (!d) continue;
       const idx = getDayIndexMonday(d, weekStart);
-      if (idx < 0 || idx > 6) continue;
-      map[idx].push(ev);
+      if (idx >= 0 && idx <= 6) map[idx].push(ev);
     }
-
-    // Sort by start time
-    for (const k of Object.keys(map)) {
-      const key = Number(k);
-      map[key] = map[key].sort((a, b) => {
-        const ad = parseFirestoreTimestamp(a.eventDetails?.date);
-        const bd = parseFirestoreTimestamp(b.eventDetails?.date);
-        return (ad?.getTime() ?? 0) - (bd?.getTime() ?? 0);
-      });
-    }
-
     return map;
   }, [events, weekStart]);
 
-  const modalEvent: NextShow | null = useMemo(() => {
-    if (!selectedEvent) return null;
-    const date = parseFirestoreTimestamp(selectedEvent.eventDetails?.date);
-    return {
-      clientName: selectedEvent.clientContact?.name || 'Cliente',
-      dateTimeLabel: date ? `${formatDateShort(date)} • ${formatTime(date)}` : '',
-      location: selectedEvent.eventDetails?.location || '',
-    };
-  }, [selectedEvent]);
+  const rowHeight = 60;
+  const slotCount = 24;
+  const dayHeaderHeight = 64;
 
-  const normalizedSelectedStatus = String(selectedEvent?.status || '').trim().toLowerCase();
-  const pendingArtistSignature =
-    normalizedSelectedStatus === 'pending_artist_signature' || normalizedSelectedStatus === 'pending';
-  const acceptedSignature = normalizedSelectedStatus === 'accepted' || normalizedSelectedStatus === 'completed';
-  const paymentStatus = String(selectedEvent?.financials?.paymentStatus || '').trim().toUpperCase();
-  const isPaymentPending = paymentStatus === 'UNPAID' || paymentStatus === 'PARTIAL' || paymentStatus === '';
-
-  if (!user) return null;
-  if (!isArtista) {
-    return (
-      <div className="w-full max-w-[900px] mx-auto">
-        <PageLayout title="Calendario" maxWidth="md" variant="dark">
-          <p className="text-neutral-500">Solo los artistas pueden ver el calendario.</p>
-        </PageLayout>
-      </div>
-    );
-  }
+  if (!user || !isArtista) return null;
 
   return (
-    <div className="min-h-screen bg-surface flex flex-col">
-      <div className="p-4 border-b border-white/10 flex items-center justify-between gap-3">
-        <button
-          type="button"
-          onClick={() => navigate(-1)}
-          className="inline-flex items-center gap-2 text-sm text-neutral-600 hover:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-neutral-400 rounded px-2 py-1"
-          aria-label="Volver"
-        >
-          <FiArrowLeft size={18} />
-          <span>Volver</span>
-        </button>
+    <div className="flex h-screen bg-[#0A0A0A] text-white overflow-hidden font-sans">
+      {/* ── Sidebar (Left) ── */}
+      <aside className="w-72 border-r border-white/5 flex flex-col bg-[#0A0A0A]">
+        <div className="p-6">
+          <div className="flex items-center gap-3 mb-8">
+            <div className="w-8 h-8 rounded-lg bg-accent/20 flex items-center justify-center">
+              <FiCalendar className="text-accent" />
+            </div>
+            <span className="font-bold text-lg tracking-tight">Q-Music</span>
+          </div>
 
-        <div className="flex items-center gap-2">
-          <FiCalendar size={18} className="text-[#00d4c8]" />
-          <div className="text-white font-semibold">{formatMonthYear(weekStart)}</div>
+          {/* Mini Calendar Mockup */}
+          <div className="mb-10">
+             <div className="flex items-center justify-between mb-4">
+                <span className="text-sm font-semibold">{formatMonthYear(weekStart).split(' ')[0]}</span>
+                <div className="flex gap-1">
+                   <button className="p-1 hover:bg-white/5 rounded"><FiChevronLeft size={14}/></button>
+                   <button className="p-1 hover:bg-white/5 rounded"><FiChevronRight size={14}/></button>
+                </div>
+             </div>
+             <div className="grid grid-cols-7 gap-y-2 text-center text-[10px] text-white/30 font-medium">
+                {['S','M','T','W','T','F','S'].map((d,i)=><div key={i}>{d}</div>)}
+                {Array.from({length: 31}).map((_,i)=>(
+                  <div key={i} className={`py-1 rounded-md text-[11px] ${i+1 === new Date().getDate() ? 'bg-accent text-black font-bold' : 'text-white/60'}`}>
+                    {i+1}
+                  </div>
+                ))}
+             </div>
+          </div>
+
+          <nav className="space-y-6">
+            <div>
+               <h4 className="text-[10px] uppercase tracking-widest text-white/30 font-bold mb-4">Calendarios</h4>
+               <div className="space-y-3">
+                  <div className="flex items-center gap-3 text-sm text-white/70">
+                    <div className="w-3 h-3 rounded-full bg-accent" />
+                    <span>Mis Eventos</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-sm text-white/40">
+                    <div className="w-3 h-3 rounded-full bg-purple-500" />
+                    <span>Cumpleaños</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-sm text-white/40">
+                    <div className="w-3 h-3 rounded-full bg-amber-500" />
+                    <span>Feriados</span>
+                  </div>
+               </div>
+            </div>
+          </nav>
         </div>
-
-        <div className="flex items-center gap-2">
-          <Button variant="secondary" className="p-2" onClick={() => setWeekStart((w) => addDays(w, -7))}>
-            <FiChevronLeft size={16} />
-          </Button>
-          <Button variant="secondary" className="px-3 py-2" onClick={() => setWeekStart(startOfWeekMonday(new Date()))}>
-            Hoy
-          </Button>
-          <Button variant="secondary" className="p-2" onClick={() => setWeekStart((w) => addDays(w, 7))}>
-            <FiChevronRight size={16} />
-          </Button>
-          <UserMenu />
+        
+        <div className="mt-auto p-6 border-t border-white/5">
+           <button className="flex items-center gap-2 text-sm text-white/40 hover:text-white transition-colors">
+              <span className="text-xl">+</span>
+              <span>Añadir cuenta</span>
+           </button>
         </div>
-      </div>
+      </aside>
 
-      <div className="p-4 flex-1 overflow-hidden">
-        <div className="border border-white/10 rounded-xl overflow-hidden bg-neutral-950/30 h-full">
-          <div className="flex h-full">
-              {/* Time column */}
-              <div className="w-16 shrink-0 border-r border-white/10 relative">
-                {Array.from({ length: slotCount + 1 }).map((_, idx) => {
-                  const minutes = timelineStartMinutes + idx * minutesPerSlot;
-                  const labelDate = new Date();
-                  labelDate.setHours(Math.floor(minutes / 60), minutes % 60, 0, 0);
-                  // Show labels only on the hour to avoid crowding.
-                  const isHour = minutes % 60 === 0;
-                  if (!isHour) return null;
-                  const label = labelDate.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
-                  return (
-                    <div
-                      key={idx}
-                      className="absolute left-0 right-0 text-[10px] text-neutral-500 px-2"
-                      style={{ top: idx * rowHeight + dayHeaderOffsetPx - 8 }}
-                    >
-                      {label}
+      {/* ── Main Content (Center) ── */}
+      <main className="flex-1 flex flex-col min-w-0 bg-[#0A0A0A]">
+        {/* Header */}
+        <header className="h-16 border-b border-white/5 px-6 flex items-center justify-between bg-[#0A0A0A]">
+           <div className="flex items-center gap-6">
+              <h2 className="text-xl font-bold">{formatMonthYear(weekStart)}</h2>
+              <div className="flex items-center bg-white/5 rounded-lg p-0.5">
+                 <button className="px-3 py-1.5 text-xs font-medium rounded-md hover:bg-white/5">Día</button>
+                 <button className="px-3 py-1.5 text-xs font-medium rounded-md bg-white/10 shadow-sm">Semana</button>
+                 <button className="px-3 py-1.5 text-xs font-medium rounded-md hover:bg-white/5">Mes</button>
+              </div>
+           </div>
+
+           <div className="flex items-center gap-4">
+              <div className="relative">
+                 <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-white/20" />
+                 <input 
+                    type="text" 
+                    placeholder="Buscar evento..." 
+                    className="bg-white/5 border border-white/5 rounded-full pl-9 pr-4 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-accent/50 w-64"
+                 />
+              </div>
+              <div className="flex items-center gap-2 border-l border-white/5 pl-4">
+                 <button className="p-2 hover:bg-white/5 rounded-lg" onClick={() => setWeekStart(w => addDays(w, -7))}><FiChevronLeft/></button>
+                 <button className="px-3 py-1.5 text-xs font-bold hover:bg-white/5 rounded-lg" onClick={() => setWeekStart(startOfWeekMonday(new Date()))}>Hoy</button>
+                 <button className="p-2 hover:bg-white/5 rounded-lg" onClick={() => setWeekStart(w => addDays(w, 7))}><FiChevronRight/></button>
+              </div>
+              <UserMenu />
+           </div>
+        </header>
+
+        {/* Calendar Grid */}
+        <div className="flex-1 overflow-y-auto scrollbar-hide relative bg-[#0A0A0A]">
+           <div className="flex min-w-[1000px] h-full">
+              {/* Hours Labels */}
+              <div className="w-16 shrink-0 border-r border-white/5 flex flex-col pt-[64px]">
+                 {Array.from({length: 24}).map((_, i) => (
+                    <div key={i} className="h-[60px] text-[10px] text-white/20 text-center pt-1 font-medium">
+                       {i === 0 ? '' : `${i}:00`}
                     </div>
-                  );
-                })}
+                 ))}
               </div>
 
-              {/* Days columns */}
-              <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
-                <div className="min-w-[980px]" style={{ height: timelineHeight + dayHeaderOffsetPx }}>
-                  {isLoading ? (
-                    <div className="w-full h-full p-4 space-y-4">
-                      <Skeleton className="h-4 w-40 rounded" />
-                      <div className="flex gap-2">
-                        {Array.from({ length: 7 }).map((_, idx) => (
-                          <div key={idx} className="flex-1">
-                            <Skeleton className="h-full w-full rounded" />
+              {/* Day Columns */}
+              <div className="flex-1 flex">
+                 {weekDates.map((day, idx) => {
+                    const isToday = day.toDateString() === new Date().toDateString();
+                    const dayEvents = eventsByDay[idx] || [];
+                    const dateKey = day.toISOString().split('T')[0];
+                    const isBlocked = blockedDates.includes(dateKey);
+
+                    return (
+                       <div key={idx} className={`flex-1 border-r border-white/5 last:border-r-0 flex flex-col relative ${isBlocked ? 'bg-red-500/[0.02]' : ''}`}>
+                          {/* Header Day */}
+                          <div className={`h-16 border-b border-white/5 flex flex-col items-center justify-center sticky top-0 bg-[#0A0A0A] z-20 ${isToday ? 'text-accent' : ''}`}>
+                             <span className="text-[10px] uppercase font-bold tracking-widest opacity-40">
+                                {['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'][day.getDay()]}
+                             </span>
+                             <span className={`text-lg font-bold mt-0.5 ${isToday ? 'w-8 h-8 flex items-center justify-center bg-accent text-black rounded-full' : ''}`}>
+                                {day.getDate()}
+                             </span>
                           </div>
-                        ))}
-                      </div>
-                    </div>
-                  ) : error ? (
-                    <div className="p-6 text-red-400">{error}</div>
-                  ) : (
-                    <div className="flex h-full">
-                      {weekDates.map((day, dayIdx) => {
-                        const dateKey = day.toISOString().split('T')[0];
-                        const isBlocked = blockedDates.includes(dateKey);
 
-                        return (
-                          <div key={day.toISOString()} className={`flex-1 border-r border-white/10 last:border-r-0 relative ${isBlocked ? 'bg-red-500/5' : ''}`}>
-                            {/* Day header */}
-                            <div className="sticky top-0 z-10 bg-neutral-950/80 border-b border-white/10 px-3 h-10 flex items-center justify-between group">
-                              <div className="flex flex-col justify-center">
-                                <div className="text-xs text-neutral-500">
-                                  {['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'][dayIdx]}
-                                </div>
-                                <div className="text-sm text-white/90 font-medium">{day.getDate()}</div>
-                              </div>
-                              <button 
-                                onClick={() => handleDayToggle(day)}
-                                className={`p-1.5 rounded-lg transition-colors ${isBlocked ? 'text-red-400 bg-red-400/10 hover:bg-neutral-800' : 'text-neutral-600 hover:text-white hover:bg-white/10'}`}
-                                title={isBlocked ? 'Desbloquear día' : 'Bloquear día'}
-                              >
-                                {isBlocked ? <FiLock size={14} /> : <FiLock size={14} className="opacity-0 group-hover:opacity-100" />}
-                              </button>
-                            </div>
+                          {/* Grid Lines */}
+                          <div className="absolute inset-0 top-16 pointer-events-none">
+                             {Array.from({length: 24}).map((_, i) => (
+                                <div key={i} className="h-[60px] border-b border-white/[0.03]" />
+                             ))}
+                          </div>
 
-                            {/* Timeline grid lines */}
-                            <div className="absolute left-0 right-0 top-10 bottom-0">
-                              {Array.from({ length: slotCount }).map((_, idx) => (
-                                <div
-                                  key={idx}
-                                  className={[
-                                    'absolute left-3 right-3 border-t',
-                                    idx % 2 === 0 ? 'border-white/20' : 'border-white/10',
-                                  ].join(' ')}
-                                  style={{ top: idx * rowHeight }}
-                                />
-                              ))}
-                            </div>
-
-                            {/* Blocked overlay text */}
-                            {isBlocked && (
-                              <div className="absolute inset-0 top-10 flex items-center justify-center pointer-events-none rotate-[-45deg] opacity-20">
-                                <span className="text-red-500 font-bold text-2xl uppercase tracking-widest whitespace-nowrap">BLOQUEADO</span>
-                              </div>
-                            )}
-
-                            {/* Event blocks */}
-                            <div className="absolute left-0 right-0 top-10 bottom-0 overflow-hidden">
-                              {(eventsByDay[dayIdx] ?? []).map((ev, idx) => {
+                          {/* Events */}
+                          <div className="absolute inset-0 top-16">
+                             {dayEvents.map(ev => {
                                 const d = parseFirestoreTimestamp(ev.eventDetails?.date);
                                 if (!d) return null;
-                                const startMinutes = d.getHours() * 60 + d.getMinutes();
-                                if (startMinutes < timelineStartMinutes || startMinutes >= timelineEndMinutes) return null;
-
-                                const endMinutes = startMinutes + eventDurationMinutes;
-                                const effectiveEnd = Math.min(endMinutes, timelineEndMinutes);
-                                const effectiveMinutes = effectiveEnd - startMinutes;
-                                if (effectiveMinutes <= 0) return null;
-
-                                const top = (startMinutes - timelineStartMinutes) * (rowHeight / minutesPerSlot);
-                                const height = effectiveMinutes * (rowHeight / minutesPerSlot);
-
-                                const title = ev.eventDetails?.name || 'Show';
-                                const subtitle = ev.eventDetails?.location || '';
+                                const startMins = d.getHours() * 60 + d.getMinutes();
+                                const top = (startMins / 60) * rowHeight;
+                                // Use 90 mins as fallback but we should have real duration now
+                                const height = 1.5 * rowHeight; 
+                                
+                                const statusColors: Record<string, string> = {
+                                  'accepted': 'bg-accent/20 border-accent/40 text-accent',
+                                  'pending': 'bg-amber-500/20 border-amber-500/40 text-amber-500',
+                                  'pending_artist_signature': 'bg-purple-500/20 border-purple-500/40 text-purple-500',
+                                };
+                                const colorClass = statusColors[ev.status] || 'bg-blue-500/20 border-blue-500/40 text-blue-500';
 
                                 return (
                                   <button
-                                    key={ev.id}
-                                    type="button"
-                                    className="absolute left-3 right-3 rounded-lg bg-[#00d4c8]/25 border border-[#00d4c8]/40 px-2 py-2 text-left text-white/90 hover:bg-[#00d4c8]/30 transition-colors cursor-pointer"
-                                    style={{ top, height }}
-                                    onClick={() => openEvent(ev.id)}
+                                     key={ev.id}
+                                     onClick={() => openEvent(ev.id)}
+                                     className={`absolute left-1 right-1 rounded-md border p-2 text-left transition-transform hover:scale-[1.02] active:scale-95 ${colorClass}`}
+                                     style={{ top, height }}
                                   >
-                                    <div className="text-[12px] font-semibold leading-tight truncate">{title}</div>
-                                    <div className="text-[11px] text-white/70 leading-tight truncate">{subtitle}</div>
+                                     <div className="text-[11px] font-bold truncate leading-tight">{ev.eventDetails?.name || 'Show'}</div>
+                                     <div className="text-[9px] opacity-70 mt-0.5 flex items-center gap-1">
+                                        <FiClock size={8} /> {formatTime(d)}
+                                     </div>
                                   </button>
                                 );
-                              })}
-                            </div>
+                             })}
                           </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              </div>
-          </div>
-        </div>
-      </div>
 
-      {/* Event modal */}
+                          {/* Blocked Day UI */}
+                          {isBlocked && (
+                             <div className="absolute inset-0 top-16 flex items-center justify-center pointer-events-none opacity-10">
+                                <span className="rotate-[-45deg] font-black text-2xl tracking-tighter">BLOQUEADO</span>
+                             </div>
+                          )}
+                       </div>
+                    );
+                 })}
+              </div>
+           </div>
+        </div>
+      </main>
+
+      {/* ── Sidebar Right (Shortcuts) ── */}
+      <aside className="w-80 border-l border-white/5 p-6 bg-[#0A0A0A] hidden xl:flex flex-col">
+         <h4 className="text-sm font-bold mb-6">Useful shortcuts</h4>
+         <div className="space-y-4">
+            <div className="flex items-center justify-between text-sm text-white/50 group hover:text-white cursor-pointer transition-colors">
+               <span>Command menu</span>
+               <span className="bg-white/5 px-2 py-0.5 rounded text-[10px] border border-white/10 group-hover:bg-white/10">Ctrl K</span>
+            </div>
+            <div className="flex items-center justify-between text-sm text-white/50 group hover:text-white cursor-pointer transition-colors">
+               <span>Cron menu</span>
+               <span className="bg-white/5 px-2 py-0.5 rounded text-[10px] border border-white/10 group-hover:bg-white/10">`</span>
+            </div>
+            <div className="flex items-center justify-between text-sm text-white/50 group hover:text-white cursor-pointer transition-colors">
+               <span>Go to date</span>
+               <span className="bg-white/5 px-2 py-0.5 rounded text-[10px] border border-white/10 group-hover:bg-white/10">.</span>
+            </div>
+         </div>
+
+         <div className="mt-10 p-4 rounded-xl bg-accent/5 border border-accent/10">
+            <div className="flex items-center gap-2 text-accent mb-2">
+               <FiInfo size={16} />
+               <span className="text-xs font-bold uppercase tracking-wider">Tip de hoy</span>
+            </div>
+            <p className="text-xs text-white/60 leading-relaxed">
+               Puedes bloquear días enteros haciendo click en el candado de cada columna. Así los clientes no podrán reservarte.
+            </p>
+         </div>
+      </aside>
+
+      {/* ── Event Modal ── */}
       {selectedEventId && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
-          <div className="w-full max-w-xl rounded-xl border border-white/10 bg-neutral-950/95 shadow-xl overflow-hidden">
-            <div className="p-5 border-b border-white/10 flex items-center justify-between">
-              <div className="text-white font-semibold">Información del evento</div>
-              <Button variant="ghost" className="px-3 py-2" onClick={() => setSelectedEventId(null)} disabled={isEventLoading}>
-                Cerrar
-              </Button>
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
+          <div className="w-full max-w-2xl rounded-3xl border border-white/10 bg-[#121212] shadow-2xl overflow-hidden flex flex-col">
+            {/* Header with Background Image */}
+            <div className="h-48 relative bg-accent/10 flex items-end p-8">
+               <div className="absolute inset-0 bg-gradient-to-t from-[#121212] via-transparent to-transparent z-10" />
+               <img 
+                  src="https://images.unsplash.com/photo-1514525253361-bee8718a300a?q=80&w=1000&auto=format&fit=crop" 
+                  className="absolute inset-0 w-full h-full object-cover opacity-40"
+                  alt="Event cover"
+               />
+               <div className="relative z-20">
+                  <h3 className="text-3xl font-black tracking-tighter uppercase">{selectedEvent?.eventDetails?.name || 'Show en vivo'}</h3>
+                  <div className="flex items-center gap-4 mt-2 text-white/60 text-sm">
+                     <span className="flex items-center gap-1.5"><FiCalendar size={14}/> {selectedEvent?.eventDetails?.date ? formatDateShort(parseFirestoreTimestamp(selectedEvent.eventDetails.date)!) : ''}</span>
+                     <span className="flex items-center gap-1.5"><FiClock size={14}/> {selectedEvent?.duration || '90 mins'}</span>
+                  </div>
+               </div>
+               <button 
+                  onClick={() => setSelectedEventId(null)}
+                  className="absolute top-6 right-6 p-2 rounded-full bg-black/20 hover:bg-black/40 text-white transition-colors z-30"
+               >
+                  <FiX size={20} />
+               </button>
             </div>
 
-            <div className="p-5">
-              {isEventLoading ? (
-                <div className="space-y-3">
-                  <Skeleton className="h-5 w-32 rounded" />
-                  <Skeleton className="h-4 w-48 rounded" />
-                  <Skeleton className="h-4 w-72 rounded" />
-                  <Skeleton className="h-4 w-full rounded" />
-                </div>
-              ) : selectedEvent && modalEvent ? (
-                <div className="space-y-4">
-                  <div>
-                    <div className="text-white font-semibold">Show en vivo</div>
-                    <div className="text-neutral-500 text-sm mt-1">{modalEvent.dateTimeLabel}</div>
-                  </div>
+            <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-10">
+               {/* Left Column */}
+               <div className="space-y-8">
+                  <section>
+                     <h4 className="text-[10px] uppercase tracking-widest text-white/30 font-bold mb-4">Información del evento</h4>
+                     <p className="text-sm text-white/60 leading-relaxed">
+                        {selectedEvent?.serviceDescription || 'No hay descripción adicional para este servicio.'}
+                     </p>
+                  </section>
 
-                  <div className="space-y-1 text-neutral-300 text-sm">
-                    <div>
-                      <span className="text-neutral-500">Estado: </span>
-                      <span>
-                        {acceptedSignature
-                          ? 'Firmado'
-                          : pendingArtistSignature
-                            ? 'Pendiente firma del artista'
-                            : selectedEvent.status || '—'}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-neutral-500">Pago: </span>
-                      <span className={isPaymentPending ? 'text-amber-300 font-medium' : 'text-emerald-300 font-medium'}>
-                        {paymentStatus || 'UNPAID'}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-neutral-500">Tiempo: </span>
-                      <span>90 mins</span>
-                    </div>
-                    <div>
-                      <span className="text-neutral-500">Lugar: </span>
-                      <span>{modalEvent.location || '—'}</span>
-                    </div>
-                    <div>
-                      <span className="text-neutral-500">Contacto: </span>
-                      <span>{selectedEvent.clientContact?.phone || selectedEvent.clientContact?.email || '—'}</span>
-                    </div>
-                  </div>
-                  {artistActionError ? <p className="text-sm text-red-400">{artistActionError}</p> : null}
-                  {pendingArtistSignature ? (
-                    <div className="flex flex-wrap items-center gap-3 pt-2">
-                      {isPaymentPending ? (
-                        <span className="inline-flex items-center rounded-md border border-amber-300/40 bg-amber-400/15 px-3 py-2 text-xs font-semibold text-amber-100">
-                          Pendiente de pago del cliente
-                        </span>
-                      ) : (
-                        <Button
-                          variant="primary"
-                          onClick={() => {
-                            setArtistActionError('');
-                            setArtistSigningOpen(true);
-                          }}
-                          disabled={artistSigningLoading}
+                  <section className="space-y-4">
+                     <div className="flex items-start gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center shrink-0"><FiMapPin className="text-accent" /></div>
+                        <div>
+                           <div className="text-[10px] uppercase text-white/30 font-bold">Lugar</div>
+                           <div className="text-sm">{selectedEvent?.eventDetails?.location || '—'}</div>
+                        </div>
+                     </div>
+                     <div className="flex items-start gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center shrink-0"><FiPhone className="text-accent" /></div>
+                        <div>
+                           <div className="text-[10px] uppercase text-white/30 font-bold">Contacto cliente</div>
+                           <div className="text-sm">{selectedEvent?.clientContact?.phone || '—'}</div>
+                           <div className="text-xs text-white/40">{selectedEvent?.clientContact?.name || 'Cliente'}</div>
+                        </div>
+                     </div>
+                  </section>
+               </div>
+
+               {/* Right Column (Files & Actions) */}
+               <div className="space-y-8 flex flex-col">
+                  <section>
+                     <h4 className="text-[10px] uppercase tracking-widest text-white/30 font-bold mb-4">Documentación</h4>
+                     <div className="space-y-3">
+                        {selectedEvent?.contractDownloadUrl ? (
+                          <a 
+                             href={selectedEvent.contractDownloadUrl} 
+                             target="_blank" 
+                             rel="noopener noreferrer"
+                             className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors group"
+                          >
+                             <div className="flex items-center gap-3">
+                                <FiDownload className="text-accent" />
+                                <span className="text-sm font-medium">Contrato firmado</span>
+                             </div>
+                             <FiChevronRight className="text-white/20 group-hover:text-white transition-colors" />
+                          </a>
+                        ) : (
+                          <div className="p-3 rounded-xl bg-white/5 border border-white/5 opacity-50 flex items-center gap-3">
+                             <FiLock className="text-white/30" />
+                             <span className="text-sm text-white/30">Contrato no disponible</span>
+                          </div>
+                        )}
+
+                        {selectedEvent?.riderDownloadUrl ? (
+                          <a 
+                             href={selectedEvent.riderDownloadUrl} 
+                             target="_blank" 
+                             rel="noopener noreferrer"
+                             className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors group"
+                          >
+                             <div className="flex items-center gap-3">
+                                <FiDownload className="text-accent" />
+                                <span className="text-sm font-medium">Rider Técnico</span>
+                             </div>
+                             <FiChevronRight className="text-white/20 group-hover:text-white transition-colors" />
+                          </a>
+                        ) : (
+                          <div className="p-3 rounded-xl bg-white/5 border border-white/5 opacity-50 flex items-center gap-3">
+                             <FiLock className="text-white/30" />
+                             <span className="text-sm text-white/30">Rider no disponible</span>
+                          </div>
+                        )}
+                     </div>
+                  </section>
+
+                  <div className="mt-auto pt-6 border-t border-white/5 flex flex-col gap-3">
+                     {selectedEvent?.status === 'pending_artist_signature' && (
+                        <Button 
+                           variant="primary" 
+                           fullWidth 
+                           className="py-6 rounded-2xl"
+                           onClick={() => setArtistSigningOpen(true)}
                         >
-                          {artistSigningLoading ? 'Procesando...' : 'Firmar y aceptar'}
+                           Firmar y Aceptar Show
                         </Button>
-                      )}
-                      <Button
-                        variant="outline"
-                        onClick={async () => {
-                          if (!selectedEventId || artistSigningLoading) return;
-                          setArtistActionError('');
-                          setArtistSigningLoading(true);
-                          try {
-                            await artistRejectContract(selectedEventId, 'Rechazado por artista');
-                            dispatchContractsApiRefresh();
-                            await openEvent(selectedEventId);
-                          } catch (err) {
-                            setArtistActionError(err instanceof Error ? err.message : 'No se pudo rechazar el contrato.');
-                          } finally {
-                            setArtistSigningLoading(false);
-                          }
-                        }}
-                        disabled={artistSigningLoading}
-                      >
-                        {artistSigningLoading ? 'Procesando...' : 'Rechazar'}
-                      </Button>
-                    </div>
-                  ) : null}
-                </div>
-              ) : (
-                <div className="text-neutral-500 text-sm">No se pudo cargar el detalle del evento.</div>
-              )}
+                     )}
+                     <div className="flex items-center justify-between px-2">
+                        <span className="text-[10px] uppercase tracking-widest text-white/30 font-bold">Estado del pago</span>
+                        <div className="flex items-center gap-1.5 text-accent text-xs font-bold">
+                           <FiCheckCircle size={14} />
+                           <span>{selectedEvent?.financials?.paymentStatus === 'PAID' ? 'PAGADO' : 'PENDIENTE'}</span>
+                        </div>
+                     </div>
+                  </div>
+               </div>
             </div>
           </div>
         </div>
       )}
 
+      {/* Signing Modal */}
       <ClientContractSigningModal
         isOpen={artistSigningOpen}
-        onClose={() => {
-          if (!artistSigningLoading) setArtistSigningOpen(false);
-        }}
+        onClose={() => setArtistSigningOpen(false)}
         artistParty={{
           roleLabel: 'Artista',
           name: user.displayName || 'Artista',
@@ -541,15 +552,14 @@ export function ArtistCalendarPage() {
         }}
         summary={{
           event: selectedEvent?.eventDetails?.name || 'Evento',
-          dateLabel: modalEvent?.dateTimeLabel || '—',
+          dateLabel: selectedEvent?.eventDetails?.date ? formatDateShort(parseFirestoreTimestamp(selectedEvent.eventDetails.date)!) : '—',
           location: selectedEvent?.eventDetails?.location || '—',
           totalValue: `$${Math.round(Number(selectedEvent?.financials?.totalAmount || 0))}`,
-          duration: '90 mins',
-          service: selectedEvent?.eventDetails?.name || 'Servicio artístico',
+          duration: selectedEvent?.duration || '90 mins',
+          service: selectedEvent?.serviceName || 'Servicio artístico',
         }}
         onSign={async ({ dataUrl, acceptedTerms }) => {
           if (!selectedEventId) return;
-          setArtistActionError('');
           setArtistSigningLoading(true);
           try {
             await artistAcceptContract(selectedEventId, {
@@ -560,7 +570,7 @@ export function ArtistCalendarPage() {
             dispatchContractsApiRefresh();
             await openEvent(selectedEventId);
           } catch (err) {
-            setArtistActionError(err instanceof Error ? err.message : 'No se pudo firmar el contrato.');
+            console.error(err);
           } finally {
             setArtistSigningLoading(false);
           }
@@ -569,4 +579,3 @@ export function ArtistCalendarPage() {
     </div>
   );
 }
-
