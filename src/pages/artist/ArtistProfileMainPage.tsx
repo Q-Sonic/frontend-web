@@ -86,6 +86,9 @@ export function ArtistProfileMainPage() {
     setLocalProfile(profile);
   }, [profile]);
 
+  /** Hook sets `profile` synchronously; `localProfile` syncs in useEffect — avoid a blank/error frame. */
+  const profileForDisplay = localProfile ?? profile;
+
   useEffect(() => {
     setLocalServices(services);
   }, [services]);
@@ -114,7 +117,7 @@ export function ArtistProfileMainPage() {
       .catch(() => {
         setAvailabilityDates({ blocked: [], reserved: [], pending: [] });
       });
-  }, [effectiveId, localProfile?.blockedDates, servicesAdminModalOpen]);
+  }, [effectiveId, profileForDisplay?.blockedDates, servicesAdminModalOpen]);
 
   const availabilityDays = useMemo(() => {
     return Array.from({ length: 7 }, (_, idx) => {
@@ -153,7 +156,7 @@ export function ArtistProfileMainPage() {
     setProgress(0);
     setDuration(0);
     setPlayingSongId(null);
-  }, [effectiveId, localProfile?.featuredSong, localProfile?.media]);
+  }, [effectiveId, profileForDisplay?.featuredSong, profileForDisplay?.media]);
 
   const onTimeUpdate = useCallback(() => {
     const el = audioRef.current;
@@ -209,7 +212,10 @@ export function ArtistProfileMainPage() {
     },
     [basePath, isSelfArtist, navigate, reserveService],
   );
-  const featuredTrack = songs.find((song) => song.isFeatured) ?? songs[0];
+
+  const songsList = Array.isArray(songs) ? songs : [];
+  const featuredTrack =
+    songsList.find((song) => song.isFeatured) ?? songsList[0];
 
   if (!effectiveId) {
     return (
@@ -261,7 +267,7 @@ export function ArtistProfileMainPage() {
     );
   }
 
-  if (error || !localProfile) {
+  if (error || !profileForDisplay) {
     return (
       <div className="min-h-screen bg-[#07090b] flex flex-col items-center justify-center p-6 text-center">
         <FiAlertCircle size={64} className="text-red-500/30 mb-6" />
@@ -274,7 +280,7 @@ export function ArtistProfileMainPage() {
     );
   }
 
-  const media = Array.isArray(localProfile.media) ? localProfile.media : [];
+  const media = Array.isArray(profileForDisplay.media) ? profileForDisplay.media : [];
   const imageMedia = media.filter(
     (m: any): m is ArtistMediaItem => !!m && typeof m === 'object' && m.type === 'image',
   );
@@ -284,14 +290,14 @@ export function ArtistProfileMainPage() {
         title: featuredTrack.title ?? 'Canción',
         artistName: artistDisplayName,
         streamUrl: featuredTrack.audioUrl,
-        coverUrl: featuredTrack.coverUrl || localProfile.photo,
+        coverUrl: featuredTrack.coverUrl || profileForDisplay.photo,
       }
     : undefined;
 
 
-  const coverPhoto = localProfile.photo?.trim() || '';
-  const social = localProfile.socialNetworks ?? {};
-  const heroSubtitle = localProfile.city?.trim() || 'Música en vivo';
+  const coverPhoto = profileForDisplay.photo?.trim() || '';
+  const social = profileForDisplay.socialNetworks ?? {};
+  const heroSubtitle = profileForDisplay.city?.trim() || 'Música en vivo';
 
   return (
     <div className="w-full mx-auto space-y-10 pb-12 p-6">
@@ -421,11 +427,11 @@ export function ArtistProfileMainPage() {
                 </Button>
               ) : null}
             </div>
-            {songs.length === 0 ? (
+            {songsList.length === 0 ? (
               <p className="text-neutral-500 text-sm mt-auto">Sin canciones.</p>
             ) : (
               <div className="flex gap-4 overflow-x-auto pb-2 flex-1 items-end">
-                {songs.slice(0, 8).map((track) => (
+                {songsList.slice(0, 8).map((track) => (
                   <button
                     key={track.id}
                     type="button"
@@ -686,26 +692,29 @@ export function ArtistProfileMainPage() {
       />
       <ArtistProfileSettingsModal
         isOpen={profileModalOpen}
-        profile={localProfile}
+        profile={profileForDisplay}
         artistDisplayName={artistDisplayName}
         onClose={() => setProfileModalOpen(false)}
         onSaved={(saved) => {
-          setLocalProfile((prev: ArtistProfile | null) => (prev ? { ...prev, ...saved } : prev));
+          setLocalProfile((prev: ArtistProfile | null) => {
+            const base = prev ?? profile;
+            return base ? { ...base, ...saved } : prev;
+          });
         }}
         onArtistNameSaved={setArtistDisplayName}
       />
       <ArtistSongsModal
         isOpen={songsModalOpen}
-        profile={localProfile}
+        profile={profileForDisplay}
         artistDisplayName={artistDisplayName}
         onClose={() => setSongsModalOpen(false)}
         onSongsChange={setSongs}
       />
       <ArtistFeaturedSongModal
         isOpen={featuredSongModalOpen}
-        profile={localProfile}
+        profile={profileForDisplay}
         artistDisplayName={artistDisplayName}
-        songs={songs}
+        songs={songsList}
         onClose={() => setFeaturedSongModalOpen(false)}
         onSongsChange={setSongs}
       />

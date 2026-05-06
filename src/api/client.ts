@@ -50,7 +50,11 @@ export async function api<T>(
       body: options.body,
     });
   }
-  const res = await fetch(url, { ...options, headers });
+  const res = await fetch(url, {
+    cache: 'no-store',
+    ...options,
+    headers,
+  });
   if (pathNorm.startsWith('client-profiles') && method === 'PUT') {
     console.log('[ClientProfile Update] api response', {
       status: res.status,
@@ -87,6 +91,7 @@ export async function apiPutFormData<T>(path: string, formData: FormData): Promi
   const res = await fetch(url, {
     method: 'PUT',
     body: formData,
+    cache: 'no-store',
     headers,
   });
   if (!res.ok) {
@@ -111,6 +116,7 @@ export async function apiPostFormData<T>(path: string, formData: FormData): Prom
   const res = await fetch(url, {
     method: 'POST',
     body: formData,
+    cache: 'no-store',
     headers,
   });
   if (!res.ok) {

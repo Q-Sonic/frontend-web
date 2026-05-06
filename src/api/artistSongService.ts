@@ -1,14 +1,39 @@
 import type { ArtistSongListResponse, ArtistSongRecord, ArtistSongResponse } from '../types';
 import { api, apiPostFormData, apiPutFormData } from './client';
 
+/** Backend list payloads may wrap rows in `data`, `songs`, `items`, etc. */
+function normalizeArtistSongList(raw: unknown): ArtistSongRecord[] {
+  if (Array.isArray(raw)) return raw;
+  if (raw == null || typeof raw !== 'object') return [];
+
+  const unwrapArrays = (value: unknown): ArtistSongRecord[] | null => {
+    if (Array.isArray(value)) return value as ArtistSongRecord[];
+    if (value && typeof value === 'object') {
+      const o = value as Record<string, unknown>;
+      for (const key of ['songs', 'items', 'results', 'records', 'data']) {
+        const inner = o[key];
+        if (Array.isArray(inner)) return inner as ArtistSongRecord[];
+      }
+    }
+    return null;
+  };
+
+  const top = unwrapArrays(raw);
+  if (top) return top;
+
+  const dataField = (raw as Record<string, unknown>).data;
+  const nested = unwrapArrays(dataField);
+  return nested ?? [];
+}
+
 export async function getMyArtistSongs(): Promise<ArtistSongRecord[]> {
   const res = await api<ArtistSongListResponse>('artist-songs/me');
-  return res.data ?? [];
+  return normalizeArtistSongList(res.data);
 }
 
 export async function getArtistSongsByArtistId(artistId: string): Promise<ArtistSongRecord[]> {
   const res = await api<ArtistSongListResponse>(`artist-songs/all/${artistId}`);
-  return res.data ?? [];
+  return normalizeArtistSongList(res.data);
 }
 
 export async function createArtistSongWithFormData(payload: {

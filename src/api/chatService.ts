@@ -29,10 +29,20 @@ export const chatService = {
       orderBy('updatedAt', 'desc')
     );
 
-    return onSnapshot(q, (snapshot) => {
-      const threads = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as ChatThread);
-      callback(threads);
-    });
+    return onSnapshot(
+      q,
+      (snapshot) => {
+        const threads = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as ChatThread);
+        callback(threads);
+      },
+      (error) => {
+        // Typical causes: Firestore rules (`permission-denied`), wrong Firebase project, or offline.
+        if (import.meta.env.DEV) {
+          console.warn('[chatService] subscribeToThreads:', error.code, error.message);
+        }
+        callback([]);
+      },
+    );
   },
 
   /**
@@ -45,10 +55,19 @@ export const chatService = {
       limit(100)
     );
 
-    return onSnapshot(q, (snapshot) => {
-      const messages = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as ChatMessage);
-      callback(messages);
-    });
+    return onSnapshot(
+      q,
+      (snapshot) => {
+        const messages = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as ChatMessage);
+        callback(messages);
+      },
+      (error) => {
+        if (import.meta.env.DEV) {
+          console.warn('[chatService] subscribeToMessages:', error.code, error.message);
+        }
+        callback([]);
+      },
+    );
   },
 
   /**

@@ -1,9 +1,18 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button, Input } from '../components';
 import { AuthLayout } from '../components/AuthLayout';
 import { register, loginWithGoogleBackend } from '../api/authService';
 import { useAuth } from '../contexts/AuthContext';
+import {
+  IDENTITY_DOCUMENT_OPTIONS,
+  identityDocumentLabel,
+  getIdentityInputHint,
+  getIdentityNumberError,
+  getIdentityPlaceholder,
+  normalizeIdentityNumber,
+  type IdentityDocumentType,
+} from '../helpers/identification';
 import { normalizeRole } from '../helpers/role';
 import type { RegistrationRole } from '../types/auth';
 import { registerErrorMessage } from '../helpers/authErrors';
@@ -62,6 +71,111 @@ const AlertIcon = () => (
   </svg>
 );
 
+const IdCardIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+    strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <rect x="3" y="5" width="18" height="14" rx="2" />
+    <circle cx="12" cy="11" r="2" />
+    <path d="M7 17h10" />
+  </svg>
+);
+
+const ChevronDownIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+    strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <path d="m6 9 6 6 6-6" />
+  </svg>
+);
+
+function IdentityTypeSelect({
+  value,
+  onChange,
+  selectId,
+}: {
+  value: IdentityDocumentType;
+  onChange: (v: IdentityDocumentType) => void;
+  selectId: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, [open]);
+
+  const borderState = focused
+    ? 'border-[#00d4c8] ring-2 ring-[#00d4c8]/20'
+    : 'border-white/10';
+
+  return (
+    <div className="w-full flex flex-col gap-1.5 relative" ref={wrapRef}>
+      <label
+        htmlFor={selectId}
+        className={`text-sm font-medium transition-colors duration-150 ${
+          focused ? 'text-[#00d4c8]' : 'text-muted'
+        }`}
+      >
+        Tipo de identificación
+      </label>
+      <button
+        type="button"
+        id={selectId}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        onClick={() => setOpen((o) => !o)}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') setOpen(false);
+        }}
+        className={[
+          'w-full flex items-center justify-between gap-2 rounded-lg border bg-[#1a1d24] text-white',
+          'py-3 px-4 text-sm text-left outline-none transition-all duration-200',
+          borderState,
+        ].join(' ')}
+      >
+        <span>{identityDocumentLabel(value)}</span>
+        <span className={`text-white/35 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`}>
+          <ChevronDownIcon />
+        </span>
+      </button>
+      {open && (
+        <ul
+          role="listbox"
+          className="absolute z-50 top-full left-0 right-0 mt-1 py-1 rounded-lg border border-white/10 bg-[#1a1d24] shadow-lg max-h-48 overflow-auto"
+        >
+          {IDENTITY_DOCUMENT_OPTIONS.map((opt) => (
+            <li key={opt.value} role="option" aria-selected={opt.value === value}>
+              <button
+                type="button"
+                className={[
+                  'w-full text-left px-4 py-2.5 text-sm transition-colors',
+                  opt.value === value
+                    ? 'bg-[#00d4c8]/15 text-[#00d4c8]'
+                    : 'text-white/80 hover:bg-white/5',
+                ].join(' ')}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  onChange(opt.value);
+                  setOpen(false);
+                }}
+              >
+                {opt.label}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 /* ── Helpers ── */
 const trim = (s: string) => s.trim();
 const MIN_PASSWORD_LENGTH = 8;
@@ -101,7 +215,13 @@ export function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [accountRole, setAccountRole] = useState<RegistrationRole>('cliente');
+  const [identityType, setIdentityType] = useState<IdentityDocumentType>('cedula');
+  const [identityNumber, setIdentityNumber] = useState('');
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+
+  useEffect(() => {
+    setIdentityNumber('');
+  }, [identityType]);
 
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [submitError, setSubmitError] = useState('');
@@ -113,12 +233,16 @@ export function RegisterPage() {
   const passwordError = getPasswordError(password);
   const confirmPasswordError = getConfirmPasswordError(password, confirmPassword);
   const displayNameError = getDisplayNameError(displayName);
+  const normalizedIdentityNumber = normalizeIdentityNumber(identityType, identityNumber);
+  const identityNumberError = getIdentityNumberError(identityType, normalizedIdentityNumber);
+  const identityMaxLength = identityType === 'cedula' ? 10 : identityType === 'ruc' ? 13 : 20;
 
   const isFormValid =
     !emailError &&
     !passwordError &&
     !confirmPasswordError &&
     !displayNameError &&
+    !identityNumberError &&
     agreedToTerms;
 
   /* ── Show error only after first submit OR if user has blurred the field ── */
@@ -146,6 +270,8 @@ export function RegisterPage() {
         password,
         displayName: trim(displayName),
         role: accountRole,
+        identificationType: identityType,
+        identificationNumber: normalizedIdentityNumber,
       });
       setShowSuccess(true);
       try {
@@ -166,6 +292,14 @@ export function RegisterPage() {
   /* ── Google Submit ── */
   async function handleGoogleLogin() {
     setSubmitError('');
+    touch('identityNumber');
+    const normId = normalizeIdentityNumber(identityType, identityNumber);
+    const idErr = getIdentityNumberError(identityType, normId);
+    if (idErr) {
+      setSubmitError(idErr);
+      return;
+    }
+
     setIsGoogleLoading(true);
     try {
       const result = await signInWithPopup(firebaseAuth, googleProvider);
@@ -267,6 +401,38 @@ export function RegisterPage() {
             })}
           </div>
         </fieldset>
+
+        <IdentityTypeSelect
+          selectId="register-identity-type"
+          value={identityType}
+          onChange={setIdentityType}
+        />
+
+        <Input
+          label="Número de identificación"
+          type="text"
+          autoComplete="off"
+          inputMode={identityType === 'pasaporte' ? 'text' : 'numeric'}
+          maxLength={identityMaxLength}
+          placeholder={getIdentityPlaceholder(identityType)}
+          icon={<IdCardIcon />}
+          value={identityNumber}
+          onChange={(e) => {
+            const v = e.target.value;
+            if (identityType === 'pasaporte') {
+              setIdentityNumber(v.toUpperCase().replace(/[^A-Z0-9]/gi, '').slice(0, 20));
+            } else {
+              const digits = v.replace(/\D/g, '');
+              const max = identityType === 'cedula' ? 10 : 13;
+              setIdentityNumber(digits.slice(0, max));
+            }
+          }}
+          onBlur={() => touch('identityNumber')}
+          error={showError('identityNumber', identityNumberError)}
+          hint={!showError('identityNumber', identityNumberError) ? getIdentityInputHint(identityType) : undefined}
+          success={!!identityNumber && !identityNumberError}
+          required
+        />
 
         {/* Email */}
         <Input
