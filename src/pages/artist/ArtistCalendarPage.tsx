@@ -8,7 +8,7 @@ import { api } from '../../api';
 import { Button, Skeleton, UserMenu } from '../../components';
 import { 
   FiArrowLeft, FiCalendar, FiChevronLeft, FiChevronRight, FiLock, 
-  FiSearch, FiClock, FiMapPin, FiPhone, FiDownload, FiX, FiCheckCircle, FiInfo 
+  FiSearch, FiClock, FiMapPin, FiPhone, FiDownload, FiX, FiCheckCircle, FiInfo, FiEdit3 
 } from 'react-icons/fi';
 import { getArtistProfile, toggleArtistBlockedDate } from '../../api/artistProfileService';
 import { artistAcceptContract, artistRejectContract, dispatchContractsApiRefresh } from '../../api/contractService';
@@ -135,29 +135,27 @@ export function ArtistCalendarPage() {
     return { start, end };
   }, [weekStart]);
 
-  useEffect(() => {
+  const fetchCalendarData = async () => {
     if (!user?.uid || !isArtista) return;
     setIsLoading(true);
-    let cancelled = false;
-    async function load() {
-      try {
-        const startIso = range.start.toISOString();
-        const endIso = range.end.toISOString();
-        const [res, profile] = await Promise.all([
-          api<ApiResponse<CalendarContractEvent[]>>(`events/calendar?start=${encodeURIComponent(startIso)}&end=${encodeURIComponent(endIso)}`),
-          getArtistProfile()
-        ]);
-        if (cancelled) return;
-        setEvents(res.data ?? []);
-        setBlockedDates(profile.blockedDates || []);
-      } catch (err) {
-        if (!cancelled) setError('Error al cargar el calendario');
-      } finally {
-        if (!cancelled) setIsLoading(false);
-      }
+    try {
+      const startIso = range.start.toISOString();
+      const endIso = range.end.toISOString();
+      const [res, profile] = await Promise.all([
+        api<ApiResponse<CalendarContractEvent[]>>(`events/calendar?start=${encodeURIComponent(startIso)}&end=${encodeURIComponent(endIso)}`),
+        getArtistProfile()
+      ]);
+      setEvents(res.data ?? []);
+      setBlockedDates(profile.blockedDates || []);
+    } catch (err) {
+      setError('Error al cargar el calendario');
+    } finally {
+      setIsLoading(false);
     }
-    load();
-    return () => { cancelled = true; };
+  };
+
+  useEffect(() => {
+    fetchCalendarData();
   }, [user?.uid, isArtista, range.start, range.end]);
 
   const handleDayToggle = async (day: Date) => {
@@ -184,15 +182,59 @@ export function ArtistCalendarPage() {
   }
 
   const weekDates = useMemo(() => Array.from({ length: 7 }).map((_, i) => addDays(weekStart, i)), [weekStart]);
+
   const eventsByDay = useMemo(() => {
-    const map: Record<number, CalendarContractEvent[]> = {};
+    const map: Record<number, (CalendarContractEvent & { left: string; width: string; zIndex: number })[]> = {};
     for (let i = 0; i < 7; i++) map[i] = [];
-    for (const ev of events) {
-      const d = parseFirestoreTimestamp(ev.eventDetails?.date);
-      if (!d) continue;
-      const idx = getDayIndexMonday(d, weekStart);
-      if (idx >= 0 && idx <= 6) map[idx].push(ev);
+
+    for (let i = 0; i < 7; i++) {
+      const dayEvents = events.filter(ev => {
+        const d = parseFirestoreTimestamp(ev.eventDetails?.date);
+        if (!d) return false;
+        const idx = getDayIndexMonday(d, weekStart);
+        return idx === i;
+      }).sort((a, b) => {
+        const da = parseFirestoreTimestamp(a.eventDetails?.date)?.getTime() || 0;
+        const db = parseFirestoreTimestamp(b.eventDetails?.date)?.getTime() || 0;
+        return da - db;
+      });
+
+      // Simple overlap detection algorithm
+      const columns: CalendarContractEvent[][] = [];
+      
+      dayEvents.forEach(ev => {
+        let placed = false;
+        const evStart = parseFirestoreTimestamp(ev.eventDetails?.date)?.getTime() || 0;
+        
+        for (let colIdx = 0; colIdx < columns.length; colIdx++) {
+          const lastInCol = columns[colIdx][columns[colIdx].length - 1];
+          const lastEnd = (parseFirestoreTimestamp(lastInCol.eventDetails?.date)?.getTime() || 0) + (90 * 60 * 1000);
+          
+          if (evStart >= lastEnd) {
+            columns[colIdx].push(ev);
+            placed = true;
+            break;
+          }
+        }
+        
+        if (!placed) {
+          columns.push([ev]);
+        }
+      });
+
+      const totalCols = columns.length;
+      columns.forEach((col, colIdx) => {
+        col.forEach(ev => {
+          map[i].push({
+            ...ev,
+            left: `${(colIdx / totalCols) * 100}%`,
+            width: `${(1 / totalCols) * 100}%`,
+            zIndex: 10 + colIdx
+          });
+        });
+      });
     }
+
     return map;
   }, [events, weekStart]);
 
@@ -266,8 +308,17 @@ export function ArtistCalendarPage() {
       <main className="flex-1 flex flex-col min-w-0 bg-[#0A0A0A]">
         {/* Header */}
         <header className="h-16 border-b border-white/5 px-6 flex items-center justify-between bg-[#0A0A0A]">
-           <div className="flex items-center gap-6">
-              <h2 className="text-xl font-bold">{formatMonthYear(weekStart)}</h2>
+           <div className="flex items-center gap-4">
+            <button 
+              onClick={() => navigate(-1)}
+              className="p-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all group"
+              title="Volver"
+            >
+              <FiArrowLeft className="text-white/60 group-hover:text-white transition-colors" size={20} />
+            </button>
+            <h1 className="text-xl font-bold tracking-tighter">
+              {formatMonthYear(weekStart)}
+            </h1>
               <div className="flex items-center bg-white/5 rounded-lg p-0.5">
                  <button className="px-3 py-1.5 text-xs font-medium rounded-md hover:bg-white/5">Día</button>
                  <button className="px-3 py-1.5 text-xs font-medium rounded-md bg-white/10 shadow-sm">Semana</button>
@@ -343,22 +394,31 @@ export function ArtistCalendarPage() {
                                 const height = 1.5 * rowHeight; 
                                 
                                 const statusColors: Record<string, string> = {
-                                  'accepted': 'bg-accent/20 border-accent/40 text-accent',
-                                  'pending': 'bg-amber-500/20 border-amber-500/40 text-amber-500',
-                                  'pending_artist_signature': 'bg-purple-500/20 border-purple-500/40 text-purple-500',
+                                  'accepted': 'bg-accent/20 border-accent/40 text-accent hover:bg-accent hover:text-white',
+                                  'pending': 'bg-amber-500/20 border-amber-500/40 text-amber-500 hover:bg-amber-500 hover:text-white',
+                                  'pending_artist_signature': 'bg-purple-500/20 border-purple-500/40 text-purple-500 hover:bg-purple-500 hover:text-white',
                                 };
-                                const colorClass = statusColors[ev.status] || 'bg-blue-500/20 border-blue-500/40 text-blue-500';
+                                const colorClass = statusColors[ev.status] || 'bg-blue-500/20 border-blue-500/40 text-blue-500 hover:bg-blue-500 hover:text-white';
 
-                                return (
+                                 return (
                                   <button
                                      key={ev.id}
                                      onClick={() => openEvent(ev.id)}
-                                     className={`absolute left-1 right-1 rounded-md border p-2 text-left transition-transform hover:scale-[1.02] active:scale-95 ${colorClass}`}
-                                     style={{ top, height }}
+                                     className={`absolute rounded-xl border p-2.5 text-left transition-all duration-300 hover:z-[100] hover:scale-[1.05] hover:!w-[250px] hover:shadow-accent/20 active:scale-95 group shadow-lg overflow-hidden ${colorClass}`}
+                                     style={{ 
+                                       top, 
+                                       height, 
+                                       left: `calc(${ev.left} + 2px)`, 
+                                       width: `calc(${ev.width} - 4px)`,
+                                       minWidth: "40px",
+                                       zIndex: ev.zIndex
+                                     }}
                                   >
-                                     <div className="text-[11px] font-bold truncate leading-tight">{ev.eventDetails?.name || 'Show'}</div>
-                                     <div className="text-[9px] opacity-70 mt-0.5 flex items-center gap-1">
-                                        <FiClock size={8} /> {formatTime(d)}
+                                     <div className="text-[11px] font-extrabold truncate leading-tight group-hover:whitespace-normal group-hover:overflow-visible group-hover:text-sm transition-all duration-300">
+                                       {ev.eventDetails?.name || "Show"}
+                                     </div>
+                                     <div className="text-[9px] font-medium opacity-80 mt-1 flex items-center gap-1.5 bg-black/10 w-fit px-1.5 py-0.5 rounded-full shrink-0">
+                                        <FiClock size={9} /> {formatTime(d)}
                                      </div>
                                   </button>
                                 );
@@ -420,11 +480,20 @@ export function ArtistCalendarPage() {
                   className="absolute inset-0 w-full h-full object-cover opacity-40"
                   alt="Event cover"
                />
-               <div className="relative z-20">
-                  <h3 className="text-3xl font-black tracking-tighter uppercase">{selectedEvent?.eventDetails?.name || 'Show en vivo'}</h3>
-                  <div className="flex items-center gap-4 mt-2 text-white/60 text-sm">
-                     <span className="flex items-center gap-1.5"><FiCalendar size={14}/> {selectedEvent?.eventDetails?.date ? formatDateShort(parseFirestoreTimestamp(selectedEvent.eventDetails.date)!) : ''}</span>
-                     <span className="flex items-center gap-1.5"><FiClock size={14}/> {selectedEvent?.duration || '90 mins'}</span>
+               <div className="relative z-20 w-full flex items-end justify-between">
+                  <div>
+                     <h3 className="text-3xl font-black tracking-tighter uppercase">{selectedEvent?.eventDetails?.name || 'Show en vivo'}</h3>
+                     <div className="flex items-center gap-4 mt-2 text-white/60 text-sm">
+                        <span className="flex items-center gap-1.5"><FiCalendar size={14}/> {selectedEvent?.eventDetails?.date ? formatDateShort(parseFirestoreTimestamp(selectedEvent.eventDetails.date)!) : ''}</span>
+                        <span className="flex items-center gap-1.5"><FiClock size={14}/> {selectedEvent?.duration || '90 mins'}</span>
+                     </div>
+                  </div>
+                  <div className={`px-4 py-1.5 rounded-full text-[10px] font-black tracking-widest uppercase border ${
+                     selectedEvent?.status === 'accepted' || selectedEvent?.status === 'completed' 
+                       ? 'bg-accent/20 border-accent/40 text-accent' 
+                       : 'bg-amber-500/20 border-amber-500/40 text-amber-500'
+                   }`}>
+                      {selectedEvent?.status === 'accepted' ? 'Confirmado' : selectedEvent?.status === 'pending_artist_signature' ? 'Firma Pendiente' : 'Pendiente'}
                   </div>
                </div>
                <button 
@@ -478,10 +547,23 @@ export function ArtistCalendarPage() {
                           >
                              <div className="flex items-center gap-3">
                                 <FiDownload className="text-accent" />
-                                <span className="text-sm font-medium">Contrato firmado</span>
+                                <span className="text-sm font-medium">
+                                  {selectedEvent?.status === 'accepted' || selectedEvent?.status === 'completed' ? 'Contrato firmado' : 'Contrato original'}
+                                </span>
                              </div>
                              <FiChevronRight className="text-white/20 group-hover:text-white transition-colors" />
                           </a>
+                        ) : (selectedEvent?.status === 'pending_artist_signature' || selectedEvent?.status === 'pending') ? (
+                          <button 
+                             onClick={() => setArtistSigningOpen(true)}
+                             className="w-full flex items-center justify-between p-3 rounded-xl bg-accent/10 border border-accent/20 hover:bg-accent/20 transition-colors group"
+                          >
+                             <div className="flex items-center gap-3">
+                                <FiEdit3 className="text-accent" />
+                                <span className="text-sm font-medium text-accent">Firmar Contrato</span>
+                             </div>
+                             <FiChevronRight className="text-accent/50 group-hover:text-accent transition-colors" />
+                          </button>
                         ) : (
                           <div className="p-3 rounded-xl bg-white/5 border border-white/5 opacity-50 flex items-center gap-3">
                              <FiLock className="text-white/30" />
@@ -512,11 +594,11 @@ export function ArtistCalendarPage() {
                   </section>
 
                   <div className="mt-auto pt-6 border-t border-white/5 flex flex-col gap-3">
-                     {selectedEvent?.status === 'pending_artist_signature' && (
+                     {(selectedEvent?.status === 'pending_artist_signature' || selectedEvent?.status === 'pending') && (
                         <Button 
                            variant="primary" 
                            fullWidth 
-                           className="py-6 rounded-2xl"
+                           className="py-6 rounded-2xl shadow-lg shadow-accent/20"
                            onClick={() => setArtistSigningOpen(true)}
                         >
                            Firmar y Aceptar Show
@@ -568,7 +650,11 @@ export function ArtistCalendarPage() {
             });
             setArtistSigningOpen(false);
             dispatchContractsApiRefresh();
-            await openEvent(selectedEventId);
+            // Full refresh: calendar events + current modal details
+            await Promise.all([
+              fetchCalendarData(),
+              openEvent(selectedEventId)
+            ]);
           } catch (err) {
             console.error(err);
           } finally {
