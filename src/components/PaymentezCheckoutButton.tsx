@@ -93,6 +93,8 @@ export const PaymentezCheckoutButton: React.FC<PaymentezCheckoutButtonProps> = (
       if (!window.PaymentCheckout) throw new Error('SDK de Paymentez no disponible');
 
       checkoutRef.current = new window.PaymentCheckout.modal({
+        client_app_code: import.meta.env.VITE_NUVEI_CLIENT_APP_CODE,
+        client_app_key: import.meta.env.VITE_NUVEI_CLIENT_APP_KEY,
         env_mode: NUVEI_ENV,
         onClose: () => setIsLoading(false),
         onResponse: async (response: PaymentezResponse) => {
