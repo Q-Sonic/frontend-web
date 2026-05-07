@@ -17,7 +17,9 @@ import { appendContractSignedPendingArtistNotifications } from '../../helpers/cl
 import { useAuth } from '../../contexts/AuthContext';
 import { isBackendRoleCliente } from '../../helpers/role';
 import { FiAlertCircle, FiInbox } from 'react-icons/fi';
-import { paymentService } from '../../api/paymentService';
+import { PaymentezCheckoutButton } from '../../components/PaymentezCheckoutButton';
+import { GroupPaymentButton } from '../../components/GroupPaymentButton';
+import { cancelContractByClient } from '../../api/contractService';
 
 const PAGE_SIZE = 6;
 
@@ -49,6 +51,14 @@ function formatEventDateEs(c: ContractRecord): string {
   } catch {
     return '—';
   }
+}
+
+function formatDateKeyEs(key: string): string {
+  const [y, m, d] = key.split('-').map(Number);
+  if (!y || !m || !d) return key;
+  return new Date(y, m - 1, d).toLocaleDateString('es', {
+    weekday: 'short', day: 'numeric', month: 'short',
+  });
 }
 
 function formatUsd(amount: number | undefined): string {
@@ -210,11 +220,22 @@ function ContractCard({
   c,
   isSelected,
   onToggle,
+  onPaymentSuccess,
+  onCancelled,
+  groupSelected,
+  onGroupToggle,
 }: {
   c: ContractRecord;
   isSelected?: boolean;
   onToggle?: (id: string, val: boolean) => void;
+  onPaymentSuccess?: () => void;
+  onCancelled?: () => void;
+  groupSelected?: boolean;
+  onGroupToggle?: (id: string, val: boolean) => void;
 }) {
+  const [cancelling, setCancelling] = useState(false);
+  const [confirmCancel, setConfirmCancel] = useState(false);
+
   const name = displayNameForContract(c);
   const ui = statusUi(c);
   const location = c.eventDetails?.location?.trim() || '—';
@@ -224,21 +245,60 @@ function ContractCard({
   const sourceHasUrl = Boolean(c.sourceContractUrl?.trim());
   const hasSignatureReceipt = Boolean(c.signatureReceiptUrl?.trim());
   const unpaid = c.financials?.paymentStatus === 'UNPAID';
+  const paid   = c.financials?.paymentStatus === 'PAID';
   const artistLink = c.artistId?.trim() ? `/client/artists/${c.artistId}` : null;
-  const showClientSignedNote = isPendingStatus(c.status);
+  const awaitingArtist = isPendingStatus(c.status);
+  const canCancel = !isCancelledStatus(c.status);
+
+  async function handleCancel() {
+    setCancelling(true);
+    try {
+      await cancelContractByClient(c.id);
+      setConfirmCancel(false);
+      if (onCancelled) onCancelled();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'No se pudo cancelar el contrato.');
+    } finally {
+      setCancelling(false);
+    }
+  }
 
   return (
     <article
-      className="flex flex-col gap-5 rounded-2xl border border-accent/45 bg-[#141414] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] sm:flex-row sm:items-stretch sm:justify-between sm:gap-8"
+      className={`flex flex-col gap-5 rounded-2xl border bg-[#141414] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition sm:flex-row sm:items-stretch sm:justify-between sm:gap-8 ${groupSelected ? 'border-[#38BACC]/60 shadow-[0_0_16px_rgba(56,186,204,0.15)]' : 'border-accent/45'}`}
       aria-label={headline}
     >
       <div className="flex min-w-0 flex-1 gap-4">
+        {unpaid && onGroupToggle ? (
+          <label className="flex shrink-0 cursor-pointer items-start pt-1">
+            <input
+              type="checkbox"
+              checked={groupSelected ?? false}
+              onChange={(e) => onGroupToggle(c.id, e.target.checked)}
+              className="h-4 w-4 rounded border-white/30 accent-[#38BACC] cursor-pointer"
+              aria-label={`Seleccionar ${name} para pago grupal`}
+            />
+          </label>
+        ) : null}
         <ContractAvatar name={name} photoUrl={c.artistPhotoUrl} />
         <div className="min-w-0 flex-1 space-y-1.5">
           <p className="text-base font-bold leading-snug text-white sm:text-lg">{headline}</p>
-          <p className="text-sm text-neutral-500">
-            Fecha: <span className="text-neutral-300">{formatEventDateEs(c)}</span>
-          </p>
+          {c.eventDetails?.eventDates && c.eventDetails.eventDates.length > 1 ? (
+            <div className="text-sm text-neutral-500">
+              <span>Fechas ({c.eventDetails.eventDates.length}):</span>
+              <ul className="mt-0.5 flex flex-wrap gap-1">
+                {c.eventDetails.eventDates.map((dk) => (
+                  <li key={dk} className="rounded-md border border-white/10 bg-white/[0.04] px-2 py-0.5 text-xs text-neutral-300">
+                    {formatDateKeyEs(dk)}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : (
+            <p className="text-sm text-neutral-500">
+              Fecha: <span className="text-neutral-300">{formatEventDateEs(c)}</span>
+            </p>
+          )}
           <p className="text-sm text-neutral-500">
             Ubicación: <span className="text-neutral-300">{location}</span>
           </p>
@@ -246,17 +306,36 @@ function ContractCard({
             {ui.icon}
             <span>{ui.label}</span>
           </div>
-          {unpaid ? <p className="text-xs font-semibold text-amber-300">Pago pendiente (UNPAID)</p> : null}
-          {showClientSignedNote ? (
-            <p className="pt-1 text-xs leading-relaxed text-neutral-500">
-              Tu firma ya consta en el sistema. Pendiente la confirmación del artista para marcarlo como firmado al
-              100%.
+
+          {/* Payment status badge */}
+          {paid ? (
+            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-xs font-semibold text-emerald-300">
+              <FiCheck className="text-xs" aria-hidden /> Pagado
+            </span>
+          ) : unpaid ? (
+            <span className="inline-flex items-center gap-1 rounded-full bg-amber-400/15 px-2.5 py-0.5 text-xs font-semibold text-amber-300">
+              <FiClock className="text-xs" aria-hidden /> Pago pendiente
+            </span>
+          ) : null}
+
+          {/* Contextual note */}
+          {awaitingArtist && paid ? (
+            <p className="pt-1 text-xs leading-relaxed text-neutral-400">
+              Tu pago está reservado. Esperando que el artista confirme la reserva.{' '}
+              <span className="font-semibold text-emerald-300/80">
+                Si el artista rechaza o no responde, recibirás un reembolso automático.
+              </span>
             </p>
-          ) : (
+          ) : awaitingArtist && unpaid ? (
+            <p className="pt-1 text-xs leading-relaxed text-neutral-500">
+              Tu firma ya consta en el sistema. El artista aún debe confirmar.{' '}
+              <span className="text-amber-300/80">Completa el pago para asegurar tu reserva.</span>
+            </p>
+          ) : !awaitingArtist ? (
             <p className="pt-1 text-xs leading-relaxed text-accent/80">
               Requiere tu firma electrónica para formalizar la reserva.
             </p>
-          )}
+          ) : null}
         </div>
       </div>
 
@@ -303,34 +382,63 @@ function ContractCard({
           </a>
         ) : null}
         {unpaid ? (
-          <button
-            type="button"
-            className="inline-flex w-full items-center justify-center rounded-xl border border-amber-300/40 bg-amber-400/15 py-2.5 text-center text-xs font-semibold text-amber-100 transition hover:bg-amber-400/25"
-            onClick={async () => {
-              try {
-                const amount = c.financials?.totalAmount || 0;
-                const desc = `Pago contrato ${c.id} - ${c.eventDetails?.name || 'Servicio'}`;
-                const payLink = await paymentService.createLinkToPay({
-                  amount,
-                  description: desc,
-                  dev_reference: c.id,
-                });
-                const url = payLink?.data?.payment?.payment_url;
-                if (url) window.location.href = url;
-
-              } catch (err) {
-                console.error('Error creating payment link for contract:', err);
-              }
+          <PaymentezCheckoutButton
+            amount={c.financials?.totalAmount || 0}
+            description={`Pago contrato - ${c.eventDetails?.name || 'Servicio'}`}
+            devReference={c.id}
+            className="w-full text-xs py-2.5"
+            onSuccess={() => {
+              if (onPaymentSuccess) onPaymentSuccess();
             }}
+            onFailure={(detail) => alert(`Pago rechazado: ${detail}`)}
+            onError={(err) => alert(`Error en el pago: ${err}`)}
           >
             Pagar ahora
-          </button>
+          </PaymentezCheckoutButton>
         ) : null}
         {artistLink ? (
           <Link to={artistLink} className="text-center text-xs font-medium text-accent/90 hover:text-accent">
             Perfil del artista
           </Link>
         ) : null}
+
+        {canCancel && !confirmCancel && (
+          <button
+            type="button"
+            onClick={() => setConfirmCancel(true)}
+            className="inline-flex w-full items-center justify-center rounded-xl border border-red-500/30 bg-red-500/10 py-2.5 text-center text-xs font-semibold text-red-300 transition hover:bg-red-500/20"
+          >
+            <FiXCircle className="mr-1.5 text-sm" aria-hidden /> Cancelar reserva
+          </button>
+        )}
+
+        {confirmCancel && (
+          <div className="rounded-xl border border-red-500/40 bg-red-500/10 p-3 space-y-2">
+            <p className="text-xs text-red-200 leading-relaxed">
+              {paid
+                ? '¿Cancelar y recibir reembolso? El dinero volverá a tu tarjeta en 5–10 días hábiles.'
+                : '¿Confirmas la cancelación? No se realizó ningún cargo.'}
+            </p>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                disabled={cancelling}
+                onClick={() => void handleCancel()}
+                className="flex-1 rounded-lg bg-red-500 py-1.5 text-xs font-bold text-white disabled:opacity-60"
+              >
+                {cancelling ? 'Cancelando…' : 'Sí, cancelar'}
+              </button>
+              <button
+                type="button"
+                disabled={cancelling}
+                onClick={() => setConfirmCancel(false)}
+                className="flex-1 rounded-lg border border-white/20 bg-white/5 py-1.5 text-xs font-medium text-white/80"
+              >
+                No, volver
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </article>
   );
@@ -344,10 +452,30 @@ export function ClientContractsPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [signModalOpen, setSignModalOpen] = useState(false);
   const [isSigning, setIsSigning] = useState(false);
+  const [groupSelectedIds, setGroupSelectedIds] = useState<Set<string>>(new Set());
+
   const unpaidCount = useMemo(
     () => contracts.filter((c) => c.financials?.paymentStatus === 'UNPAID').length,
     [contracts],
   );
+
+  const groupSelectedContracts = useMemo(
+    () => contracts.filter((c) => groupSelectedIds.has(c.id)),
+    [contracts, groupSelectedIds],
+  );
+  const groupTotal = useMemo(
+    () => groupSelectedContracts.reduce((s, c) => s + (c.financials?.totalAmount || 0), 0),
+    [groupSelectedContracts],
+  );
+
+  const toggleGroupSelection = (id: string, val: boolean) => {
+    setGroupSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (val) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  };
 
   const toggleSelection = (id: string, val: boolean) => {
     setSelectedIds((prev) => {
@@ -442,9 +570,17 @@ export function ClientContractsPage() {
 
       <section className="mt-10" aria-live="polite">
         {unpaidCount > 0 ? (
-          <div className="mb-5 rounded-2xl border border-amber-300/35 bg-amber-400/10 p-4 text-sm text-amber-100">
-            Tienes {unpaidCount} contrato{unpaidCount === 1 ? '' : 's'} con pago pendiente. Mientras esté UNPAID, el
-            artista no podrá firmar el contrato final.
+          <div className="mb-5 flex items-start gap-3 rounded-2xl border border-amber-300/35 bg-amber-400/10 p-4 text-sm text-amber-100">
+            <FiClock className="mt-0.5 shrink-0 text-amber-300" aria-hidden />
+            <span>
+              Tienes {unpaidCount} contrato{unpaidCount === 1 ? '' : 's'} con pago pendiente.{' '}
+              <span className="font-semibold">Completa el pago para asegurar tu reserva</span> — el artista no podrá confirmar hasta que el pago esté acreditado.
+              {unpaidCount > 1 && (
+                <span className="mt-1 block text-amber-200/80">
+                  Puedes seleccionar varios contratos con el checkbox y pagarlos todos en una sola transacción.
+                </span>
+              )}
+            </span>
           </div>
         ) : null}
         <div className="mb-5 flex items-center gap-3">
@@ -479,6 +615,16 @@ export function ClientContractsPage() {
                   c={c}
                   isSelected={selectedIds.has(c.id)}
                   onToggle={toggleSelection}
+                  onPaymentSuccess={() => {
+                    setGroupSelectedIds((prev) => { const n = new Set(prev); n.delete(c.id); return n; });
+                    void refetch();
+                  }}
+                  onCancelled={() => {
+                    setGroupSelectedIds((prev) => { const n = new Set(prev); n.delete(c.id); return n; });
+                    void refetch();
+                  }}
+                  groupSelected={groupSelectedIds.has(c.id)}
+                  onGroupToggle={toggleGroupSelection}
                 />
               </li>
             ))}
@@ -522,6 +668,66 @@ export function ClientContractsPage() {
           </nav>
         </div>
       ) : null}
+
+      {/* Group payment sticky bar */}
+      {groupSelectedIds.size >= 1 && (
+        <div className="sticky bottom-6 z-30 mt-8 rounded-3xl border border-[#38BACC]/50 bg-[#0a0c10]/95 p-5 shadow-[0_0_40px_rgba(56,186,204,0.2)] backdrop-blur-md sm:p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-0.5">
+              <p className="text-base font-bold text-white">
+                {groupSelectedIds.size === 1 ? '1 contrato seleccionado' : `${groupSelectedIds.size} contratos seleccionados`}
+              </p>
+              <p className="text-sm text-neutral-400">
+                Total a pagar:{' '}
+                <span className="font-bold text-[#38BACC]">{formatUsd(groupTotal)}</span>
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setGroupSelectedIds(new Set())}
+                className="rounded-full border border-white/20 bg-white/5 px-4 py-2 text-xs font-medium text-white/70 hover:bg-white/10"
+              >
+                Limpiar
+              </button>
+              {groupSelectedIds.size === 1 ? (
+                // Single selected — use individual payment button
+                (() => {
+                  const single = groupSelectedContracts[0];
+                  return (
+                    <PaymentezCheckoutButton
+                      amount={single?.financials?.totalAmount || 0}
+                      description={`Pago contrato - ${single?.eventDetails?.name || 'Servicio'}`}
+                      devReference={single?.id || ''}
+                      className="rounded-full px-6 py-2.5 text-sm font-bold"
+                      onSuccess={() => {
+                        setGroupSelectedIds(new Set());
+                        void refetch();
+                      }}
+                      onFailure={(detail) => alert(`Pago rechazado: ${detail}`)}
+                      onError={(err) => alert(`Error en el pago: ${err}`)}
+                    >
+                      Pagar individualmente
+                    </PaymentezCheckoutButton>
+                  );
+                })()
+              ) : (
+                <GroupPaymentButton
+                  contractIds={[...groupSelectedIds]}
+                  onSuccess={() => {
+                    setGroupSelectedIds(new Set());
+                    void refetch();
+                  }}
+                  onFailure={(detail) => alert(`Pago rechazado: ${detail}`)}
+                  onError={(err) => alert(`Error en el pago: ${err}`)}
+                >
+                  Pagar {groupSelectedIds.size} contratos juntos
+                </GroupPaymentButton>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {selectedIds.size > 0 && filter === 'pending' && (
         <div className="sticky bottom-6 z-30 mt-8 rounded-3xl border border-accent/40 bg-[#0a0c10]/95 p-6 shadow-[0_0_40px_rgba(0,204,203,0.15)] backdrop-blur-md">

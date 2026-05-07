@@ -17,6 +17,8 @@ export type ContractEventDetails = {
   date?: string | { _seconds?: number; _nanoseconds?: number };
   location?: string;
   description?: string;
+  /** All performance dates for multi-date contracts (YYYY-MM-DD). */
+  eventDates?: string[];
 };
 
 export type ContractFinancials = {
@@ -62,6 +64,8 @@ export type CreateContractBody = {
     date: string;
     location: string;
     description?: string;
+    /** All performance dates for multi-date contracts (YYYY-MM-DD). */
+    eventDates?: string[];
   };
   /** Base64 original PNG signature from client. */
   clientSignatureDataUrl?: string;

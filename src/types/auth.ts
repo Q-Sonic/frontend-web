@@ -13,6 +13,9 @@ export interface RegisterPayload {
   password: string;
   displayName: string;
   role: RegistrationRole | string;
+  /** Identity document fields required by the registration form. */
+  identificationType?: string;
+  identificationNumber?: string;
 }
 
 export interface LoginResponseData {

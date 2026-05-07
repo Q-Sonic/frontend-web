@@ -61,6 +61,13 @@ export function ArtistAccessSettingsPage() {
   const displayName = useMemo(() => user?.displayName?.trim() || 'Artista', [user?.displayName]);
   const accountEmail = useMemo(() => user?.email?.trim() ?? '', [user?.email]);
 
+  const idTypeLabel = useMemo(() => {
+    if (user?.identificationType === 'cedula') return 'Cédula de Identidad';
+    if (user?.identificationType === 'ruc') return 'RUC';
+    if (user?.identificationType === 'pasaporte') return 'Pasaporte';
+    return null;
+  }, [user?.identificationType]);
+
   const loadChangeStatus = useCallback(async () => {
     setStatusLoading(true);
     try {
@@ -221,9 +228,19 @@ export function ArtistAccessSettingsPage() {
             Primero verifica tu identidad con un código que enviamos a tu correo. Después podrás cambiar el correo o la
             contraseña. Cuentas solo con Google: pueden usar el código para el correo; la contraseña de la app no aplica.
           </p>
-          <div className="rounded-xl border border-white/10 bg-white/4 px-4 py-3 text-sm">
-            <span className="text-white/50">Correo actual (cuenta)</span>
-            <p className="mt-1 font-medium text-white">{accountEmail || '—'}</p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded-xl border border-white/10 bg-white/4 px-4 py-3 text-sm">
+              <span className="text-white/50">Correo actual (cuenta)</span>
+              <p className="mt-1 font-medium text-white">{accountEmail || '—'}</p>
+            </div>
+            {idTypeLabel && (
+              <div className="rounded-xl border border-white/10 bg-white/4 px-4 py-3 text-sm">
+                <span className="text-white/50">{idTypeLabel}</span>
+                <p className="mt-1 font-medium text-white tracking-widest">
+                  {user?.identificationNumber || '—'}
+                </p>
+              </div>
+            )}
           </div>
         </header>
 

@@ -47,12 +47,21 @@ export type ServiceDatePickerCalendarProps = {
   onToggleKey: (key: string) => void;
   /** Shown inside the card above the day grid (e.g. selected dates summary). */
   selectedSummary?: ReactNode;
+  /** Dates the artist has marked as unavailable (from their calendar settings). */
+  blockedDates?: string[];
+  /** Dates with confirmed contracts (ACCEPTED/COMPLETED). */
+  reservedDates?: string[];
+  /** Dates with pending contracts (PENDING/PENDING_ARTIST_SIGNATURE). */
+  pendingDates?: string[];
 };
 
 export function ServiceDatePickerCalendar({
   selectedKeys,
   onToggleKey,
   selectedSummary,
+  blockedDates,
+  reservedDates,
+  pendingDates,
 }: ServiceDatePickerCalendarProps) {
   const now = useMemo(() => new Date(), []);
   const [viewYear, setViewYear] = useState(now.getFullYear());
@@ -65,6 +74,13 @@ export function ServiceDatePickerCalendar({
     viewYear > currentYear || (viewYear === currentYear && viewMonth > currentMonth);
 
   const cells = useMemo(() => buildMonthCells(viewYear, viewMonth), [viewYear, viewMonth]);
+
+  // Build lookup sets for O(1) access
+  const blockedSet = useMemo(() => new Set(blockedDates ?? []), [blockedDates]);
+  const reservedSet = useMemo(() => new Set(reservedDates ?? []), [reservedDates]);
+  const pendingSet = useMemo(() => new Set(pendingDates ?? []), [pendingDates]);
+
+  const hasAvailabilityData = blockedSet.size > 0 || reservedSet.size > 0 || pendingSet.size > 0;
 
   function goPrevMonth() {
     if (!canGoPrev) return;
@@ -140,16 +156,35 @@ export function ServiceDatePickerCalendar({
           {cells.map((cell, idx) => {
             const key = localDateKey(cell.date);
             const past = isBeforeToday(cell.date);
-            const selectable = !past;
+            const isBlocked = blockedSet.has(key);
+            const isReserved = reservedSet.has(key);
+            const isPending = pendingSet.has(key);
+            const unavailable = isBlocked || isReserved || isPending;
+            const selectable = !past && !unavailable;
             const selected = selectedKeys.has(key);
             const muted = !cell.inMonth;
 
             const baseCell =
-              'min-h-[52px] bg-[#080a0c] px-0.5 py-2.5 text-[15px] font-semibold tabular-nums transition sm:min-h-[58px] sm:text-base lg:min-h-[64px] lg:text-lg';
+              'relative min-h-[52px] bg-[#080a0c] px-0.5 py-2.5 text-[15px] font-semibold tabular-nums transition sm:min-h-[58px] sm:text-base lg:min-h-[64px] lg:text-lg flex flex-col items-center justify-center gap-0.5';
+
             let extra = '';
+            let dot: string | null = null;
+            let title = '';
+
             if (past) {
-              extra =
-                ' cursor-not-allowed text-neutral-600 opacity-35 line-through decoration-neutral-600';
+              extra = ' cursor-not-allowed text-neutral-600 opacity-35 line-through decoration-neutral-600';
+            } else if (isReserved) {
+              extra = ' cursor-not-allowed opacity-60';
+              dot = 'bg-red-400';
+              title = 'Fecha reservada';
+            } else if (isPending) {
+              extra = ' cursor-not-allowed opacity-70';
+              dot = 'bg-amber-400';
+              title = 'Fecha con solicitud pendiente';
+            } else if (isBlocked) {
+              extra = ' cursor-not-allowed opacity-50 text-neutral-600';
+              dot = 'bg-neutral-500';
+              title = 'Fecha no disponible';
             } else if (selected) {
               extra =
                 ' z-[1] cursor-pointer rounded-lg ring-1 ring-[#00d4c8] bg-[#00d4c8]/18 text-white shadow-[0_0_16px_rgba(0,212,200,0.22)]';
@@ -165,14 +200,49 @@ export function ServiceDatePickerCalendar({
                 type="button"
                 disabled={!selectable}
                 onClick={() => selectable && onToggleKey(key)}
+                title={title || undefined}
                 className={`${baseCell} ${extra}`}
               >
-                {cell.date.getDate()}
+                <span>{cell.date.getDate()}</span>
+                {dot && (
+                  <span
+                    className={`h-1 w-1 rounded-full ${dot}`}
+                    aria-hidden
+                  />
+                )}
               </button>
             );
           })}
         </div>
       </div>
+
+      {/* Legend — only shown when availability data is available */}
+      {hasAvailabilityData && (
+        <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 px-1 text-xs text-neutral-500">
+          <span className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-[#00d4c8]" />
+            Disponible
+          </span>
+          {pendingSet.size > 0 && (
+            <span className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-amber-400" />
+              Solicitud pendiente
+            </span>
+          )}
+          {reservedSet.size > 0 && (
+            <span className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-red-400" />
+              Reservado
+            </span>
+          )}
+          {blockedSet.size > 0 && (
+            <span className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-neutral-500" />
+              No disponible
+            </span>
+          )}
+        </div>
+      )}
     </div>
   );
 }
