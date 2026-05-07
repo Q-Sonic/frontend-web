@@ -1,6 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { FiCheckCircle, FiFileText, FiXCircle } from 'react-icons/fi';
 import type { ContractRecord } from '../../types/contract';
+
+function formatDateKeyEs(key: string): string {
+  const [y, m, d] = key.split('-').map(Number);
+  if (!y || !m || !d) return key;
+  return new Date(y, m - 1, d).toLocaleDateString('es', {
+    weekday: 'short', day: 'numeric', month: 'short',
+  });
+}
 import {
   artistAcceptContract,
   artistRejectContract,
@@ -64,19 +72,42 @@ export function ArtistContractsPage() {
           ) : (
             pending.map((c) => {
               const unpaid = c.financials?.paymentStatus === 'UNPAID';
+              const paid   = c.financials?.paymentStatus === 'PAID';
               return (
-                <article key={c.id} className="rounded-2xl border border-white/10 bg-[#121820] p-5">
+                <article key={c.id} className={`rounded-2xl border bg-[#121820] p-5 ${paid ? 'border-emerald-500/30' : 'border-white/10'}`}>
                   <div className="flex flex-wrap items-start justify-between gap-4">
-                    <div className="space-y-1">
-                      <p className="text-sm text-neutral-400">Contrato ID: {c.id}</p>
+                    <div className="space-y-1.5">
+                      <p className="text-xs text-neutral-500">ID: {c.id}</p>
                       <h2 className="text-lg font-semibold text-white">{c.eventDetails?.name || 'Evento'}</h2>
+                      {c.eventDetails?.eventDates && c.eventDetails.eventDates.length > 1 ? (
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {c.eventDetails.eventDates.map((dk) => (
+                            <span key={dk} className="rounded-md border border-white/10 bg-white/[0.04] px-2 py-0.5 text-xs text-neutral-300">
+                              {formatDateKeyEs(dk)}
+                            </span>
+                          ))}
+                        </div>
+                      ) : null}
                       <p className="text-sm text-neutral-400">{c.eventDetails?.location || 'Ubicación por definir'}</p>
-                      <p className="text-sm text-neutral-400">
-                        Pago: <span className={unpaid ? 'text-amber-300' : 'text-emerald-300'}>{c.financials?.paymentStatus || 'UNPAID'}</span>
-                      </p>
+
+                      {/* Payment badge */}
+                      {paid ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-xs font-semibold text-emerald-300">
+                          ✓ Cliente pagó — listo para firmar
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-400/15 px-2.5 py-0.5 text-xs font-semibold text-amber-300">
+                          ⏳ Pago pendiente del cliente
+                        </span>
+                      )}
+
                       {unpaid ? (
-                        <p className="text-xs font-semibold text-amber-300">
-                          El cliente debe pagar para habilitar la firma del artista.
+                        <p className="text-xs text-amber-300/80">
+                          El cliente debe completar el pago antes de que puedas firmar.
+                        </p>
+                      ) : paid ? (
+                        <p className="text-xs text-neutral-400">
+                          El pago del cliente está acreditado. Si rechazas esta reserva, el dinero le será reembolsado automáticamente.
                         </p>
                       ) : null}
                     </div>

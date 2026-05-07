@@ -156,6 +156,11 @@ function dateKeyFromLineFallback(line: ServiceCartLine): string {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 }
 
+/**
+ * Builds ONE CreateContractBody per cart line (not one per date).
+ * When multiple dates are selected, they are embedded as `eventDates[]` within
+ * a single contract — the primary `date` is the earliest selected date.
+ */
 function buildCreateBodiesForLine(
   line: ServiceCartLine,
   signatureDataUrl?: string,
@@ -164,43 +169,43 @@ function buildCreateBodiesForLine(
   const location = line.locationLabel?.trim() || 'Por definir';
   const keys =
     line.selectedDateKeys.length > 0 ? [...line.selectedDateKeys].sort() : [dateKeyFromLineFallback(line)];
-  const perDate =
-    line.selectedDateKeys.length > 0
-      ? Math.round((line.price / line.selectedDateKeys.length) * 100) / 100
-      : line.price;
 
-  return keys.map((dateKey) => ({
+  // Primary date = earliest selection; eventDates included when more than one
+  const primaryKey = keys[0]!;
+  const body: CreateContractBody = {
     artistId: line.artistId,
     serviceId: line.serviceId,
-    totalAmount: Number.isFinite(perDate) ? perDate : 0,
+    totalAmount: Number.isFinite(line.price) ? line.price : 0,
     eventDetails: {
       name: line.serviceName,
-      date: `${dateKey}T12:00:00.000Z`,
+      date: `${primaryKey}T12:00:00.000Z`,
       location,
+      ...(keys.length > 1 ? { eventDates: keys } : {}),
     },
     clientSignatureDataUrl: signatureDataUrl,
     acceptedTerms: acceptedTerms,
-  }));
+  };
+
+  return [body];
 }
 
 /**
- * POST /contracts once per selected date per cart line. Throws if any request fails.
+ * POST /contracts — one request per cart line (one contract per service, even with multiple dates).
+ * All requests fire in parallel via Promise.allSettled.
  */
 export async function createContractsForSignedLines(
   signedLines: ServiceCartLine[],
   signatureDataUrl?: string,
   acceptedTerms?: boolean,
 ): Promise<ContractRecord[]> {
-  const bodies: CreateContractBody[] = [];
-  for (const line of signedLines) {
-    bodies.push(...buildCreateBodiesForLine(line, signatureDataUrl, acceptedTerms));
-  }
-  const results: ContractRecord[] = [];
-  for (const body of bodies) {
-    const res = await createContract(body);
-    if (res) results.push(res);
-  }
-  return results;
+  const bodies = signedLines.flatMap((line) =>
+    buildCreateBodiesForLine(line, signatureDataUrl, acceptedTerms),
+  );
+  const settled = await Promise.allSettled(bodies.map((body) => createContract(body)));
+  return settled
+    .filter((r): r is PromiseFulfilledResult<ContractRecord | undefined> => r.status === 'fulfilled')
+    .map((r) => r.value)
+    .filter((v): v is ContractRecord => v !== undefined);
 }
 
 function dateKeyFromContractEvent(dateRaw: unknown): string | null {
@@ -278,6 +283,19 @@ export async function artistAcceptContract(
       artistSignatureDataUrl: payload.artistSignatureDataUrl,
       acceptedTerms: payload.acceptedTerms,
     }),
+  });
+  if (res && typeof res === 'object' && 'data' in res && (res as ApiResponse<ContractRecord>).data) {
+    return enrichContractRecord((res as ApiResponse<ContractRecord>).data);
+  }
+  if (res && typeof res === 'object' && 'id' in res) {
+    return enrichContractRecord(res as ContractRecord);
+  }
+  return undefined;
+}
+
+export async function cancelContractByClient(contractId: string): Promise<ContractRecord | undefined> {
+  const res = await api<ApiResponse<ContractRecord> | ContractRecord>(`contracts/${contractId}/cancel`, {
+    method: 'POST',
   });
   if (res && typeof res === 'object' && 'data' in res && (res as ApiResponse<ContractRecord>).data) {
     return enrichContractRecord((res as ApiResponse<ContractRecord>).data);

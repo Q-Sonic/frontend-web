@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { FiCheck, FiChevronDown, FiShoppingCart } from 'react-icons/fi';
-import { paymentService } from '../../api/paymentService';
+import { PaymentezCheckoutButton } from '../../components/PaymentezCheckoutButton';
 import { getArtistServiceById } from '../../api';
 import { ARTIST_SERVICE_LINK_STATE_KEY, Skeleton } from '../../components';
 import { ClientContractSigningModal } from '../../components/client/ClientContractSigningModal';
@@ -15,6 +15,8 @@ import { appendContractSignedPendingArtistNotifications } from '../../helpers/cl
 import { contractPdfUrlForService, resolveArtistProfileMediaUrl } from '../../helpers/artistDocumentUrls';
 import { isBackendRoleCliente } from '../../helpers/role';
 import { formatMoney } from '../../helpers/money';
+import { getArtistAvailabilityById } from '../../api/artistProfileService';
+import type { ArtistAvailabilityResponse } from '../../api/artistProfileService';
 import type { ArtistProfile, ArtistServiceRecord } from '../../types';
 
 const ACCENT_HEX = '#00d4c8';
@@ -137,6 +139,15 @@ function ServiceDetailArticle({
   const [isContractDatesExpanded, setIsContractDatesExpanded] = useState(false);
   const [isServiceMenuOpen, setIsServiceMenuOpen] = useState(false);
   const serviceMenuRef = useRef<HTMLDivElement | null>(null);
+  const [availability, setAvailability] = useState<ArtistAvailabilityResponse | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    getArtistAvailabilityById(artistId)
+      .then((data) => { if (!cancelled) setAvailability(data); })
+      .catch(() => { /* silently ignore — calendar still works without it */ });
+    return () => { cancelled = true; };
+  }, [artistId]);
 
   const coverPhoto = svc.imageUrl?.trim() || profile?.photo?.trim() || undefined;
   const featureItems = Array.isArray(svc.features) ? svc.features : [];
@@ -419,6 +430,9 @@ function ServiceDetailArticle({
           <ServiceDatePickerCalendar
             selectedKeys={selectedDateKeys}
             onToggleKey={toggleDateKey}
+            blockedDates={availability?.blocked}
+            reservedDates={availability?.reserved}
+            pendingDates={availability?.pending}
             selectedSummary={
               selectedDateKeys.size > 0 ? (
                 <div className="space-y-2 rounded-xl border border-white/10 bg-black/25 px-3 py-3 sm:px-4">
@@ -607,23 +621,11 @@ function ServiceDetailArticle({
               applyToAll: false,
             });
 
-            // "Cerrar el círculo": Si se generó el contrato, vamos al pago
+            // After signing, redirect to contracts page where the user can pay
             if (contracts && contracts.length > 0) {
-              const contract = contracts[0];
-              try {
-                const total = contract?.financials?.totalAmount ?? svc.price;
-                const payLink = await paymentService.createLinkToPay({
-                  amount: total,
-                  description: `Reserva Servicio: ${svc.name} - ${artistDisplayName}`,
-                  dev_reference: contract?.id || line.id,
-                });
-                if (payLink?.data?.payment_url) {
-                  window.location.href = payLink.data.payment_url;
-                  return;
-                }
-              } catch (payErr) {
-                console.error('Error generando link de pago:', payErr);
-              }
+              setContractModalOpen(false);
+              navigate('/client/contracts', { replace: true });
+              return;
             }
 
             appendContractSignedPendingArtistNotifications([

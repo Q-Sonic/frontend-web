@@ -6,6 +6,8 @@ export interface UserRecord {
   displayName?: string;
   role?: string;
   photoURL?: string;
+  identificationType?: 'cedula' | 'ruc' | 'pasaporte';
+  identificationNumber?: string;
   createdAt?: string;
   updatedAt?: string;
 }
