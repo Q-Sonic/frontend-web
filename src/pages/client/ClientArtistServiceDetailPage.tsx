@@ -617,10 +617,11 @@ function ServiceDetailArticle({
                   description: `Reserva Servicio: ${svc.name} - ${artistDisplayName}`,
                   dev_reference: contract?.id || line.id,
                 });
-                if (payLink?.data?.payment_url) {
-                  window.location.href = payLink.data.payment_url;
+                if (payLink?.data?.payment?.payment_url) {
+                  window.location.href = payLink.data.payment.payment_url;
                   return;
                 }
+
               } catch (payErr) {
                 console.error('Error generando link de pago:', payErr);
               }

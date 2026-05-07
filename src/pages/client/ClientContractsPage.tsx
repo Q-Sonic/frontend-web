@@ -315,8 +315,9 @@ function ContractCard({
                   description: desc,
                   dev_reference: c.id,
                 });
-                const url = payLink?.data?.payment_url;
+                const url = payLink?.data?.payment?.payment_url;
                 if (url) window.location.href = url;
+
               } catch (err) {
                 console.error('Error creating payment link for contract:', err);
               }
