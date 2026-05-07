@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { FiCheck, FiChevronRight, FiClock, FiShield, FiXCircle } from 'react-icons/fi';
+import { FiCheck, FiChevronRight, FiClock, FiCreditCard, FiEdit3, FiShield, FiXCircle } from 'react-icons/fi';
 import { Link } from 'react-router-dom';
 import { Skeleton, ContractCardSkeleton } from '../../components/Skeleton';
 import { ClientAreaHeader } from '../../components/client/ClientAreaHeader';
@@ -224,6 +224,7 @@ function ContractCard({
   onCancelled,
   groupSelected,
   onGroupToggle,
+  onSignTrigger,
 }: {
   c: ContractRecord;
   isSelected?: boolean;
@@ -232,6 +233,7 @@ function ContractCard({
   onCancelled?: () => void;
   groupSelected?: boolean;
   onGroupToggle?: (id: string, val: boolean) => void;
+  onSignTrigger?: (id: string) => void;
 }) {
   const [cancelling, setCancelling] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
@@ -269,17 +271,40 @@ function ContractCard({
       aria-label={headline}
     >
       <div className="flex min-w-0 flex-1 gap-4">
-        {unpaid && onGroupToggle ? (
-          <label className="flex shrink-0 cursor-pointer items-start pt-1">
-            <input
-              type="checkbox"
-              checked={groupSelected ?? false}
-              onChange={(e) => onGroupToggle(c.id, e.target.checked)}
-              className="h-4 w-4 rounded border-white/30 accent-[#38BACC] cursor-pointer"
-              aria-label={`Seleccionar ${name} para pago grupal`}
-            />
-          </label>
-        ) : null}
+        {/* Group Payment or Signing Selection */}
+        <div className="flex shrink-0 flex-col gap-4 pt-1 border-r border-white/10 pr-3 mr-1">
+          {unpaid && onGroupToggle ? (
+            <label className="group flex cursor-pointer flex-col items-center gap-1.5" title="Seleccionar para pago masivo">
+              <span className="text-[9px] font-bold tracking-widest text-[#38BACC] opacity-70 group-hover:opacity-100 transition">PAGAR</span>
+              <div className="relative flex items-center justify-center">
+                <input
+                  type="checkbox"
+                  checked={groupSelected ?? false}
+                  onChange={(e) => onGroupToggle(c.id, e.target.checked)}
+                  className="peer h-6 w-6 appearance-none rounded-lg border-2 border-[#38BACC]/30 bg-black/40 checked:border-[#38BACC] checked:bg-[#38BACC]/20 transition-all cursor-pointer"
+                />
+                <FiCreditCard className="absolute pointer-events-none text-[#38BACC] opacity-0 peer-checked:opacity-100 transition-opacity text-xs" />
+                {!groupSelected && <FiCreditCard className="absolute pointer-events-none text-[#38BACC]/40 text-xs" />}
+              </div>
+            </label>
+          ) : null}
+
+          {c.status === 'PENDING' && onToggle ? (
+            <label className="group flex cursor-pointer flex-col items-center gap-1.5" title="Seleccionar para firma masiva">
+              <span className="text-[9px] font-bold tracking-widest text-accent opacity-70 group-hover:opacity-100 transition">FIRMAR</span>
+              <div className="relative flex items-center justify-center">
+                <input
+                  type="checkbox"
+                  checked={isSelected ?? false}
+                  onChange={(e) => onToggle(c.id, e.target.checked)}
+                  className="peer h-6 w-6 appearance-none rounded-lg border-2 border-accent/30 bg-black/40 checked:border-accent checked:bg-accent/20 transition-all cursor-pointer"
+                />
+                <FiEdit3 className="absolute pointer-events-none text-accent opacity-0 peer-checked:opacity-100 transition-opacity text-xs" />
+                {!isSelected && <FiEdit3 className="absolute pointer-events-none text-accent/40 text-xs" />}
+              </div>
+            </label>
+          ) : null}
+        </div>
         <ContractAvatar name={name} photoUrl={c.artistPhotoUrl} />
         <div className="min-w-0 flex-1 space-y-1.5">
           <p className="text-base font-bold leading-snug text-white sm:text-lg">{headline}</p>
@@ -381,6 +406,16 @@ function ContractCard({
             Comprobante firma
           </a>
         ) : null}
+        {c.status === 'PENDING' && onSignTrigger && (
+          <button
+            type="button"
+            onClick={() => onSignTrigger(c.id)}
+            className="inline-flex w-full items-center justify-center rounded-xl border border-accent/40 bg-accent/10 py-2.5 text-center text-sm font-bold text-accent shadow-[0_0_12px_rgba(0,204,203,0.1)] transition hover:bg-accent hover:text-black"
+          >
+            <FiEdit3 className="mr-1.5 h-4 w-4" aria-hidden />
+            Firmar ahora
+          </button>
+        )}
         {unpaid ? (
           <PaymentezCheckoutButton
             amount={c.financials?.totalAmount || 0}
@@ -583,11 +618,42 @@ export function ClientContractsPage() {
             </span>
           </div>
         ) : null}
-        <div className="mb-5 flex items-center gap-3">
-          <h2 className="shrink-0 text-base font-semibold text-white sm:text-lg">
-            {sectionTitleForFilter(filter, filtered.length)}
-          </h2>
-          <div className="h-px min-w-[2rem] flex-1 bg-neutral-600/50" />
+
+        {counts.pending > 0 ? (
+          <div className="mb-5 flex items-start gap-3 rounded-2xl border border-accent/35 bg-accent/10 p-4 text-sm text-accent-light">
+            <FiEdit3 className="mt-0.5 shrink-0 text-accent" aria-hidden />
+            <span>
+              Tienes {counts.pending} contrato{counts.pending === 1 ? '' : 's'} pendiente{counts.pending === 1 ? '' : 's'} de firma.{' '}
+              <span className="font-semibold">Formaliza tus contratos para confirmar los términos</span> del servicio.
+              {counts.pending > 1 && (
+                <span className="mt-1 block text-accent/70">
+                  Usa el checkbox <span className="font-bold">FIRMAR</span> para seleccionar varios y firmarlos todos juntos.
+                </span>
+              )}
+            </span>
+          </div>
+        ) : null}
+        <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3 flex-1">
+            <h2 className="shrink-0 text-base font-semibold text-white sm:text-lg">
+              {sectionTitleForFilter(filter, filtered.length)}
+            </h2>
+            <div className="h-px min-w-[2rem] flex-1 bg-neutral-600/50" />
+          </div>
+          {filter === 'pending' && filtered.length > 1 && (
+            <button
+              type="button"
+              onClick={() => {
+                const allPendingIds = filtered.map(c => c.id);
+                setSelectedIds(new Set(allPendingIds));
+                setSignModalOpen(true);
+              }}
+              className="inline-flex items-center gap-2 rounded-full bg-accent/10 border border-accent/40 px-5 py-2 text-sm font-bold text-accent transition hover:bg-accent hover:text-black"
+            >
+              <FiEdit3 className="h-4 w-4" />
+              Firmar todos los pendientes
+            </button>
+          )}
         </div>
 
         {loading ? (
@@ -625,6 +691,10 @@ export function ClientContractsPage() {
                   }}
                   groupSelected={groupSelectedIds.has(c.id)}
                   onGroupToggle={toggleGroupSelection}
+                  onSignTrigger={(id) => {
+                    setSelectedIds(new Set([id]));
+                    setSignModalOpen(true);
+                  }}
                 />
               </li>
             ))}
@@ -669,37 +739,92 @@ export function ClientContractsPage() {
         </div>
       ) : null}
 
-      {/* Group payment sticky bar */}
-      {groupSelectedIds.size >= 1 && (
-        <div className="sticky bottom-6 z-30 mt-8 rounded-3xl border border-[#38BACC]/50 bg-[#0a0c10]/95 p-5 shadow-[0_0_40px_rgba(56,186,204,0.2)] backdrop-blur-md sm:p-6">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="space-y-0.5">
-              <p className="text-base font-bold text-white">
-                {groupSelectedIds.size === 1 ? '1 contrato seleccionado' : `${groupSelectedIds.size} contratos seleccionados`}
-              </p>
-              <p className="text-sm text-neutral-400">
-                Total a pagar:{' '}
-                <span className="font-bold text-[#38BACC]">{formatUsd(groupTotal)}</span>
-              </p>
-            </div>
-            <div className="flex flex-wrap items-center gap-3">
-              <button
-                type="button"
-                onClick={() => setGroupSelectedIds(new Set())}
-                className="rounded-full border border-white/20 bg-white/5 px-4 py-2 text-xs font-medium text-white/70 hover:bg-white/10"
-              >
-                Limpiar
-              </button>
-              {groupSelectedIds.size === 1 ? (
-                // Single selected — use individual payment button
-                (() => {
-                  const single = groupSelectedContracts[0];
-                  return (
-                    <PaymentezCheckoutButton
-                      amount={single?.financials?.totalAmount || 0}
-                      description={`Pago contrato - ${single?.eventDetails?.name || 'Servicio'}`}
-                      devReference={single?.id || ''}
-                      className="rounded-full px-6 py-2.5 text-sm font-bold"
+      {/* Unified Multi-action sticky bar */}
+      {(groupSelectedIds.size > 0 || selectedIds.size > 0) && (
+        <div className="sticky bottom-6 z-40 mt-8 overflow-hidden rounded-3xl border border-white/10 bg-[#0a0c10]/90 p-1 shadow-[0_20px_50px_rgba(0,0,0,0.5)] backdrop-blur-xl">
+          <div className="flex flex-col divide-y divide-white/5">
+            
+            {/* Signing Section */}
+            {selectedIds.size > 0 && (
+              <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between sm:px-7">
+                <div className="flex items-center gap-4">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent/10 text-accent">
+                    <FiEdit3 className="h-6 w-6" />
+                  </div>
+                  <div className="space-y-0.5">
+                    <p className="text-lg font-bold text-white">Firma masiva</p>
+                    <p className="text-sm text-neutral-400">
+                      <span className="font-bold text-accent">{selectedIds.size}</span> contrato{selectedIds.size === 1 ? '' : 's'} seleccionado{selectedIds.size === 1 ? '' : 's'}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedIds(new Set())}
+                    className="rounded-full px-5 py-2.5 text-sm font-medium text-neutral-400 transition hover:text-white"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSignModalOpen(true)}
+                    disabled={isSigning}
+                    className="inline-flex items-center gap-2 rounded-full bg-accent px-8 py-3.5 text-sm font-bold text-black shadow-[0_0_20px_rgba(0,204,203,0.3)] transition hover:scale-[1.02] hover:bg-[#33e8dc] active:scale-[0.98] disabled:opacity-50"
+                  >
+                    <FiEdit3 className="h-4 w-4" />
+                    {isSigning ? 'Firmando...' : 'Firmar ahora'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Payment Section */}
+            {groupSelectedIds.size > 0 && (
+              <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between sm:px-7">
+                <div className="flex items-center gap-4">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#38BACC]/10 text-[#38BACC]">
+                    <FiCreditCard className="h-6 w-6" />
+                  </div>
+                  <div className="space-y-0.5">
+                    <p className="text-lg font-bold text-white">Pago masivo</p>
+                    <p className="text-sm text-neutral-400">
+                      Total a pagar: <span className="font-bold text-[#38BACC]">{formatUsd(groupTotal)}</span> ({groupSelectedIds.size} items)
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setGroupSelectedIds(new Set())}
+                    className="rounded-full px-5 py-2.5 text-sm font-medium text-neutral-400 transition hover:text-white"
+                  >
+                    Limpiar
+                  </button>
+                  {groupSelectedIds.size === 1 ? (
+                    (() => {
+                      const single = groupSelectedContracts[0];
+                      return (
+                        <PaymentezCheckoutButton
+                          amount={single?.financials?.totalAmount || 0}
+                          description={`Pago contrato - ${single?.eventDetails?.name || 'Servicio'}`}
+                          devReference={single?.id || ''}
+                          className="rounded-full bg-[#38BACC] px-8 py-3.5 text-sm font-bold text-black transition hover:scale-[1.02] hover:bg-[#45d1e4]"
+                          onSuccess={() => {
+                            setGroupSelectedIds(new Set());
+                            void refetch();
+                          }}
+                          onFailure={(detail) => alert(`Pago rechazado: ${detail}`)}
+                          onError={(err) => alert(`Error en el pago: ${err}`)}
+                        >
+                          Pagar ahora
+                        </PaymentezCheckoutButton>
+                      );
+                    })()
+                  ) : (
+                    <GroupPaymentButton
+                      contractIds={[...groupSelectedIds]}
+                      className="rounded-full bg-[#38BACC] px-8 py-3.5 text-sm font-bold text-black shadow-[0_0_20px_rgba(56,186,204,0.3)] transition hover:scale-[1.02] hover:bg-[#45d1e4]"
                       onSuccess={() => {
                         setGroupSelectedIds(new Set());
                         void refetch();
@@ -707,46 +832,12 @@ export function ClientContractsPage() {
                       onFailure={(detail) => alert(`Pago rechazado: ${detail}`)}
                       onError={(err) => alert(`Error en el pago: ${err}`)}
                     >
-                      Pagar individualmente
-                    </PaymentezCheckoutButton>
-                  );
-                })()
-              ) : (
-                <GroupPaymentButton
-                  contractIds={[...groupSelectedIds]}
-                  onSuccess={() => {
-                    setGroupSelectedIds(new Set());
-                    void refetch();
-                  }}
-                  onFailure={(detail) => alert(`Pago rechazado: ${detail}`)}
-                  onError={(err) => alert(`Error en el pago: ${err}`)}
-                >
-                  Pagar {groupSelectedIds.size} contratos juntos
-                </GroupPaymentButton>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {selectedIds.size > 0 && filter === 'pending' && (
-        <div className="sticky bottom-6 z-30 mt-8 rounded-3xl border border-accent/40 bg-[#0a0c10]/95 p-6 shadow-[0_0_40px_rgba(0,204,203,0.15)] backdrop-blur-md">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="space-y-1">
-              <p className="text-lg font-bold text-white">Firma Masiva Seleccionada</p>
-              <p className="text-sm text-neutral-400">
-                Has seleccionado <span className="font-semibold text-accent">{selectedIds.size}</span> reservas para
-                firmar.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setSignModalOpen(true)}
-              disabled={isSigning}
-              className="rounded-full bg-accent px-8 py-3.5 text-sm font-bold text-black shadow-[0_0_24px_rgba(0,204,203,0.4)] transition hover:bg-[#33e8dc] disabled:opacity-50"
-            >
-              {isSigning ? 'Firmando...' : 'Firmar seleccionados'}
-            </button>
+                      Pagar juntos
+                    </GroupPaymentButton>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
