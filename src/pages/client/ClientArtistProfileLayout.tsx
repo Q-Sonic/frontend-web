@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { Navigate, Outlet, useParams } from 'react-router-dom';
+import { useClientServiceCartOptional } from '../../contexts/ClientServiceCartContext';
 import { ArtistProfileNavProvider } from '../../contexts/ArtistProfileNavContext';
 import { ARTIST_PROFILE_ACCENT } from '../../helpers/artistProfile';
 import { SidebarLayout } from '../../layouts';
@@ -11,6 +12,12 @@ const SIDEBAR_ACTIVE_NAV = '#38BACC';
 export function ClientArtistProfileLayout() {
   const { id } = useParams<{ id: string }>();
   const { profile, artistDisplayName, loading } = useArtistProfileById(id);
+  const serviceCart = useClientServiceCartOptional();
+  /** Matches FAB `bottom` + `h-14` + gap in `ClientServiceCartContext` (5.75rem + 3.5rem). */
+  const cartFabClearanceClass =
+    serviceCart && serviceCart.lineCount > 0
+      ? 'pb-[calc(5.75rem+3.5rem+1.25rem+env(safe-area-inset-bottom,0px))]'
+      : '';
 
   const sidebar = useMemo(() => {
     if (!id) return null;
@@ -76,7 +83,15 @@ export function ClientArtistProfileLayout() {
   return (
     <ArtistProfileNavProvider value={{ basePath: `/client/artists/${id}`, exitHomePath: '/client' }}>
       <SidebarLayout sidebar={sidebar}>
-        <Outlet />
+        <div
+          className={
+            cartFabClearanceClass
+              ? `min-w-0 w-full ${cartFabClearanceClass}`
+              : 'min-w-0 w-full'
+          }
+        >
+          <Outlet />
+        </div>
       </SidebarLayout>
     </ArtistProfileNavProvider>
   );

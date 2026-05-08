@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { FiCheck, FiChevronDown, FiShoppingCart } from 'react-icons/fi';
+import { FiAlertCircle, FiCheck, FiChevronDown, FiShoppingCart } from 'react-icons/fi';
 import { PaymentezCheckoutButton } from '../../components/PaymentezCheckoutButton';
 import { getArtistServiceById } from '../../api';
 import { ARTIST_SERVICE_LINK_STATE_KEY, Skeleton } from '../../components';
@@ -12,7 +12,8 @@ import { useArtistProfileNav } from '../../contexts/ArtistProfileNavContext';
 import { persistSignedClientContractsWithApiFallback } from '../../helpers/clientContractPersistence';
 import { addServiceCartLine } from '../../helpers/clientServiceCart';
 import { appendContractSignedPendingArtistNotifications } from '../../helpers/clientNotifications';
-import { contractPdfUrlForService, resolveArtistProfileMediaUrl } from '../../helpers/artistDocumentUrls';
+import { resolveArtistProfileMediaUrl } from '../../helpers/artistDocumentUrls';
+import { serviceContractPdfUrl, serviceTechnicalRiderPdfUrl } from '../../helpers/clientArtistDocuments';
 import { isBackendRoleCliente } from '../../helpers/role';
 import { formatMoney } from '../../helpers/money';
 import { getArtistAvailabilityById } from '../../api/artistProfileService';
@@ -135,6 +136,7 @@ function ServiceDetailArticle({
   );
   const [serviceDetails, setServiceDetails] = useState(prefilledServiceDetails ?? '');
   const [cartAddedFlash, setCartAddedFlash] = useState(false);
+  const [cartDateOverlapMessage, setCartDateOverlapMessage] = useState<string | null>(null);
   const [contractModalOpen, setContractModalOpen] = useState(false);
   const [isContractDatesExpanded, setIsContractDatesExpanded] = useState(false);
   const [isServiceMenuOpen, setIsServiceMenuOpen] = useState(false);
@@ -302,20 +304,30 @@ function ServiceDetailArticle({
   }, [user?.displayName, user?.email, user?.photoURL]);
 
   const handleViewContractPdf = useCallback(() => {
-    const url = contractPdfUrlForService(svc, profile);
+    const url = serviceContractPdfUrl(svc);
     if (url) {
       window.open(url, '_blank', 'noopener,noreferrer');
       return;
     }
     void navigate(`${basePath}/contracts`);
-  }, [basePath, navigate, profile, svc]);
+  }, [basePath, navigate, svc]);
+
+  const handleViewTechnicalRiderPdf = useCallback(() => {
+    const url = serviceTechnicalRiderPdfUrl(svc);
+    if (url) {
+      window.open(url, '_blank', 'noopener,noreferrer');
+      return;
+    }
+    void navigate(`${basePath}/rider`);
+  }, [basePath, navigate, svc]);
 
   const reserveLabel =
     selectedDateKeys.size === 1 ? 'Reservar fecha' : 'Reservar fechas';
 
   const handleAddToCart = useCallback(() => {
     if (selectedDateKeys.size === 0) return;
-    addServiceCartLine({
+    setCartDateOverlapMessage(null);
+    const result = addServiceCartLine({
       artistId,
       serviceId: svc.id,
       serviceName: svc.name,
@@ -328,7 +340,17 @@ function ServiceDetailArticle({
         ? svc.features.filter((f): f is string => typeof f === 'string' && f.trim().length > 0)
         : undefined,
       serviceDetails: serviceDetails.trim() || undefined,
+      contractPdfUrl: serviceContractPdfUrl(svc),
+      technicalRiderPdfUrl: serviceTechnicalRiderPdfUrl(svc),
     });
+    if (!result.ok) {
+      setCartAddedFlash(false);
+      setCartDateOverlapMessage(
+        'Estás intentando añadir fechas que ya tienes reservadas para este mismo Servicio en el carrito. ' +
+          'Abre el carrito y elimina la reserva que ya incluye esas fechas o añade fechas nuevas.',
+      );
+      return;
+    }
     setSelectedDateKeys(new Set());
     setServiceDetails('');
     setIsContractDatesExpanded(false);
@@ -348,28 +370,28 @@ function ServiceDetailArticle({
   ]);
 
   return (
-    <article className="space-y-8">
-      <nav>
+    <article className="space-y-6 sm:space-y-8">
+      <nav className="-mx-1">
         <Link
           to={`${basePath}#documents`}
-          className="text-[15px] sm:text-base font-medium text-neutral-400 transition hover:text-white"
+          className="inline-flex min-h-11 items-center px-1 py-2 text-[15px] sm:text-base font-medium text-neutral-400 transition hover:text-white touch-manipulation"
         >
           ← Volver al perfil
         </Link>
       </nav>
 
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_auto] lg:gap-x-6 xl:gap-x-8 lg:items-start">
+      <div className="grid gap-6 sm:gap-8 lg:grid-cols-[minmax(0,1fr)_auto] lg:gap-x-6 xl:gap-x-8 lg:items-start">
         <section
-          className="order-2 min-w-0 max-w-full space-y-7 lg:order-1 lg:sticky lg:top-6 lg:self-start"
+          className="order-1 min-w-0 max-w-full space-y-5 sm:space-y-7 lg:sticky lg:top-6 lg:self-start"
           aria-labelledby="booking-dates-heading"
         >
-          <div className="space-y-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#00d4c8] sm:text-[13px]">
+          <div className="space-y-2.5 sm:space-y-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#00d4c8] sm:text-[13px]">
               Reserva
             </p>
             <h2
               id="booking-dates-heading"
-              className="text-2xl font-bold tracking-tight text-white sm:text-3xl"
+              className="text-[1.375rem] font-bold leading-tight tracking-tight text-white sm:text-3xl"
             >
               Elegir fechas
             </h2>
@@ -390,8 +412,8 @@ function ServiceDetailArticle({
               }
               onClick={handleAddToCart}
               className={
-                'inline-flex w-full items-center justify-center gap-2 rounded-full border border-white/20 ' +
-                'bg-transparent px-6 py-3.5 text-sm font-semibold text-white transition ' +
+                'touch-manipulation inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full border border-white/20 ' +
+                'bg-transparent px-5 py-3.5 text-sm font-semibold text-white transition active:opacity-90 ' +
                 'hover:border-[#00d4c8]/50 hover:bg-[#00d4c8]/10 hover:text-[#00d4c8] ' +
                 'disabled:cursor-not-allowed disabled:border-white/10 disabled:text-neutral-500 ' +
                 'disabled:hover:border-white/10 disabled:hover:bg-transparent disabled:hover:text-neutral-500 ' +
@@ -411,8 +433,8 @@ function ServiceDetailArticle({
               }
               onClick={openContractModal}
               className={
-                'w-full rounded-full bg-[#00d4c8] px-7 py-3.5 text-sm font-semibold text-[#0a0c10] ' +
-                'shadow-[0_0_28px_rgba(0,212,200,0.45)] transition ' +
+                'touch-manipulation min-h-12 w-full rounded-full bg-[#00d4c8] px-6 py-3.5 text-sm font-semibold text-[#0a0c10] ' +
+                'shadow-[0_0_28px_rgba(0,212,200,0.45)] transition active:opacity-95 ' +
                 'hover:bg-[#33e8dc] hover:shadow-[0_0_36px_rgba(0,212,200,0.55)] ' +
                 'disabled:cursor-not-allowed disabled:bg-[#00d4c8]/30 disabled:text-[#0a0c10]/45 ' +
                 'disabled:shadow-none sm:flex-1 sm:min-w-[190px]'
@@ -421,10 +443,41 @@ function ServiceDetailArticle({
               {reserveLabel}
             </button>
           </div>
+          {cartDateOverlapMessage ? (
+            <div
+              role="alert"
+              className={
+                'flex gap-3 rounded-xl border border-amber-400/25 bg-amber-500/[0.07] px-4 py-3.5 ' +
+                'shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] sm:gap-3.5 sm:px-4 sm:py-4'
+              }
+            >
+              <span
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-amber-400/15 text-amber-300"
+                aria-hidden
+              >
+                <FiAlertCircle className="h-5 w-5" strokeWidth={2} />
+              </span>
+              <div className="min-w-0 space-y-1.5 pt-0.5">
+                <p className="text-[13px] font-semibold uppercase tracking-[0.06em] text-amber-200/95 sm:text-xs">
+                  Fechas ya en el carrito
+                </p>
+                <p className="text-sm leading-relaxed text-amber-50/90">{cartDateOverlapMessage}</p>
+              </div>
+            </div>
+          ) : null}
           {cartAddedFlash ? (
-            <p className="text-sm font-medium text-[#00d4c8]" role="status">
-              Añadido al carrito
-            </p>
+            <div
+              role="status"
+              className="flex items-center gap-3 rounded-xl border border-[#00d4c8]/30 bg-[#00d4c8]/10 px-4 py-3 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]"
+            >
+              <span
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#00d4c8]/15 text-[#00d4c8]"
+                aria-hidden
+              >
+                <FiCheck className="h-5 w-5" strokeWidth={2.25} />
+              </span>
+              <p className="text-sm font-medium leading-snug text-[#98f8f1]">Añadido al carrito</p>
+            </div>
           ) : null}
 
           <ServiceDatePickerCalendar
@@ -458,23 +511,23 @@ function ServiceDetailArticle({
               ) : undefined
             }
           />
-          <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+          <div className="rounded-xl border border-white/10 bg-black/20 p-3.5 sm:rounded-2xl sm:p-4">
             <label className="mb-2 block text-sm font-semibold text-white">Detalles del servicio</label>
             <textarea
               value={serviceDetails}
               onChange={(e) => setServiceDetails(e.target.value)}
               rows={4}
               placeholder="Ej: tipo de evento, horario estimado, necesidades técnicas..."
-              className="w-full resize-none rounded-xl border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-[#00d4c8]/30"
+              className="min-h-[7.5rem] w-full resize-y rounded-xl border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-[#00d4c8]/30 sm:resize-none"
             />
           </div>
         </section>
 
-        <div className="order-1 w-full max-w-lg shrink-0 lg:order-2 lg:justify-self-end xl:max-w-xl">
+        <div className="order-2 w-full max-w-full shrink-0 sm:max-w-lg lg:justify-self-end xl:max-w-xl">
           <div
             className={
-              'w-full space-y-6 sm:space-y-7 rounded-3xl border border-[#00d4c8]/20 ' +
-              'bg-linear-to-b from-white/6 via-[#0c0e12] to-black/50 p-6 sm:p-8 ' +
+              'w-full space-y-5 sm:space-y-7 rounded-2xl border border-[#00d4c8]/20 sm:rounded-3xl ' +
+              'bg-linear-to-b from-white/6 via-[#0c0e12] to-black/50 p-5 sm:p-8 ' +
               'shadow-[0_0_40px_rgba(0,212,200,0.06),inset_0_1px_0_rgba(255,255,255,0.06)]'
             }
           >
@@ -487,7 +540,7 @@ function ServiceDetailArticle({
                   <button
                     type="button"
                     onClick={() => setIsServiceMenuOpen((prev) => !prev)}
-                    className="flex w-full items-center justify-between rounded-xl border border-white/15 bg-black/40 px-3.5 py-2.5 text-left text-sm font-medium text-white outline-none transition hover:border-[#00d4c8]/40 focus:border-[#00d4c8]/60 focus:ring-2 focus:ring-[#00d4c8]/25"
+                    className="touch-manipulation flex min-h-12 w-full items-center justify-between rounded-xl border border-white/15 bg-black/40 px-3.5 py-3 text-left text-sm font-medium text-white outline-none transition hover:border-[#00d4c8]/40 focus:border-[#00d4c8]/60 focus:ring-2 focus:ring-[#00d4c8]/25 sm:min-h-0 sm:py-2.5"
                     aria-haspopup="listbox"
                     aria-expanded={isServiceMenuOpen}
                     aria-label="Cambiar servicio"
@@ -506,7 +559,7 @@ function ServiceDetailArticle({
                       className="absolute left-0 right-0 z-20 mt-2 max-h-56 overflow-y-auto rounded-xl border border-[#00d4c8]/25 bg-[#0a0c10]/95 p-1.5 shadow-[0_16px_40px_rgba(0,0,0,0.45)] backdrop-blur"
                     >
                       <div className="rounded-lg px-3 py-2 text-sm text-neutral-400">
-                        --selecionar servicio--
+                        Seleccionar servicio
                       </div>
                       {serviceOptions.map((service) => {
                         const isSelected = service.id === svc.id;
@@ -541,14 +594,14 @@ function ServiceDetailArticle({
                 <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#00d4c8]/90">
                   Servicio actual
                 </p>
-                <h1 className="text-3xl sm:text-4xl font-bold text-white tracking-tight leading-tight">
+                <h1 className="text-2xl font-bold leading-tight tracking-tight text-white sm:text-4xl">
                   {svc.name}
                 </h1>
               </div>
             </div>
-            <div className="rounded-2xl border border-white/10 bg-black/35 px-5 py-4">
+            <div className="rounded-xl border border-white/10 bg-black/35 px-4 py-3.5 sm:rounded-2xl sm:px-5 sm:py-4">
               <p className="text-xs font-medium uppercase tracking-wider text-neutral-500">Precio</p>
-              <p className="mt-1 text-3xl sm:text-4xl font-semibold tabular-nums text-accent">
+              <p className="mt-1 text-2xl font-semibold tabular-nums text-accent sm:text-4xl">
                 ${formatMoney(svc.price)}
               </p>
               <p className="mt-0.5 text-sm text-neutral-400">por hora</p>
@@ -557,7 +610,7 @@ function ServiceDetailArticle({
               <p className="text-xs font-medium uppercase tracking-wider text-neutral-500">
                 Descripción
               </p>
-              <p className="text-base sm:text-lg text-neutral-200 leading-relaxed whitespace-pre-wrap">
+              <p className="text-sm leading-relaxed text-neutral-200 whitespace-pre-wrap sm:text-lg">
                 {svc.description?.trim() || 'Sin descripción.'}
               </p>
             </div>
@@ -577,7 +630,7 @@ function ServiceDetailArticle({
               </div>
             )}
 
-            <div className="relative aspect-4/3 w-full overflow-hidden rounded-2xl border border-white/10 bg-neutral-950 shadow-[0_12px_40px_rgba(0,0,0,0.45)]">
+            <div className="relative aspect-[16/10] max-h-[220px] w-full overflow-hidden rounded-xl border border-white/10 bg-neutral-950 shadow-[0_12px_40px_rgba(0,0,0,0.45)] sm:aspect-[4/3] sm:max-h-none sm:rounded-2xl">
               {coverPhoto ? (
                 <img src={coverPhoto} alt="" className="h-full w-full object-cover object-center" />
               ) : (
@@ -600,6 +653,7 @@ function ServiceDetailArticle({
         clientParty={clientParty}
         summary={contractSummary}
         onViewContract={handleViewContractPdf}
+        onViewTechnicalRider={handleViewTechnicalRiderPdf}
         onSign={async ({ dataUrl }) => {
           if (user && isBackendRoleCliente(user.role)) {
             const line = {
@@ -615,6 +669,8 @@ function ServiceDetailArticle({
               locationLabel: profile?.city?.trim() || 'Por definir',
               serviceFeatures: Array.isArray(svc.features) ? [...svc.features] : undefined,
               serviceDetails: serviceDetails.trim() || undefined,
+              contractPdfUrl: serviceContractPdfUrl(svc),
+              technicalRiderPdfUrl: serviceTechnicalRiderPdfUrl(svc),
             };
             const contracts = await persistSignedClientContractsWithApiFallback([line], {
               dataUrl,
@@ -749,7 +805,7 @@ export function ClientArtistServiceDetailPage() {
 
   if (profileError) {
     return (
-      <div className="w-full max-w-2xl mx-auto px-4 sm:px-8 lg:pl-12 lg:pr-10 pt-8 sm:pt-10 lg:pt-12 pb-12">
+      <div className="mx-auto w-full max-w-2xl px-4 pb-[max(2.5rem,env(safe-area-inset-bottom,0px))] pt-6 sm:px-8 sm:pb-12 sm:pt-10 lg:pl-12 lg:pr-10 lg:pt-12">
         <p className="text-red-400 text-sm leading-relaxed">{profileError}</p>
       </div>
     );
@@ -759,7 +815,7 @@ export function ClientArtistServiceDetailPage() {
   const notFound = !displayService && !profileLoading && !fetching;
 
   return (
-    <div className="w-full max-w-[1500px] mx-auto space-y-8 px-5 sm:px-7 lg:pl-10 lg:pr-8 xl:pl-12 xl:pr-10 pt-8 sm:pt-10 lg:pt-12 pb-12">
+    <div className="mx-auto w-full max-w-[1500px] space-y-6 px-4 pb-[max(2.5rem,env(safe-area-inset-bottom,0px))] pt-6 sm:space-y-8 sm:px-7 sm:pb-12 sm:pt-10 lg:pl-10 lg:pr-8 lg:pt-12 xl:pl-12 xl:pr-10">
       {waitingForAnySource ? (
         <div className="space-y-8">
           <Skeleton className="h-5 w-40 rounded" />

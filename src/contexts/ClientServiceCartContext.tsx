@@ -53,7 +53,11 @@ function ClientServiceCartFloatingButton({
     <button
       type="button"
       onClick={onOpen}
-      className="fixed bottom-[5.75rem] right-6 z-[35] flex h-14 w-14 items-center justify-center rounded-full border border-[#00CCCB]/50 bg-[#111214] text-[#00CCCB] shadow-[0_0_20px_rgba(0,204,203,0.35)] transition hover:bg-[#00CCCB]/10"
+      className={
+        'touch-manipulation fixed bottom-[calc(5.75rem+env(safe-area-inset-bottom,0px))] right-[max(1rem,env(safe-area-inset-right,0px))] z-[35] flex h-14 w-14 items-center justify-center rounded-full ' +
+        'border border-[#00CCCB]/50 bg-[#111214] text-[#00CCCB] shadow-[0_0_20px_rgba(0,204,203,0.35)] ' +
+        'transition hover:bg-[#00CCCB]/10 active:scale-[0.97] sm:right-[max(1.5rem,env(safe-area-inset-right,0px))]'
+      }
       aria-label={`Carrito de reservas, ${lineCount} ítems`}
     >
       <FiShoppingCart size={24} strokeWidth={2} aria-hidden />

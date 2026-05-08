@@ -102,7 +102,7 @@ export function ClientAreaHeader({
             <input
               type="search"
               placeholder="buscar artista, genero o ciudad"
-              className="w-full rounded-xl bg-black/40 border border-white/10 pl-11 pr-10 py-2.5 text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-accent/40"
+              className="min-h-[44px] w-full rounded-xl border border-white/10 bg-black/40 py-3 pl-11 pr-10 text-base text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-accent/40 sm:min-h-0 sm:py-2.5 sm:text-sm"
               {...(controlledSearch
                 ? {
                     value: searchValue,
@@ -130,6 +130,21 @@ export function ClientAreaHeader({
             : 'flex items-center justify-end gap-2 sm:gap-3 shrink-0'
         }
       >
+        {/* Service Cart */}
+        {serviceCart && serviceCart.lineCount > 0 ? (
+          <button
+            type="button"
+            onClick={serviceCart.openSigningModal}
+            className="relative flex items-center justify-center w-10 h-10 rounded-full border border-white/10 bg-black/40 text-neutral-400 transition hover:bg-white/10 hover:text-white"
+            aria-label={`Abrir carrito de reservas, ${serviceCart.lineCount} ítems`}
+          >
+            <FiShoppingCart size={20} />
+            <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 text-[10px] font-bold text-black ring-2 ring-black tabular-nums">
+              {serviceCart.lineCount > 9 ? '+9' : serviceCart.lineCount}
+            </span>
+          </button>
+        ) : null}
+
         {/* Notifications Bell */}
         <div className="relative" ref={bellWrapRef}>
           <button
@@ -148,7 +163,7 @@ export function ClientAreaHeader({
           </button>
 
           {panelOpen && (
-            <div className="absolute right-0 top-full z-40 mt-3 w-80 rounded-2xl border border-white/10 bg-[#0c0e12] p-1.5 shadow-[0_16px_48px_rgba(0,0,0,0.6)] backdrop-blur-xl">
+            <div className="absolute right-0 top-full z-40 mt-3 w-[min(20rem,calc(100vw-2rem))] max-w-[calc(100vw-2rem)] rounded-2xl border border-white/10 bg-[#0c0e12] p-1.5 shadow-[0_16px_48px_rgba(0,0,0,0.6)] backdrop-blur-xl">
               <div className="flex items-center justify-between px-3 py-2">
                 <span className="text-xs font-bold uppercase tracking-wider text-neutral-500">
                   Notificaciones

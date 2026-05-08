@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   FiCheck,
+  FiCpu,
   FiEdit3,
   FiEye,
   FiFileText,
@@ -11,6 +12,7 @@ import {
 } from 'react-icons/fi';
 import { Button } from '../Button';
 import { Link } from 'react-router-dom';
+import { acquireBodyScrollLock } from '../../helpers/bodyScrollLock';
 
 export type ContractSigningParty = {
   roleLabel: string;
@@ -36,6 +38,7 @@ export type ClientContractSigningModalProps = {
   clientParty: ContractSigningParty;
   summary: ContractSummaryFields;
   onViewContract?: () => void;
+  onViewTechnicalRider?: () => void;
   /** Called with PNG data URL when the user confirms signature and terms. */
   onSign?: (payload: { dataUrl: string; acceptedTerms: boolean }) => void | Promise<void>;
 };
@@ -76,6 +79,7 @@ export function ClientContractSigningModal({
   clientParty,
   summary,
   onViewContract,
+  onViewTechnicalRider,
   onSign,
 }: ClientContractSigningModalProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -148,6 +152,12 @@ export function ClientContractSigningModal({
       window.removeEventListener('resize', fitCanvasToContainer);
     };
   }, [isOpen, fitCanvasToContainer]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const release = acquireBodyScrollLock();
+    return release;
+  }, [isOpen]);
 
   const canvasCoords = (e: React.PointerEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
@@ -260,19 +270,28 @@ export function ClientContractSigningModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 sm:p-6"
+      className={
+        'fixed inset-0 z-[80] flex items-end justify-center bg-black/75 ' +
+        'pt-[max(0.25rem,env(safe-area-inset-top,0px))] sm:items-center sm:bg-black/70 sm:p-6'
+      }
       role="dialog"
       aria-modal="true"
       aria-labelledby="contract-signing-title"
     >
       <div
-        className={`w-full max-w-3xl xl:max-w-4xl max-h-[min(92vh,900px)] overflow-y-auto rounded-3xl border border-[#00CCCB]/35 bg-[#111214] p-6 md:p-8 ${subtleScrollbarClass}`}
+        className={
+          `w-full max-w-3xl max-h-[min(96dvh,900px)] overflow-y-auto overscroll-y-contain border-[#00CCCB]/35 bg-[#111214] ` +
+          `rounded-t-2xl border-x border-t border-b-0 shadow-[0_-8px_40px_rgba(0,0,0,0.35)] ` +
+          `px-4 pb-[max(1rem,env(safe-area-inset-bottom,0px))] pt-4 xl:max-w-4xl ` +
+          `sm:max-h-[min(92dvh,900px)] sm:rounded-3xl sm:border sm:shadow-none sm:p-6 md:p-8 ` +
+          `${subtleScrollbarClass}`
+        }
       >
         <div className="flex justify-end">
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full border border-white/20 p-2.5 text-white/70 transition hover:text-white"
+            className="touch-manipulation inline-flex min-h-11 min-w-11 items-center justify-center rounded-full border border-white/20 p-2.5 text-white/70 transition hover:text-white active:opacity-90"
             aria-label="Cerrar"
           >
             <FiX className="h-6 w-6" />
@@ -280,27 +299,27 @@ export function ClientContractSigningModal({
         </div>
 
         <div className="-mt-2 flex flex-col items-center text-center">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#00CCCB]/15 text-[#00CCCB] md:h-16 md:w-16">
-            <FiFileText className="h-7 w-7 md:h-8 md:w-8" />
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#00CCCB]/15 text-[#00CCCB] sm:h-14 sm:w-14 md:h-16 md:w-16">
+            <FiFileText className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8" />
           </div>
           <h2
             id="contract-signing-title"
-            className="mt-4 text-2xl font-semibold tracking-tight text-white md:text-3xl"
+            className="mt-3 text-xl font-semibold tracking-tight text-white sm:mt-4 sm:text-2xl md:text-3xl"
           >
             Firma de contrato
           </h2>
-          <p className="mt-2 max-w-md text-base text-white/60 md:text-lg">
+          <p className="mt-2 max-w-md px-1 text-sm leading-relaxed text-white/60 sm:text-base md:text-lg">
             Revisa los detalles y firma para confirmar el acuerdo
           </p>
         </div>
 
-        <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-6 md:px-7 md:py-7">
-          <div className="flex items-start justify-between gap-3 md:gap-4">
-            <div className="flex flex-1 flex-col items-center gap-2.5 text-center">
+        <div className="mt-5 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-5 sm:mt-6 sm:rounded-2xl sm:px-5 sm:py-6 md:px-7 md:py-7">
+          <div className="flex flex-col items-stretch gap-5 sm:flex-row sm:items-start sm:justify-between sm:gap-4 md:gap-4">
+            <div className="flex flex-1 flex-col items-center gap-2 text-center sm:gap-2.5">
               <PartyAvatar party={artistParty} />
-              <p className="text-sm text-white/50">{artistParty.roleLabel}</p>
-              <p className="text-base font-medium text-white md:text-lg">{artistParty.name}</p>
-              <div className="flex items-center gap-1.5 text-sm text-emerald-400">
+              <p className="text-xs text-white/50 sm:text-sm">{artistParty.roleLabel}</p>
+              <p className="text-sm font-medium text-white sm:text-base md:text-lg">{artistParty.name}</p>
+              <div className="flex items-center gap-1.5 text-xs text-emerald-400 sm:text-sm">
                 {artistParty.signed ? (
                   <>
                     <FiCheck className="h-4 w-4" />
@@ -312,19 +331,30 @@ export function ClientContractSigningModal({
               </div>
             </div>
 
-            <div className="flex flex-shrink-0 flex-col items-center px-1 pt-2">
-              <div className="hidden h-px w-full border-t border-dashed border-white/20 sm:block sm:w-12" />
+            <div className="hidden flex-shrink-0 flex-col items-center px-1 pt-2 sm:flex">
+              <div className="h-px w-12 border-t border-dashed border-white/20" />
               <div className="my-1.5 flex h-12 w-12 items-center justify-center rounded-xl bg-[#00CCCB]/15 text-[#00CCCB] md:h-14 md:w-14">
                 <FiEdit3 className="h-6 w-6" />
               </div>
-              <div className="hidden h-px w-full border-t border-dashed border-white/20 sm:block sm:w-12" />
+              <div className="h-px w-12 border-t border-dashed border-white/20" />
             </div>
 
-            <div className="flex flex-1 flex-col items-center gap-2.5 text-center">
+            <div
+              className="flex items-center justify-center gap-3 py-1 sm:hidden"
+              aria-hidden
+            >
+              <span className="h-px min-w-[2.5rem] flex-1 border-t border-dashed border-white/20" />
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#00CCCB]/15 text-[#00CCCB]">
+                <FiEdit3 className="h-5 w-5" />
+              </div>
+              <span className="h-px min-w-[2.5rem] flex-1 border-t border-dashed border-white/20" />
+            </div>
+
+            <div className="flex flex-1 flex-col items-center gap-2 text-center sm:gap-2.5">
               <PartyAvatar party={clientParty} />
-              <p className="text-sm text-white/50">{clientParty.roleLabel}</p>
-              <p className="text-base font-medium text-white md:text-lg">{clientParty.name}</p>
-              <div className="flex items-center gap-1.5 text-sm text-emerald-400">
+              <p className="text-xs text-white/50 sm:text-sm">{clientParty.roleLabel}</p>
+              <p className="text-sm font-medium text-white sm:text-base md:text-lg">{clientParty.name}</p>
+              <div className="flex items-center gap-1.5 text-xs text-emerald-400 sm:text-sm">
                 {clientParty.signed ? (
                   <>
                     <FiCheck className="h-4 w-4" />
@@ -338,7 +368,7 @@ export function ClientContractSigningModal({
           </div>
         </div>
 
-        <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.04] p-5 md:p-7">
+        <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.04] p-4 sm:mt-5 sm:rounded-2xl sm:p-5 md:p-7">
           <div className="mb-4 flex items-center gap-2.5 text-white">
             <FiFileText className="h-5 w-5 shrink-0 text-[#00CCCB] md:h-6 md:w-6" />
             <span className="text-base font-semibold md:text-lg">Resumen del contrato</span>
@@ -370,28 +400,45 @@ export function ClientContractSigningModal({
             </div>
           </div>
 
-          <div className="mt-5 flex flex-col gap-3 rounded-xl border border-white/10 bg-black/20 px-4 py-4 sm:flex-row sm:items-center sm:justify-between md:px-5 md:py-4">
-            <p className="text-sm text-white/55 md:text-base">
+          <div className="mt-4 flex flex-col gap-3 rounded-xl border border-white/10 bg-black/20 px-3 py-3.5 sm:mt-5 sm:flex-row sm:items-center sm:justify-between sm:px-4 sm:py-4 md:px-5 md:py-4">
+            <p className="text-xs leading-relaxed text-white/55 sm:text-sm md:text-base">
               Al firmar, aceptas los términos y condiciones del contrato
             </p>
-            {onViewContract ? (
-              <Button
-                type="button"
-                variant="secondary"
-                className="shrink-0 py-2.5 text-sm md:py-3 md:text-base"
-                onClick={onViewContract}
-              >
-                <FiEye className="h-4 w-4 md:h-5 md:w-5" />
-                Ver contrato
-              </Button>
+            {onViewContract || onViewTechnicalRider ? (
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch sm:gap-2.5">
+                {onViewContract ? (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="touch-manipulation min-h-12 shrink-0 justify-center py-2.5 text-sm sm:py-2.5 md:py-3 md:text-base"
+                    onClick={onViewContract}
+                  >
+                    <FiEye className="h-4 w-4 md:h-5 md:w-5" />
+                    Ver contrato
+                  </Button>
+                ) : null}
+                {onViewTechnicalRider ? (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="touch-manipulation min-h-12 shrink-0 justify-center px-4 py-2.5 text-xs sm:text-sm md:px-4 md:py-2.5"
+                    onClick={onViewTechnicalRider}
+                  >
+                    <FiCpu className="h-3.5 w-3.5 md:h-4 md:w-4" />
+                    Rider técnico
+                  </Button>
+                ) : null}
+              </div>
             ) : null}
           </div>
         </div>
 
-        <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.04] p-5 md:p-7">
-          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <span className="text-base font-semibold text-white md:text-lg">Tu firma electrónica</span>
-            <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-[#00CCCB]/40 bg-[#00CCCB]/10 px-4 py-2 text-sm font-medium text-[#00CCCB] hover:bg-[#00CCCB]/15 md:px-5 md:py-2.5 md:text-base">
+        <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.04] p-4 sm:mt-5 sm:rounded-2xl sm:p-5 md:p-7">
+          <div className="mb-3 flex flex-col gap-3 sm:mb-4 sm:flex-row sm:items-center sm:justify-between">
+            <span className="text-sm font-semibold text-white sm:text-base md:text-lg">
+              Tu firma electrónica
+            </span>
+            <label className="flex min-h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-[#00CCCB]/40 bg-[#00CCCB]/10 px-4 py-3 text-sm font-medium text-[#00CCCB] transition hover:bg-[#00CCCB]/15 touch-manipulation sm:inline-flex sm:w-auto sm:justify-start sm:py-2.5 md:px-5 md:text-base">
               <FiUpload className="h-4 w-4 shrink-0 md:h-5 md:w-5" />
               Subir firma (PNG/JPG)
               <input
@@ -405,7 +452,7 @@ export function ClientContractSigningModal({
 
           <div
             ref={wrapRef}
-            className="relative h-44 w-full overflow-hidden rounded-xl border border-white/15 md:h-52"
+            className="relative h-52 w-full min-h-[13rem] overflow-hidden rounded-xl border border-white/15 sm:h-44 md:h-52"
           >
             <canvas
               ref={canvasRef}
@@ -426,20 +473,20 @@ export function ClientContractSigningModal({
           <button
             type="button"
             onClick={clearSignature}
-            className="mt-3 inline-flex items-center gap-2 text-sm font-medium text-[#00CCCB] hover:underline md:text-base"
+            className="mt-3 inline-flex min-h-11 touch-manipulation items-center gap-2 py-1 text-sm font-medium text-[#00CCCB] hover:underline md:text-base"
           >
             <FiRefreshCw className="h-4 w-4" />
             Limpiar firma
           </button>
 
-          <label className="mt-5 flex cursor-pointer items-start gap-3 text-base text-white/80 md:text-lg">
+          <label className="mt-4 flex min-h-[3rem] cursor-pointer items-start gap-3 rounded-lg py-1 text-sm leading-snug text-white/80 touch-manipulation sm:mt-5 sm:text-base md:text-lg">
             <input
               type="checkbox"
               checked={termsAccepted}
               onChange={(e) => setTermsAccepted(e.target.checked)}
-              className="mt-1 h-5 w-5 shrink-0 rounded border-white/30 bg-transparent accent-[#00CCCB]"
+              className="mt-0.5 h-6 w-6 shrink-0 rounded border-white/30 bg-transparent accent-[#00CCCB] sm:mt-1 sm:h-5 sm:w-5"
             />
-            <span>
+            <span className="pt-0.5">
               Acepto los{' '}
               <Link
                 to="/terms-contract"
@@ -453,12 +500,12 @@ export function ClientContractSigningModal({
           </label>
         </div>
 
-        <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:gap-4">
+        <div className="mt-5 flex flex-col gap-3 sm:mt-7 sm:flex-row sm:gap-4">
           <Button
             type="button"
             variant="outline"
             fullWidth
-            className="border-[#00CCCB]/50 py-3 text-base md:py-3.5 md:text-lg"
+            className="touch-manipulation min-h-12 border-[#00CCCB]/50 py-3 text-base sm:min-h-0 md:py-3.5 md:text-lg"
             onClick={onClose}
           >
             Cancelar
@@ -468,7 +515,7 @@ export function ClientContractSigningModal({
             fullWidth
             loading={signing}
             disabled={!hasSignature || !termsAccepted || !onSign}
-            className="py-3 text-base md:py-3.5 md:text-lg"
+            className="touch-manipulation min-h-12 py-3 text-base sm:min-h-0 md:py-3.5 md:text-lg"
             onClick={() => void handleSign()}
             leftIcon={<FiEdit3 className="h-5 w-5" />}
           >
@@ -476,12 +523,12 @@ export function ClientContractSigningModal({
           </Button>
         </div>
 
-        <p className="mt-5 flex items-center justify-center gap-2 text-center text-sm text-white/45 md:text-base">
-          <FiLock className="h-4 w-4 shrink-0 text-white/35 md:h-5 md:w-5" />
+        <p className="mt-4 flex items-start justify-center gap-2 px-1 text-center text-xs leading-relaxed text-white/45 sm:mt-5 sm:items-center sm:text-sm md:text-base">
+          <FiLock className="mt-0.5 h-4 w-4 shrink-0 text-white/35 sm:mt-0 md:h-5 md:w-5" />
           Documento seguro y legalmente vinculable
         </p>
 
-        <div className="mt-5 rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-4 text-sm leading-relaxed text-emerald-100/90 md:px-5 md:py-4 md:text-base">
+        <div className="mt-4 rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-3 py-3 text-xs leading-relaxed text-emerald-100/90 sm:mt-5 sm:rounded-xl sm:px-4 sm:py-4 sm:text-sm md:px-5 md:text-base">
           <div className="flex gap-3">
             <FiCheck className="mt-0.5 h-5 w-5 shrink-0 text-emerald-400 md:h-6 md:w-6" />
             <p>

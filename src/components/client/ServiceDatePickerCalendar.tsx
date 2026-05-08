@@ -104,51 +104,51 @@ export function ServiceDatePickerCalendar({
   return (
     <div
       className={
-        'rounded-3xl border border-[#00d4c8]/20 bg-gradient-to-b from-white/[0.05] via-[#0a0c0f] to-black/55 ' +
-        'p-6 shadow-[0_0_36px_rgba(0,212,200,0.08)] sm:p-7 lg:p-8'
+        'rounded-2xl border border-[#00d4c8]/20 bg-gradient-to-b from-white/[0.05] via-[#0a0c0f] to-black/55 shadow-[0_0_36px_rgba(0,212,200,0.08)] ' +
+        'p-4 sm:rounded-3xl sm:p-7 lg:p-8'
       }
       style={{ boxShadow: '0 0 32px rgba(0, 212, 200, 0.07), inset 0 1px 0 rgba(255,255,255,0.04)' }}
     >
-      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-center text-xs font-semibold uppercase tracking-[0.12em] text-neutral-500 sm:text-left">
+      <div className="mb-4 flex flex-col gap-2.5 sm:mb-5 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+        <p className="text-center text-[11px] font-semibold uppercase tracking-[0.12em] text-neutral-500 sm:text-left sm:text-xs">
           Calendario
         </p>
-        <div className="flex items-center justify-center gap-1 self-center rounded-2xl border border-white/10 bg-black/40 px-2 py-2 sm:self-end">
+        <div className="flex min-w-0 max-w-full items-center justify-center gap-0.5 self-stretch rounded-xl border border-white/10 bg-black/40 px-1 py-1.5 sm:gap-1 sm:self-end sm:rounded-2xl sm:px-2 sm:py-2">
           <button
             type="button"
             onClick={goPrevMonth}
             disabled={!canGoPrev}
-            className="rounded-xl p-2.5 text-neutral-300 transition hover:bg-white/10 hover:text-[#00d4c8] disabled:cursor-not-allowed disabled:opacity-25 disabled:hover:bg-transparent disabled:hover:text-neutral-300"
+            className="touch-manipulation rounded-lg p-2.5 text-neutral-300 transition hover:bg-white/10 hover:text-[#00d4c8] disabled:cursor-not-allowed disabled:opacity-25 disabled:hover:bg-transparent disabled:hover:text-neutral-300 sm:rounded-xl"
             aria-label="Mes anterior"
           >
-            <FiChevronLeft size={22} />
+            <FiChevronLeft size={22} className="max-[380px]:h-5 max-[380px]:w-5" />
           </button>
-          <span className="min-w-[10rem] text-center text-base font-semibold text-neutral-100 sm:min-w-[12rem] sm:text-lg">
+          <span className="min-w-0 flex-1 truncate text-center text-[13px] font-semibold leading-tight text-neutral-100 sm:min-w-[10rem] sm:flex-none sm:text-base lg:min-w-[12rem] lg:text-lg">
             {formatMonthYearLabel(viewYear, viewMonth)}
           </span>
           <button
             type="button"
             onClick={goNextMonth}
-            className="rounded-xl p-2.5 text-neutral-300 transition hover:bg-white/10 hover:text-[#00d4c8]"
+            className="touch-manipulation rounded-lg p-2.5 text-neutral-300 transition hover:bg-white/10 hover:text-[#00d4c8] sm:rounded-xl"
             aria-label="Mes siguiente"
           >
-            <FiChevronRight size={22} />
+            <FiChevronRight size={22} className="max-[380px]:h-5 max-[380px]:w-5" />
           </button>
         </div>
       </div>
 
       {selectedSummary ? (
-        <div className="mb-5 rounded-2xl border border-white/[0.08] bg-black/30 px-4 py-3.5 sm:px-6 sm:py-4 text-sm sm:text-base">
+        <div className="mb-4 rounded-xl border border-white/[0.08] bg-black/30 px-3 py-3 text-sm sm:mb-5 sm:rounded-2xl sm:px-6 sm:py-4 sm:text-base">
           {selectedSummary}
         </div>
       ) : null}
 
-      <div className="overflow-hidden rounded-2xl border border-white/10 bg-black/25">
-        <div className="grid grid-cols-7 gap-px bg-white/[0.08]">
+      <div className="overflow-x-auto overflow-y-hidden rounded-xl border border-white/10 bg-black/25 [-webkit-overflow-scrolling:touch] sm:overflow-hidden sm:rounded-2xl">
+        <div className="grid min-w-[280px] grid-cols-7 gap-px bg-white/[0.08] sm:min-w-0">
           {WEEKDAYS_ES.map((d) => (
             <div
               key={d}
-              className="bg-[#080a0c] px-0.5 py-3 text-center text-[11px] font-bold tracking-wide text-neutral-500 sm:py-3.5 sm:text-xs lg:text-sm"
+              className="bg-[#080a0c] px-0.5 py-2.5 text-center text-[9px] font-bold leading-tight tracking-wide text-neutral-500 max-[380px]:px-0 sm:py-3.5 sm:text-[11px] sm:text-xs lg:text-sm"
             >
               {d}
             </div>
@@ -165,7 +165,8 @@ export function ServiceDatePickerCalendar({
             const muted = !cell.inMonth;
 
             const baseCell =
-              'relative min-h-[52px] bg-[#080a0c] px-0.5 py-2.5 text-[15px] font-semibold tabular-nums transition sm:min-h-[58px] sm:text-base lg:min-h-[64px] lg:text-lg flex flex-col items-center justify-center gap-0.5';
+              'relative flex min-h-[48px] flex-col items-center justify-center gap-0.5 bg-[#080a0c] px-0.5 py-1.5 text-sm font-semibold tabular-nums transition ' +
+              'touch-manipulation sm:min-h-[58px] sm:py-2.5 sm:text-base lg:min-h-[64px] lg:text-lg';
 
             let extra = '';
             let dot: string | null = null;
@@ -218,7 +219,7 @@ export function ServiceDatePickerCalendar({
 
       {/* Legend — only shown when availability data is available */}
       {hasAvailabilityData && (
-        <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 px-1 text-xs text-neutral-500">
+        <div className="mt-3 flex flex-col gap-2 px-0.5 text-[11px] text-neutral-500 sm:mt-4 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-4 sm:gap-y-2 sm:px-1 sm:text-xs">
           <span className="flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full bg-[#00d4c8]" />
             Disponible

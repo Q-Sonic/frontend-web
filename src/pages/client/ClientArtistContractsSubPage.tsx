@@ -95,10 +95,10 @@ export function ClientArtistContractsSubPage() {
       />
 
       <section className="space-y-4">
-        <h2 className="text-lg sm:text-xl md:text-2xl font-bold tracking-tight text-white break-words pr-1">
+        <h2 className="text-base font-bold tracking-tight text-white break-words pr-1 sm:text-lg md:text-2xl">
           Contratos disponibles
         </h2>
-        <p className="text-sm text-neutral-400 max-w-3xl leading-relaxed [text-wrap:pretty]">
+        <p className="max-w-3xl text-[15px] leading-relaxed text-neutral-400 [text-wrap:pretty] sm:text-sm">
           Descarga el PDF de cada contrato y revisa qué servicios del artista lo utilizan.
         </p>
         <ArtistProfileDocumentsServicesTable

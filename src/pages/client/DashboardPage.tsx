@@ -103,16 +103,22 @@ export function DashboardPage() {
         <ClientAreaHeader searchValue={search} onSearchChange={setSearch} />
 
         <section className="pt-2 pb-6">
-          <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">
+          <h1 className="text-xl font-bold tracking-tight text-white sm:text-2xl md:text-3xl">
             Encuentra artistas para tu evento
           </h1>
-          <p className="mt-2 text-sm md:text-base text-neutral-500">
+          <p className="mt-2 text-sm text-neutral-500 md:text-base">
             Explora cantantes disponibles cerca de ti, incluidos los artistas que se acaban de unir.
           </p>
           {unpaidContracts > 0 ? (
-            <div className="mt-4 rounded-xl border border-amber-300/35 bg-amber-400/10 p-3 text-sm text-amber-100">
-              Tienes {unpaidContracts} contrato{unpaidContracts === 1 ? '' : 's'} pendiente{unpaidContracts === 1 ? '' : 's'} de pago.
-              <Link to="/client/contracts" className="ml-2 font-semibold underline">
+            <div className="mt-4 flex flex-col gap-2 rounded-xl border border-amber-300/35 bg-amber-400/10 p-3 text-sm text-amber-100 sm:flex-row sm:flex-wrap sm:items-center">
+              <span>
+                Tienes {unpaidContracts} contrato{unpaidContracts === 1 ? '' : 's'} pendiente
+                {unpaidContracts === 1 ? '' : 's'} de pago.
+              </span>
+              <Link
+                to="/client/contracts"
+                className="inline-flex min-h-[44px] items-center justify-center rounded-lg font-semibold underline decoration-amber-200/80 underline-offset-2 transition-colors hover:text-white sm:min-h-0 sm:justify-start"
+              >
                 Ir a pagar
               </Link>
             </div>

@@ -23,13 +23,15 @@ export function ArtistProfileSectionTitle({
 
   if (editAfterTitle) {
     return (
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
         <div className="flex min-w-0 items-center gap-2">
-          <h2 className="shrink-0 text-3xl font-bold tracking-tight text-white">{title}</h2>
+          <h2 className="min-w-0 text-2xl font-bold tracking-tight text-white break-words sm:text-3xl">
+            {title}
+          </h2>
           {editButton}
         </div>
         {asideContent != null ? (
-          <div className="flex shrink-0 items-center gap-3">{asideContent}</div>
+          <div className="flex shrink-0 items-center gap-3 sm:justify-end">{asideContent}</div>
         ) : null}
       </div>
     );
@@ -38,8 +40,10 @@ export function ArtistProfileSectionTitle({
   const hasRight = asideContent != null || onClick != null;
 
   return (
-    <div className="flex items-center justify-between gap-3">
-      <h2 className="text-3xl font-bold text-white tracking-tight">{title}</h2>
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+      <h2 className="min-w-0 text-2xl font-bold tracking-tight text-white break-words sm:text-3xl">
+        {title}
+      </h2>
       {hasRight ? (
         <div className="flex shrink-0 items-center gap-3">
           {asideContent}

@@ -19,9 +19,11 @@ export function ArtistGalleryFilterTabs({
   resultCount,
 }: GalleryFilterTabsProps) {
   return (
-    <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+    <div className="flex w-full flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
       <div
-        className="inline-flex max-w-full min-w-0 items-center gap-1 overflow-x-auto rounded-full p-1.5 shadow-inner"
+        role="tablist"
+        aria-label="Filtrar galería"
+        className="inline-flex max-w-full min-w-0 snap-x snap-mandatory items-center gap-1 overflow-x-auto overscroll-x-contain rounded-full p-1.5 pb-2 shadow-inner [-webkit-overflow-scrolling:touch] sm:pb-1.5"
         style={{
           backgroundColor: '#d2d5da',
           boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.55), inset 0 -1px 0 rgba(0,0,0,0.06)',
@@ -33,8 +35,10 @@ export function ArtistGalleryFilterTabs({
             <button
               key={option.key}
               type="button"
+              role="tab"
+              aria-selected={active}
               onClick={() => onChange(option.key)}
-              className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold tracking-tight transition ${
+              className={`touch-manipulation snap-start min-h-[44px] whitespace-nowrap rounded-full px-3.5 py-2.5 text-sm font-semibold tracking-tight transition sm:min-h-0 sm:px-4 sm:py-2 ${
                 active
                   ? 'bg-[#0a0a0a] text-white shadow-[0_1px_2px_rgba(0,0,0,0.25)]'
                   : 'text-neutral-800/90 hover:text-neutral-950 hover:bg-black/[0.06]'
@@ -46,7 +50,7 @@ export function ArtistGalleryFilterTabs({
         })}
       </div>
       {resultCount != null ? (
-        <p className="shrink-0 text-sm font-medium text-white/55 tabular-nums sm:pl-2">
+        <p className="shrink-0 text-xs font-medium text-white/55 tabular-nums sm:pl-2 sm:text-sm">
           Mostrar {resultCount} resultados
         </p>
       ) : null}

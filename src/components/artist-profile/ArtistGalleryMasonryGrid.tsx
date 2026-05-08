@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { FiX } from 'react-icons/fi';
 import { useAuth } from '../../contexts/AuthContext';
 import {
   isUnsignedGoogleStorageObjectUrl,
@@ -21,14 +23,15 @@ function getMediaTypeBadge(type: ArtistMediaItem['type']) {
  * Multi-column flow: each tile keeps the media’s natural aspect ratio (no fixed grid spans).
  * Avoids “holes” from mismatched row/column spans and distortion from object-cover in arbitrary cells.
  */
+/** Single column on narrow phones; 2+ cols from ~420px for readability and tap targets. */
 const masonryShell =
-  'columns-2 [column-fill:balance] [column-gap:0.625rem] sm:columns-3 sm:[column-gap:0.75rem] lg:columns-4';
+  'columns-1 min-[420px]:columns-2 [column-fill:balance] [column-gap:0.75rem] sm:columns-3 sm:[column-gap:0.75rem] lg:columns-4';
 
 /** Same hover / chrome as `ArtistProfileRiderCard` and `ArtistServiceCard` (cyan border + lift + glow). */
 const galleryTileCardBase =
-  'group relative w-full break-inside-avoid overflow-hidden rounded-3xl border border-[#00d4c8]/20 bg-white/[0.04] ' +
-  'transition-all duration-300 mb-2.5 sm:mb-3 ' +
-  'hover:z-10 hover:-translate-y-1 hover:border-[#00d4c8]/50 hover:shadow-[0_0_24px_rgba(0,212,200,0.35)]';
+  'group relative w-full break-inside-avoid overflow-hidden rounded-2xl border border-[#00d4c8]/20 bg-white/[0.04] sm:rounded-3xl ' +
+  'touch-manipulation transition-all duration-300 mb-3 ' +
+  'hover:z-10 hover:-translate-y-1 hover:border-[#00d4c8]/50 hover:shadow-[0_0_24px_rgba(0,212,200,0.35)] active:opacity-95';
 
 const EAGER_IMAGE_COUNT = 14;
 
@@ -142,7 +145,7 @@ function MediaFill({
       <video
         ref={videoPreviewRef}
         src={displaySrc}
-        className="mx-auto block h-auto w-full max-h-[min(85vh,520px)] bg-black object-contain object-center"
+        className="mx-auto block h-auto w-full max-h-[min(78vh,480px)] bg-black object-contain object-center min-[420px]:max-h-[min(85vh,520px)]"
         muted
         playsInline
         preload={gridIndex < EAGER_IMAGE_COUNT ? 'auto' : 'metadata'}
@@ -190,14 +193,19 @@ function TileFooter({ item }: { item: ArtistMediaItem }) {
   );
 }
 
+/** Portal + high z-index: lightbox must sit above layout chrome (e.g. mobile menu z-[55], cart FAB z-[35]). */
 const lightboxBackdropClass =
-  'fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4 backdrop-blur-[2px] sm:bg-black/45 sm:p-6';
+  'fixed inset-0 z-[140] flex items-center justify-center bg-black/55 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-[max(0.75rem,env(safe-area-inset-top))] backdrop-blur-[2px] sm:bg-black/45 sm:p-6';
 
 function MediaLightbox({ item, onClose }: { item: ArtistMediaItem; onClose: () => void }) {
   const displaySrc = resolveArtistProfileMediaUrl(item.url);
   const title = item.name || 'Sin título';
 
-  return (
+  if (typeof document === 'undefined') {
+    return null;
+  }
+
+  return createPortal(
     <div
       className={lightboxBackdropClass}
       role="dialog"
@@ -205,6 +213,21 @@ function MediaLightbox({ item, onClose }: { item: ArtistMediaItem; onClose: () =
       aria-label={title}
       onClick={onClose}
     >
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onClose();
+        }}
+        className={
+          'lg:hidden touch-manipulation absolute right-[max(0.65rem,env(safe-area-inset-right))] top-[max(0.65rem,env(safe-area-inset-top))] z-[141] flex h-11 w-11 ' +
+          'items-center justify-center rounded-xl border border-white/20 bg-black/65 text-white shadow-lg backdrop-blur-sm ' +
+          'transition hover:border-[#00d4c8]/45 hover:bg-black/80 active:opacity-90'
+        }
+        aria-label="Cerrar vista"
+      >
+        <FiX size={22} strokeWidth={2} aria-hidden />
+      </button>
       {item.type === 'image' && (
         <div
           className="relative max-h-[min(92vh,900px)] max-w-[min(96vw,1200px)]"
@@ -248,7 +271,8 @@ function MediaLightbox({ item, onClose }: { item: ArtistMediaItem; onClose: () =
           </audio>
         </div>
       )}
-    </div>
+    </div>,
+    document.body,
   );
 }
 
