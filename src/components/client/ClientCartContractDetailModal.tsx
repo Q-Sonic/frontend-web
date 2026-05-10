@@ -1,7 +1,9 @@
-import { useMemo } from 'react';
-import { FiCheck, FiX } from 'react-icons/fi';
+import { useEffect, useMemo } from 'react';
+import { FiCheck, FiCpu, FiEye, FiX } from 'react-icons/fi';
 import { formatMoney } from '../../helpers/money';
+import { acquireBodyScrollLock } from '../../helpers/bodyScrollLock';
 import type { ServiceCartLine } from '../../helpers/clientServiceCart';
+import { Button } from '../Button';
 
 const subtleScrollbarClass =
   'scrollbar-thin [scrollbar-color:rgba(255,255,255,0.20)_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/20 hover:[&::-webkit-scrollbar-thumb]:bg-white/30';
@@ -112,6 +114,51 @@ function CheckList({ title, items }: { title: string; items: string[] }) {
   );
 }
 
+function openPdfInNewTab(url: string) {
+  window.open(url, '_blank', 'noopener,noreferrer');
+}
+
+function DocumentsSection({
+  contractPdfUrl,
+  technicalRiderPdfUrl,
+}: {
+  contractPdfUrl?: string;
+  technicalRiderPdfUrl?: string;
+}) {
+  const hasContract = Boolean(contractPdfUrl?.trim());
+  const hasRider = Boolean(technicalRiderPdfUrl?.trim());
+  if (!hasContract && !hasRider) return null;
+  return (
+    <div className="border-t border-white/10 pt-5 pb-6">
+      <h3 className="text-sm font-semibold text-[#00CCCB] md:text-base">Documentos</h3>
+      <div className="mt-3 flex flex-col items-center justify-center gap-2 sm:flex-row sm:gap-2.5">
+        {hasContract ? (
+          <Button
+            type="button"
+            variant="secondary"
+            className="touch-manipulation min-h-12 w-full shrink-0 justify-center px-4 py-3 text-sm sm:w-auto md:px-4 md:text-sm"
+            onClick={() => openPdfInNewTab(contractPdfUrl!)}
+          >
+            <FiEye className="h-3.5 w-3.5 md:h-4 md:w-4" />
+            Ver contrato
+          </Button>
+        ) : null}
+        {hasRider ? (
+          <Button
+            type="button"
+            variant="secondary"
+            className="touch-manipulation min-h-12 w-full shrink-0 justify-center px-4 py-3 text-sm sm:w-auto md:px-4 md:text-sm"
+            onClick={() => openPdfInNewTab(technicalRiderPdfUrl!)}
+          >
+            <FiCpu className="h-3.5 w-3.5 md:h-4 md:w-4" />
+            Rider técnico
+          </Button>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 /** Highlights known tokens like "48h" or "requerido" in teal. */
 function ConditionLine({ text }: { text: string }) {
   if (text.includes('48h')) {
@@ -165,6 +212,11 @@ export function ClientCartContractDetailModal({ isOpen, line, onClose }: ClientC
 
   const sortedDateKeys = useMemo(() => (line ? [...line.selectedDateKeys].sort() : []), [line]);
 
+  useEffect(() => {
+    if (!isOpen || !line) return;
+    return acquireBodyScrollLock();
+  }, [isOpen, line]);
+
   const primaryDateLabel = useMemo(() => {
     if (sortedDateKeys.length === 0) return '—';
     if (sortedDateKeys.length === 1) return formatDateKeyEsLong(sortedDateKeys[0]!);
@@ -178,23 +230,32 @@ export function ClientCartContractDetailModal({ isOpen, line, onClose }: ClientC
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-4 sm:p-6"
+      className={
+        'fixed inset-0 z-[90] flex items-end justify-center bg-black/85 ' +
+        'pt-[max(0.25rem,env(safe-area-inset-top,0px))] sm:items-center sm:bg-black/80 sm:p-6'
+      }
       role="dialog"
       aria-modal="true"
       aria-labelledby="cart-contract-detail-title"
-      onMouseDown={(e) => {
+      onPointerDown={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
       <div
-        className={`w-full max-w-lg max-h-[min(90vh,820px)] overflow-y-auto rounded-3xl border border-[#00CCCB]/40 bg-[#0f1012] p-5 shadow-2xl md:p-7 ${subtleScrollbarClass}`}
-        onMouseDown={(e) => e.stopPropagation()}
+        className={
+          `max-h-[min(96dvh,820px)] w-full max-w-lg overflow-y-auto overscroll-y-contain border-[#00CCCB]/40 bg-[#0f1012] shadow-2xl ` +
+          `rounded-t-2xl border-x border-t border-b-0 px-4 pb-[max(1rem,env(safe-area-inset-bottom,0px))] pt-4 ` +
+          `max-md:mx-auto max-md:max-w-[calc(100vw-1.25rem)] ` +
+          `sm:max-h-[min(90dvh,820px)] sm:rounded-3xl sm:border sm:p-5 md:p-7 ` +
+          `${subtleScrollbarClass}`
+        }
+        onPointerDown={(e) => e.stopPropagation()}
       >
         <div className="flex justify-end">
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full border border-white/20 p-2 text-white/70 transition hover:text-white"
+            className="touch-manipulation inline-flex min-h-11 min-w-11 items-center justify-center rounded-full border border-white/20 p-2 text-white/70 transition hover:text-white active:opacity-90"
             aria-label="Cerrar detalle"
           >
             <FiX className="h-5 w-5" />
@@ -203,12 +264,12 @@ export function ClientCartContractDetailModal({ isOpen, line, onClose }: ClientC
 
         <h2
           id="cart-contract-detail-title"
-          className="-mt-1 text-center text-xl font-semibold tracking-tight text-white md:text-2xl"
+          className="-mt-1 text-center text-lg font-semibold tracking-tight text-white sm:text-xl md:text-2xl"
         >
           Detalle del contrato
         </h2>
 
-        <div className="mt-6 flex gap-4 border-b border-white/10 pb-6">
+        <div className="mt-5 flex gap-3 border-b border-white/10 pb-5 sm:mt-6 sm:gap-4 sm:pb-6">
           {line.artistPhotoUrl ? (
             <img
               src={line.artistPhotoUrl}
@@ -263,6 +324,11 @@ export function ClientCartContractDetailModal({ isOpen, line, onClose }: ClientC
           <MoneyRow label="Servicio:" value={`$ ${formatMoney(pricing.subtotal)} USD`} />
           <MoneyRow label="Total:" value={`$ ${formatMoney(pricing.subtotal)} USD`} emphasize />
         </div>
+
+        <DocumentsSection
+          contractPdfUrl={line.contractPdfUrl}
+          technicalRiderPdfUrl={line.technicalRiderPdfUrl}
+        />
 
         <CheckList title="Condiciones" items={conditions} />
         <CheckList title="Requerimientos" items={requirements} />

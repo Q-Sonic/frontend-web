@@ -300,7 +300,13 @@ export function ArtistProfileMainPage() {
   const heroSubtitle = profileForDisplay.city?.trim() || 'Música en vivo';
 
   return (
-    <div className="w-full mx-auto space-y-10 pb-12 p-6">
+    <div
+      className={
+        'w-full mx-auto space-y-10 pb-12 ' +
+        'pl-[max(1.5rem,env(safe-area-inset-left,0px))] pr-[max(1.5rem,env(safe-area-inset-right,0px))] ' +
+        'pt-4 sm:px-6 sm:pt-6'
+      }
+    >
       <section
         id="description"
         className="relative scroll-mt-24 -m-6 overflow-hidden bg-neutral-950 min-h-[320px] pt-16 -mb-[250px] "
@@ -601,7 +607,7 @@ export function ArtistProfileMainPage() {
         </div>
       </div>
 
-      <section id="documents" className="space-y-5 scroll-mt-24">
+      <section id="documents" className="space-y-5 scroll-mt-24 pt-2 sm:pt-4">
         <ArtistProfileSectionTitle
           title="Servicios"
           isSelfArtist={isSelfArtist}

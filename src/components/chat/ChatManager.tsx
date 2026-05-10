@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { FiSend, FiX, FiChevronLeft, FiMessageCircle, FiClock, FiAlertCircle } from 'react-icons/fi';
+import { FiSend, FiX, FiChevronLeft, FiMessageCircle, FiClock } from 'react-icons/fi';
 import { useChat } from '../../contexts/ChatContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { formatDistanceToNow } from 'date-fns';
@@ -60,7 +60,16 @@ export function ChatManager() {
   };
 
   return (
-    <div className="fixed bottom-20 right-6 z-50 w-full max-w-[360px] h-[500px] flex flex-col bg-[#0c0e12]/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300">
+    <div
+      className={
+        'fixed z-[60] flex flex-col overflow-hidden bg-[#0c0e12]/95 backdrop-blur-xl shadow-2xl ' +
+        'animate-in fade-in slide-in-from-bottom-4 duration-300 ' +
+        'max-md:left-3 max-md:right-3 max-md:top-[max(2.75rem,env(safe-area-inset-top,0px))] max-md:bottom-[max(1.25rem,env(safe-area-inset-bottom,0px))] ' +
+        'max-md:rounded-2xl max-md:border max-md:border-white/10 ' +
+        'md:bottom-[max(5rem,env(safe-area-inset-bottom,0px))] md:right-[max(1.5rem,env(safe-area-inset-right,0px))] md:left-auto md:h-[500px] md:w-full md:max-w-[360px] ' +
+        'md:rounded-2xl md:border md:border-white/10'
+      }
+    >
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-white/5 bg-white/[0.02]">
         <div className="flex items-center gap-2">
@@ -85,7 +94,7 @@ export function ChatManager() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-hidden relative">
+      <div className="min-h-0 flex-1 overflow-hidden relative">
         {showThreadsList ? (
           <div className="h-full overflow-y-auto p-2 space-y-1">
             {loadingThreads ? (
@@ -195,7 +204,7 @@ export function ChatManager() {
             {/* Input Area */}
             <form 
               onSubmit={handleSend}
-              className="p-3 border-t border-white/5 bg-white/[0.01]"
+              className="shrink-0 border-t border-white/5 bg-white/[0.01] p-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]"
             >
               <div className="relative flex items-center">
                 <input

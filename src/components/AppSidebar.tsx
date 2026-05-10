@@ -118,7 +118,7 @@ export function AppSidebar({
 
   return (
     <aside
-      className={`fixed left-0 top-0 z-40 w-64 flex flex-col h-full lg:h-screen p-4 transform transition-transform duration-200 ease-out ${
+      className={`fixed left-0 top-0 z-50 w-64 flex flex-col h-full lg:h-screen p-4 transform transition-transform duration-200 ease-out ${
         mobileOpen ? 'translate-x-0' : '-translate-x-full'
       } lg:translate-x-0 lg:z-30`}
       style={{

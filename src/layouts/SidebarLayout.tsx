@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { FiMenu } from 'react-icons/fi';
 import { AppSidebar } from '../components/AppSidebar';
 import type { SidebarMenuItem } from '../components/AppSidebar';
@@ -31,13 +31,23 @@ interface SidebarLayoutProps {
 export function SidebarLayout({ sidebar, children }: SidebarLayoutProps) {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
+  useEffect(() => {
+    if (!isMobileSidebarOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsMobileSidebarOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isMobileSidebarOpen]);
+
   return (
     <div className="min-h-screen flex overflow-x-hidden bg-surface">
       <button
         type="button"
-        onClick={() => setIsMobileSidebarOpen(true)}
-        className="lg:hidden fixed left-4 top-4 z-50 inline-flex items-center justify-center w-10 h-10 rounded-lg bg-card text-accent border border-accent/30 hover:bg-[#272727] transition-colors"
-        aria-label="Abrir menú lateral"
+        onClick={() => setIsMobileSidebarOpen((open) => !open)}
+        className="lg:hidden fixed left-[max(1rem,env(safe-area-inset-left))] top-[max(1rem,env(safe-area-inset-top))] z-[55] inline-flex h-11 w-11 touch-manipulation items-center justify-center rounded-lg border border-accent/30 bg-card text-accent transition-colors hover:bg-[#272727]"
+        aria-label={isMobileSidebarOpen ? 'Cerrar menú lateral' : 'Abrir menú lateral'}
+        aria-expanded={isMobileSidebarOpen}
       >
         <FiMenu size={20} />
       </button>
@@ -45,7 +55,7 @@ export function SidebarLayout({ sidebar, children }: SidebarLayoutProps) {
         <button
           type="button"
           onClick={() => setIsMobileSidebarOpen(false)}
-          className="lg:hidden fixed inset-0 z-30 bg-black/40 backdrop-blur-sm transition-opacity"
+          className="lg:hidden fixed inset-0 z-[45] bg-black/40 backdrop-blur-sm transition-opacity"
           aria-label="Cerrar menú lateral"
         />
       )}
@@ -63,8 +73,10 @@ export function SidebarLayout({ sidebar, children }: SidebarLayoutProps) {
         mobileOpen={isMobileSidebarOpen}
         onRequestCloseMobile={() => setIsMobileSidebarOpen(false)}
       />
-      <div className="flex-1 flex flex-col min-w-0 min-h-0">
-        <main className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden pt-14 lg:pt-0">{children}</main>
+      <div className="relative z-0 flex-1 flex flex-col min-w-0 min-h-0">
+        <main className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden pt-[calc(3.5rem+env(safe-area-inset-top,0px))] lg:pt-0">
+          {children}
+        </main>
       </div>
     </div>
   );

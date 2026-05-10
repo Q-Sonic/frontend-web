@@ -17,7 +17,12 @@ export function ArtistProfileSocialNetworkLink({
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="inline-flex items-center justify-center bg-transparent p-0 rounded-none text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#00d4c8]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0a0a]"
+      className={
+        'touch-manipulation inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-lg ' +
+        'p-1.5 text-white transition-opacity hover:opacity-90 focus:outline-none ' +
+        'focus-visible:ring-2 focus-visible:ring-[#00d4c8]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0a0a] ' +
+        'active:opacity-80'
+      }
       aria-label={network}
     >
       {network === 'tiktok' && <Tiktok />}

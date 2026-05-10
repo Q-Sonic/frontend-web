@@ -13,6 +13,7 @@ import {
 } from 'react-icons/fi';
 import { useAuth } from '../../contexts/AuthContext';
 import { formatMoney } from '../../helpers/money';
+import { acquireBodyScrollLock } from '../../helpers/bodyScrollLock';
 import { removeServiceCartLine, type ServiceCartLine } from '../../helpers/clientServiceCart';
 import { Button } from '../Button';
 import { ClientCartContractDetailModal } from './ClientCartContractDetailModal';
@@ -216,6 +217,11 @@ export function ClientBatchContractSigningModal({
     };
   }, [isOpen, fitCanvasToContainer]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    return acquireBodyScrollLock();
+  }, [isOpen]);
+
   const canvasCoords = (e: React.PointerEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
@@ -372,17 +378,27 @@ export function ClientBatchContractSigningModal({
   if (lines.length === 0 && signedSessionLines.length === 0) {
     return (
       <div
-        className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 sm:p-6"
+        className={
+          'fixed inset-0 z-[80] flex items-end justify-center bg-black/75 ' +
+          'pt-[max(0.25rem,env(safe-area-inset-top,0px))] sm:items-center sm:bg-black/70 sm:p-6'
+        }
         role="dialog"
         aria-modal="true"
         aria-labelledby="batch-contract-signing-title"
       >
-        <div className="w-full max-w-md rounded-3xl border border-[#00CCCB]/35 bg-[#111214] p-6 md:p-8">
+        <div
+          className={
+            'w-full max-w-md border-[#00CCCB]/35 bg-[#111214] ' +
+            'rounded-t-2xl border-x border-t border-b-0 px-4 pb-[max(1rem,env(safe-area-inset-bottom,0px))] pt-4 shadow-[0_-8px_40px_rgba(0,0,0,0.35)] ' +
+            'max-md:mx-auto max-md:max-w-[calc(100vw-1.25rem)] ' +
+            'sm:rounded-3xl sm:border sm:px-6 sm:pb-6 sm:pt-6 sm:shadow-none md:p-8'
+          }
+        >
           <div className="flex justify-end">
             <button
               type="button"
               onClick={onClose}
-              className="rounded-full border border-white/20 p-2.5 text-white/70 transition hover:text-white"
+              className="touch-manipulation inline-flex min-h-11 min-w-11 items-center justify-center rounded-full border border-white/20 p-2.5 text-white/70 transition hover:text-white"
               aria-label="Cerrar"
             >
               <FiX className="h-6 w-6" />
@@ -391,15 +407,15 @@ export function ClientBatchContractSigningModal({
           <div className="-mt-2 text-center">
             <h2
               id="batch-contract-signing-title"
-              className="text-xl font-semibold tracking-tight text-white md:text-2xl"
+              className="text-lg font-semibold tracking-tight text-white sm:text-xl md:text-2xl"
             >
               Carrito de reservas
             </h2>
-            <p className="mt-3 text-sm leading-relaxed text-white/60 md:text-base">
+            <p className="mt-3 text-sm leading-relaxed text-white/60 sm:text-base md:text-base">
               Tu carrito está vacío. Elige fechas en la página de un servicio y pulsa &quot;Añadir al carrito&quot; para
               guardarlas aquí.
             </p>
-            <Button type="button" fullWidth className="mt-6 py-3" onClick={onClose}>
+            <Button type="button" fullWidth className="mt-6 min-h-12 touch-manipulation py-3" onClick={onClose}>
               Cerrar
             </Button>
           </div>
@@ -411,19 +427,29 @@ export function ClientBatchContractSigningModal({
   return (
     <>
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 sm:p-6"
+      className={
+        'fixed inset-0 z-[80] flex items-end justify-center bg-black/75 ' +
+        'pt-[max(0.25rem,env(safe-area-inset-top,0px))] sm:items-center sm:bg-black/70 sm:p-6'
+      }
       role="dialog"
       aria-modal="true"
       aria-labelledby="batch-contract-signing-title"
     >
       <div
-        className={`w-full max-w-3xl xl:max-w-4xl max-h-[min(92vh,900px)] overflow-y-auto rounded-3xl border border-[#00CCCB]/35 bg-[#111214] p-6 md:p-8 ${subtleScrollbarClass}`}
+        className={
+          `max-h-[min(96dvh,900px)] w-full max-w-3xl overflow-y-auto overscroll-y-contain border-[#00CCCB]/35 bg-[#111214] ` +
+          `rounded-t-2xl border-x border-t border-b-0 shadow-[0_-8px_40px_rgba(0,0,0,0.35)] ` +
+          `px-4 pb-[max(1rem,env(safe-area-inset-bottom,0px))] pt-4 xl:max-w-4xl ` +
+          `max-md:mx-auto max-md:max-w-[calc(100vw-1.25rem)] ` +
+          `sm:max-h-[min(92dvh,900px)] sm:rounded-3xl sm:border sm:shadow-none sm:p-6 md:p-8 ` +
+          `${subtleScrollbarClass}`
+        }
       >
         <div className="flex justify-end">
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full border border-white/20 p-2.5 text-white/70 transition hover:text-white"
+            className="touch-manipulation inline-flex min-h-11 min-w-11 items-center justify-center rounded-full border border-white/20 p-2.5 text-white/70 transition hover:text-white"
             aria-label="Cerrar"
           >
             <FiX className="h-6 w-6" />
@@ -431,23 +457,23 @@ export function ClientBatchContractSigningModal({
         </div>
 
         <div className="-mt-2 flex flex-col items-center text-center">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#00CCCB]/15 text-[#00CCCB] md:h-16 md:w-16">
-            <FiFileText className="h-7 w-7 md:h-8 md:w-8" />
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#00CCCB]/15 text-[#00CCCB] sm:h-14 sm:w-14 md:h-16 md:w-16">
+            <FiFileText className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8" />
           </div>
           <h2
             id="batch-contract-signing-title"
-            className="mt-4 text-2xl font-semibold tracking-tight text-white md:text-3xl"
+            className="mt-3 px-2 text-lg font-semibold tracking-tight text-white sm:mt-4 sm:text-2xl md:text-3xl"
           >
             Firma de contrato
           </h2>
-          <p className="mt-2 max-w-lg text-base text-white/60 md:text-lg">
+          <p className="mt-2 max-w-lg px-2 text-sm leading-relaxed text-white/60 sm:px-1 sm:text-base md:text-lg">
             Revisa los detalles y firma para confirmar el acuerdo
           </p>
-          <p className="mt-3 text-sm font-medium text-[#00CCCB] md:text-base">
+          <p className="mt-3 text-sm font-medium text-[#00CCCB] sm:text-base md:text-base">
             Contratos en esta sesión{' '}
             <span className="tabular-nums text-white">{sessionTotal}</span>
           </p>
-          <p className="mt-1 text-xs text-white/50 md:text-sm">
+          <p className="mt-1 text-sm text-white/50 sm:text-xs md:text-sm">
             <span className="text-emerald-400/90">{signedCount} firmados</span>
             <span className="text-white/35"> · </span>
             <span className="text-amber-200/80">{pendingCount} pendientes</span>
@@ -516,7 +542,7 @@ export function ClientBatchContractSigningModal({
                   <button
                     type="button"
                     onClick={() => setDetailLine(line)}
-                    className="inline-flex w-full items-center justify-center gap-1 rounded-full bg-[#00CCCB]/15 px-4 py-2.5 text-sm font-semibold text-[#00CCCB] transition hover:bg-[#00CCCB]/25 sm:w-auto"
+                    className="inline-flex min-h-12 w-full touch-manipulation items-center justify-center gap-1 rounded-full bg-[#00CCCB]/15 px-4 py-2.5 text-sm font-semibold text-[#00CCCB] transition hover:bg-[#00CCCB]/25 sm:min-h-0 sm:w-auto"
                   >
                     Ver detalle
                     <FiChevronRight className="h-4 w-4" aria-hidden />
@@ -524,7 +550,7 @@ export function ClientBatchContractSigningModal({
                   <button
                     type="button"
                     onClick={() => setLinePendingRemoval(line)}
-                    className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-red-400/35 bg-red-500/10 px-4 py-2.5 text-sm font-semibold text-red-300 transition hover:border-red-400/50 hover:bg-red-500/15 sm:w-auto"
+                    className="inline-flex min-h-12 w-full touch-manipulation items-center justify-center gap-2 rounded-full border border-red-400/35 bg-red-500/10 px-4 py-2.5 text-sm font-semibold text-red-300 transition hover:border-red-400/50 hover:bg-red-500/15 sm:min-h-0 sm:w-auto"
                   >
                     <FiTrash2 className="h-4 w-4 shrink-0" aria-hidden />
                     Eliminar
@@ -554,7 +580,7 @@ export function ClientBatchContractSigningModal({
                   <button
                     type="button"
                     onClick={() => setDetailLine(line)}
-                    className="inline-flex w-full items-center justify-center gap-1 rounded-full border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white/80 transition hover:bg-white/10 sm:w-auto"
+                    className="inline-flex min-h-12 w-full touch-manipulation items-center justify-center gap-1 rounded-full border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white/80 transition hover:bg-white/10 sm:min-h-0 sm:w-auto"
                   >
                     Ver detalle
                     <FiChevronRight className="h-4 w-4" aria-hidden />
@@ -566,11 +592,11 @@ export function ClientBatchContractSigningModal({
         </div>
 
         {lines.length > 0 ? (
-          <div className="mt-5 flex flex-wrap items-center justify-start gap-x-3 gap-y-1 rounded-xl border border-[#00CCCB]/40 bg-black/25 px-3 py-2 md:px-4">
+          <div className="mt-5 flex min-h-11 flex-wrap items-center justify-start gap-x-3 gap-y-2 rounded-xl border border-[#00CCCB]/40 bg-black/25 px-3 py-2.5 touch-manipulation md:px-4">
             <button
               type="button"
               onClick={() => setSelectedIds(new Set(lines.map((l) => l.id)))}
-              className="text-sm font-semibold text-[#00CCCB] transition hover:text-[#33e8dc]"
+              className="min-h-11 text-left text-sm font-semibold text-[#00CCCB] transition hover:text-[#33e8dc] sm:min-h-0"
             >
               Seleccionar todos los contratos
             </button>
@@ -580,7 +606,7 @@ export function ClientBatchContractSigningModal({
             <button
               type="button"
               onClick={() => setSelectedIds(new Set())}
-              className="text-sm font-semibold text-white/55 transition hover:text-white/80"
+              className="min-h-11 text-left text-sm font-semibold text-white/55 transition hover:text-white/80 sm:min-h-0"
             >
               Quitar selecciones
             </button>
@@ -593,7 +619,7 @@ export function ClientBatchContractSigningModal({
         ) : null}
 
         <div className="mt-5 space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-wider text-white/40">Estado por contrato</p>
+          <p className="text-sm font-semibold uppercase tracking-wider text-white/40 sm:text-xs">Estado por contrato</p>
           {signedSessionLines.map((line) => {
             const artistName = line.artistDisplayName?.trim() || 'Artista';
             const location = line.locationLabel?.trim() || 'Por definir';
@@ -648,12 +674,12 @@ export function ClientBatchContractSigningModal({
           })}
         </div>
 
-        <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.04] p-5 md:p-7">
-          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <span className="text-base font-semibold text-white md:text-lg">
+        <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.04] p-4 sm:mt-5 sm:rounded-2xl sm:p-5 md:p-7">
+          <div className="mb-3 flex flex-col gap-3 sm:mb-4 sm:flex-row sm:items-center sm:justify-between">
+            <span className="text-sm font-semibold text-white sm:text-base md:text-lg">
               Tu firma electrónica
             </span>
-            <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-[#00CCCB]/40 bg-[#00CCCB]/10 px-4 py-2 text-sm font-medium text-[#00CCCB] hover:bg-[#00CCCB]/15 md:px-5 md:py-2.5 md:text-base">
+            <label className="flex min-h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-[#00CCCB]/40 bg-[#00CCCB]/10 px-4 py-3 text-sm font-medium text-[#00CCCB] transition hover:bg-[#00CCCB]/15 touch-manipulation sm:inline-flex sm:w-auto sm:justify-start sm:py-2.5 md:px-5 md:text-base">
               <FiUpload className="h-4 w-4 shrink-0 md:h-5 md:w-5" />
               Subir firma (PNG/JPG)
               <input
@@ -667,7 +693,7 @@ export function ClientBatchContractSigningModal({
 
           <div
             ref={wrapRef}
-            className="relative h-44 w-full overflow-hidden rounded-xl border border-white/15 md:h-52"
+            className="relative h-52 w-full min-h-[13rem] overflow-hidden rounded-xl border border-white/15 sm:h-44 md:h-52"
           >
             <canvas
               ref={canvasRef}
@@ -688,13 +714,13 @@ export function ClientBatchContractSigningModal({
           <button
             type="button"
             onClick={clearSignature}
-            className="mt-3 inline-flex items-center gap-2 text-sm font-medium text-[#00CCCB] hover:underline md:text-base"
+            className="mt-3 inline-flex min-h-11 touch-manipulation items-center gap-2 py-1 text-sm font-medium text-[#00CCCB] hover:underline md:text-base"
           >
             <FiRefreshCw className="h-4 w-4" />
             Limpiar firma
           </button>
 
-          <div className="mt-5 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white/70">
+          <div className="mt-4 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-3 text-xs text-white/70 sm:mt-5 sm:rounded-xl sm:px-4 sm:py-3 sm:text-sm">
             <p className="text-xs font-medium uppercase tracking-wider text-white/40">Resumen</p>
             <p className="mt-1 text-white">
               Cliente: <span className="font-medium text-[#00CCCB]">{clientName}</span>
@@ -713,14 +739,14 @@ export function ClientBatchContractSigningModal({
             ) : null}
           </div>
 
-          <label className="mt-5 flex cursor-pointer items-start gap-3 text-base text-white/80 md:text-lg">
+          <label className="mt-4 flex min-h-[3rem] cursor-pointer items-start gap-3 rounded-lg py-1 text-sm leading-snug text-white/80 touch-manipulation sm:mt-5 sm:text-base md:text-lg">
             <input
               type="checkbox"
               checked={termsAccepted}
               onChange={(e) => setTermsAccepted(e.target.checked)}
-              className="mt-1 h-5 w-5 shrink-0 rounded border-white/30 bg-transparent accent-[#00CCCB]"
+              className="mt-0.5 h-6 w-6 shrink-0 rounded border-white/30 bg-transparent accent-[#00CCCB] sm:mt-1 sm:h-5 sm:w-5"
             />
-            <span>
+            <span className="pt-0.5">
               Acepto los{' '}
               <Link
                 to="/terms-contract"
@@ -734,12 +760,12 @@ export function ClientBatchContractSigningModal({
           </label>
         </div>
 
-        <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:gap-4">
+        <div className="mt-5 flex flex-col gap-3 sm:mt-7 sm:flex-row sm:gap-4">
           <Button
             type="button"
             variant="outline"
             fullWidth
-            className="border-[#00CCCB]/50 py-3 text-base md:py-3.5 md:text-lg"
+            className="touch-manipulation min-h-12 border-[#00CCCB]/50 py-3 text-base sm:min-h-0 md:py-3.5 md:text-lg"
             onClick={onClose}
           >
             Cancelar
@@ -755,7 +781,7 @@ export function ClientBatchContractSigningModal({
                 pendingCount === 0 ||
                 !hasSelectedPending
               }
-              className="py-3 text-base md:py-3.5 md:text-lg"
+              className="touch-manipulation min-h-12 py-3 text-base sm:min-h-0 md:py-3.5 md:text-lg"
               onClick={() => void handleSign()}
               leftIcon={<FiEdit3 className="h-5 w-5" />}
             >
@@ -776,12 +802,12 @@ export function ClientBatchContractSigningModal({
           </div>
         </div>
 
-        <p className="mt-5 flex items-center justify-center gap-2 text-center text-sm text-white/45 md:text-base">
-          <FiLock className="h-4 w-4 shrink-0 text-white/35 md:h-5 md:w-5" />
+        <p className="mt-4 flex items-start justify-center gap-2 px-1 text-center text-xs leading-relaxed text-white/45 sm:mt-5 sm:items-center sm:text-sm md:text-base">
+          <FiLock className="mt-0.5 h-4 w-4 shrink-0 text-white/35 sm:mt-0 md:h-5 md:w-5" />
           Documento seguro y legalmente vinculable
         </p>
 
-        <div className="mt-5 rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-4 text-sm leading-relaxed text-emerald-100/90 md:px-5 md:py-4 md:text-base">
+        <div className="mt-4 rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-3 py-3 text-xs leading-relaxed text-emerald-100/90 sm:mt-5 sm:rounded-xl sm:px-4 sm:py-4 sm:text-sm md:px-5 md:text-base">
           <div className="flex gap-3">
             <FiCheck className="mt-0.5 h-5 w-5 shrink-0 text-emerald-400 md:h-6 md:w-6" />
             <p>
