@@ -1,36 +1,10 @@
 import React, { useRef, useState } from 'react';
 import { Button } from './Button';
 import { paymentService } from '../api/paymentService';
+import type { PaymentCheckoutInstance, PaymentezResponse } from '../types/paymentez';
 
 const PAYMENTEZ_SDK_URL = 'https://cdn.paymentez.com/ccapi/sdk/payment_checkout_3.0.0.min.js';
 const NUVEI_ENV = (import.meta.env.VITE_NUVEI_ENV as string) || 'stg';
-
-interface PaymentCheckoutInstance {
-  open: (opts: { reference: string }) => void;
-  close: () => void;
-}
-
-interface PaymentCheckoutModalCtor {
-  new (config: {
-    env_mode: string;
-    onOpen?: () => void;
-    onClose?: () => void;
-    onResponse: (response: PaymentezResponse) => void;
-  }): PaymentCheckoutInstance;
-}
-
-declare global {
-  interface Window {
-    PaymentCheckout?: {
-      modal: PaymentCheckoutModalCtor;
-    };
-  }
-}
-
-interface PaymentezResponse {
-  transaction?: { status: string; id: string; status_detail: number };
-  error?: { type: string; help: string; description: string };
-}
 
 interface PaymentezCheckoutButtonProps {
   amount: number;
@@ -93,6 +67,8 @@ export const PaymentezCheckoutButton: React.FC<PaymentezCheckoutButtonProps> = (
       if (!window.PaymentCheckout) throw new Error('SDK de Paymentez no disponible');
 
       checkoutRef.current = new window.PaymentCheckout.modal({
+        client_app_code: import.meta.env.VITE_NUVEI_CLIENT_APP_CODE,
+        client_app_key: import.meta.env.VITE_NUVEI_CLIENT_APP_KEY,
         env_mode: NUVEI_ENV,
         onClose: () => setIsLoading(false),
         onResponse: async (response: PaymentezResponse) => {

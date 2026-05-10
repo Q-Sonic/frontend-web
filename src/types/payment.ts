@@ -21,10 +21,11 @@ export interface CreateLinkToPayResponse {
   success: boolean;
   message: string;
   data: {
-    id: string;
-    payment_url: string;
+    order: NuveiOrder;
+    payment: NuveiPayment;
   };
 }
+
 
 export interface WebhookProcessedResponse {
   success: boolean;
