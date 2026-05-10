@@ -61,8 +61,8 @@ export function ClientArtistSectionHeader({
   const reserveTarget = reserveHref ?? `${basePath}/calendar`;
 
   const headerGridClass = showMusicPlayer
-    ? 'grid gap-8 lg:grid-cols-[1fr_minmax(260px,380px)] lg:items-start lg:gap-10'
-    : 'grid gap-8';
+    ? 'grid gap-5 sm:gap-7 lg:grid-cols-[1fr_minmax(260px,380px)] lg:items-start lg:gap-10'
+    : 'grid gap-6 sm:gap-8';
 
   if (loading) {
     return (
@@ -92,15 +92,19 @@ export function ClientArtistSectionHeader({
     <header className="space-y-0">
       <div className={headerGridClass}>
         <div className="min-w-0 space-y-4">
-          <h1 className="text-2xl sm:text-4xl font-bold text-white tracking-tight leading-snug sm:leading-tight break-words">
+          <h1 className="text-[1.375rem] font-bold leading-snug tracking-tight text-white break-words sm:text-2xl md:text-4xl sm:leading-tight">
             {titleLead}{' '}
             <span className="break-words" style={{ color: ARTIST_PROFILE_ACCENT }}>
               {artistDisplayName}
             </span>
           </h1>
-          <p className="text-sm sm:text-base text-white/85 font-medium">{subtitleLine1}</p>
-          <p className="text-sm text-neutral-400 max-w-2xl leading-relaxed">{description}</p>
-          <div className="flex flex-wrap items-center gap-3 pt-1">
+          <p className="text-[15px] font-medium leading-snug text-white/85 sm:text-base">
+            {subtitleLine1}
+          </p>
+          <p className="text-[15px] leading-relaxed text-neutral-400 max-w-2xl sm:text-sm">
+            {description}
+          </p>
+          <div className="flex flex-wrap items-center gap-4 pt-1 sm:gap-3">
             <ArtistProfileSocialNetworkLink network="tiktok" href={social.tiktok} />
             <ArtistProfileSocialNetworkLink network="youtube" href={social.youtube} />
             <ArtistProfileSocialNetworkLink network="instagram" href={social.instagram} />
@@ -111,14 +115,14 @@ export function ClientArtistSectionHeader({
               <button
                 type="button"
                 onClick={onReserveClick}
-                className="cursor-pointer inline-flex items-center justify-center rounded-xl bg-[#00d4c8] px-6 py-2.5 text-sm font-semibold text-[#0a0c10] shadow-[0_0_24px_rgba(0,212,200,0.35)] hover:bg-[#00ece0] transition-colors"
+                className="touch-manipulation inline-flex min-h-12 cursor-pointer items-center justify-center rounded-xl bg-[#00d4c8] px-6 py-2.5 text-sm font-semibold text-[#0a0c10] shadow-[0_0_24px_rgba(0,212,200,0.35)] transition-colors hover:bg-[#00ece0] active:opacity-95"
               >
                 Reservar Fecha
               </button>
             ) : (
               <Link
                 to={reserveTarget}
-                className="cursor-pointer inline-flex items-center justify-center rounded-xl bg-[#00d4c8] px-6 py-2.5 text-sm font-semibold text-[#0a0c10] shadow-[0_0_24px_rgba(0,212,200,0.35)] hover:bg-[#00ece0] transition-colors"
+                className="touch-manipulation inline-flex min-h-12 cursor-pointer items-center justify-center rounded-xl bg-[#00d4c8] px-6 py-2.5 text-sm font-semibold text-[#0a0c10] shadow-[0_0_24px_rgba(0,212,200,0.35)] transition-colors hover:bg-[#00ece0] active:opacity-95"
               >
                 Reservar Fechas
               </Link>
@@ -126,7 +130,7 @@ export function ClientArtistSectionHeader({
           </div>
         </div>
         {showMusicPlayer ? (
-          <div className="flex justify-end lg:justify-end w-full">
+          <div className="flex w-full max-w-full justify-center lg:justify-end">
             <ArtistGalleryWavePlayer tracks={audioTracks} fallbackCoverUrl={coverFallback} />
           </div>
         ) : null}

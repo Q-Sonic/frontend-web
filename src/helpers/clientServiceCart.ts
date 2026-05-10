@@ -15,6 +15,10 @@ export type ServiceCartLine = {
   serviceFeatures?: string[];
   /** Optional client notes captured during booking. */
   serviceDetails?: string;
+  /** Resolved PDF URL of the contract linked to this service (snapshot at add-to-cart time). */
+  contractPdfUrl?: string;
+  /** Resolved PDF URL of the technical rider linked to this service (snapshot at add-to-cart time). */
+  technicalRiderPdfUrl?: string;
 };
 
 const SIGNED_MOCK_STORAGE_KEY = 'stagego_client_signed_cart_mock_v1';
@@ -40,6 +44,15 @@ function normalizeDateKeys(keys: string[]): string[] {
   return [...new Set(keys.map((k) => k.trim()).filter(Boolean))].sort();
 }
 
+/** True when both sets have at least one YYYY-MM-DD in common (empty sets do not overlap). */
+export function dateSetsOverlap(a: string[], b: string[]): boolean {
+  const na = normalizeDateKeys(a);
+  const nb = normalizeDateKeys(b);
+  if (na.length === 0 || nb.length === 0) return false;
+  const setA = new Set(na);
+  return nb.some((k) => setA.has(k));
+}
+
 function normalizedDetails(value: string | undefined): string {
   return (value ?? '').trim();
 }
@@ -62,9 +75,13 @@ export function getServiceCartLines(): ServiceCartLine[] {
   }
 }
 
+export type AddServiceCartLineResult =
+  | { ok: true; line: ServiceCartLine }
+  | { ok: false; code: 'DATE_OVERLAP'; conflictingLine: ServiceCartLine };
+
 export function addServiceCartLine(
   payload: Omit<ServiceCartLine, 'id' | 'addedAt'>,
-): ServiceCartLine {
+): AddServiceCartLineResult {
   const items = getServiceCartLines();
   const normalizedKeys = normalizeDateKeys(payload.selectedDateKeys);
   const details = normalizedDetails(payload.serviceDetails);
@@ -78,7 +95,16 @@ export function addServiceCartLine(
     return currentKeys.every((k, i) => k === normalizedKeys[i]);
   });
 
-  if (existing) return existing;
+  if (existing) return { ok: true, line: existing };
+
+  const conflicting = items.find((line) => {
+    if (line.artistId !== payload.artistId || line.serviceId !== payload.serviceId) return false;
+    return dateSetsOverlap(line.selectedDateKeys, normalizedKeys);
+  });
+
+  if (conflicting) {
+    return { ok: false, code: 'DATE_OVERLAP', conflictingLine: conflicting };
+  }
 
   const line: ServiceCartLine = {
     ...payload,
@@ -90,7 +116,7 @@ export function addServiceCartLine(
   items.push(line);
   localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
   window.dispatchEvent(new CustomEvent('stagego-service-cart-updated'));
-  return line;
+  return { ok: true, line };
 }
 
 export function removeServiceCartLine(id: string): void {

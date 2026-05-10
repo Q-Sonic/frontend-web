@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react';
+import { useEffect } from 'react';
 import { FiX } from 'react-icons/fi';
+import { acquireBodyScrollLock } from '../../helpers/bodyScrollLock';
 import { Button } from '../Button';
 
 export type ClientConfirmDialogProps = {
@@ -32,31 +34,43 @@ export function ClientConfirmDialog({
   onCancel,
   onConfirm,
 }: ClientConfirmDialogProps) {
+  useEffect(() => {
+    if (!isOpen) return;
+    return acquireBodyScrollLock();
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   return (
     <div
-      className="fixed inset-0 z-[70] flex items-center justify-center bg-black/75 p-4 sm:p-6"
+      className={
+        'fixed inset-0 z-[100] flex items-end justify-center bg-black/80 ' +
+        'pt-[max(0.25rem,env(safe-area-inset-top,0px))] sm:items-center sm:bg-black/75 sm:p-6'
+      }
       role="presentation"
-      onMouseDown={(e) => {
+      onPointerDown={(e) => {
         if (isBusy) return;
         if (e.target === e.currentTarget) onCancel();
       }}
     >
       <div
-        className="w-full max-w-[420px] rounded-3xl border border-[#00CCCB]/35 bg-[#111214] p-6 shadow-2xl md:p-7"
+        className={
+          'w-full max-w-[420px] border-[#00CCCB]/35 bg-[#111214] shadow-2xl ' +
+          'rounded-t-2xl border-x border-t border-b-0 px-4 pb-[max(1rem,env(safe-area-inset-bottom,0px))] pt-4 ' +
+          'sm:rounded-3xl sm:border sm:px-6 sm:pb-6 sm:pt-6 md:p-7'
+        }
         role="alertdialog"
         aria-modal="true"
         aria-labelledby="client-confirm-dialog-title"
         aria-describedby="client-confirm-dialog-desc"
-        onMouseDown={(e) => e.stopPropagation()}
+        onPointerDown={(e) => e.stopPropagation()}
       >
         <div className="flex justify-end">
           <button
             type="button"
             onClick={onCancel}
             disabled={isBusy}
-            className="rounded-full border border-white/15 p-2 text-white/60 transition hover:border-white/25 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+            className="touch-manipulation inline-flex min-h-11 min-w-11 items-center justify-center rounded-full border border-white/15 p-2 text-white/60 transition hover:border-white/25 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
             aria-label="Cerrar"
           >
             <FiX className="h-5 w-5" />
@@ -64,23 +78,23 @@ export function ClientConfirmDialog({
         </div>
         <h2
           id="client-confirm-dialog-title"
-          className="-mt-1 pr-10 text-lg font-semibold tracking-tight text-white md:text-xl"
+          className="-mt-1 pr-10 text-base font-semibold tracking-tight text-white sm:text-lg md:text-xl"
         >
           {title}
         </h2>
         <div
           id="client-confirm-dialog-desc"
-          className="mt-3 text-sm leading-relaxed text-white/70 md:text-base"
+          className="mt-3 text-sm leading-relaxed text-white/70 sm:text-base"
         >
           {message}
         </div>
-        <div className="mt-8 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end sm:gap-3">
+        <div className="mt-6 flex flex-col-reverse gap-3 sm:mt-8 sm:flex-row sm:justify-end sm:gap-3">
           <Button
             type="button"
             variant="outline"
             onClick={onCancel}
             disabled={isBusy}
-            className="rounded-full border-[#00CCCB]/45 px-6 py-2.5 text-sm sm:w-auto disabled:opacity-50"
+            className="touch-manipulation min-h-12 w-full rounded-full border-[#00CCCB]/45 px-6 py-3 text-sm disabled:opacity-50 sm:min-h-0 sm:w-auto sm:py-2.5"
           >
             {cancelLabel}
           </Button>
@@ -89,7 +103,7 @@ export function ClientConfirmDialog({
             variant={confirmVariant === 'danger' ? 'danger' : 'primary'}
             onClick={onConfirm}
             loading={isBusy}
-            className="rounded-full px-6 py-2.5 text-sm sm:w-auto"
+            className="touch-manipulation min-h-12 w-full rounded-full px-6 py-3 text-sm sm:min-h-0 sm:w-auto sm:py-2.5"
           >
             {confirmLabel}
           </Button>

@@ -134,18 +134,20 @@ export function ArtistServiceCard({
         )}
       </div>
 
-      <div className={`flex min-h-0 min-w-0 flex-1 flex-col p-5 sm:p-6 ${!documentsComplete ? 'opacity-[0.97]' : ''}`}>
-        <div className="flex w-full min-w-0 flex-col gap-3">
-          <h3 className="text-xl font-semibold leading-snug text-white break-words sm:text-2xl">
+      <div
+        className={`flex min-h-0 min-w-0 flex-1 flex-col p-4 pb-6 sm:p-6 ${!documentsComplete ? 'opacity-[0.97]' : ''}`}
+      >
+        <div className="flex w-full min-w-0 flex-row items-start justify-between gap-3">
+          <h3 className="min-w-0 flex-1 text-lg font-semibold leading-snug text-white break-words sm:text-xl md:text-2xl">
             {service.name}
           </h3>
-          <div className="flex w-full min-w-0 flex-col items-end gap-0.5 text-right">
+          <div className="flex min-w-0 shrink-0 flex-col items-end gap-0.5 text-right">
             <span
-              className={`text-2xl font-semibold tabular-nums whitespace-nowrap sm:text-3xl ${documentsComplete ? 'text-accent' : 'text-amber-200/95'}`}
+              className={`text-xl font-semibold tabular-nums whitespace-nowrap sm:text-2xl md:text-3xl ${documentsComplete ? 'text-accent' : 'text-amber-200/95'}`}
             >
               ${formatMoney(service.price)}
             </span>
-            <span className="text-sm text-neutral-400">por hora</span>
+            <span className="text-xs text-neutral-400 sm:text-sm">por hora</span>
           </div>
         </div>
         <p className="mt-3 text-sm leading-relaxed text-neutral-400 line-clamp-4 sm:text-base">

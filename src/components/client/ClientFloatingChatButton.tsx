@@ -11,7 +11,7 @@ export function ClientFloatingChatButton() {
     <button
       type="button"
       onClick={handleClick}
-      className="fixed bottom-6 right-6 z-30 flex items-center justify-center w-14 h-14 cursor-pointer hover:scale-110 active:scale-95 transition-transform"
+      className="fixed z-30 flex h-14 w-14 cursor-pointer items-center justify-center transition-transform hover:scale-110 active:scale-95 bottom-[max(1.5rem,env(safe-area-inset-bottom,0px))] right-[max(1.5rem,env(safe-area-inset-right,0px))]"
       aria-label="Abrir chat"
     >
       <div className="relative w-full h-full flex items-center justify-center bg-accent rounded-full shadow-[0_0_20px_rgba(0,204,203,0.4)]">

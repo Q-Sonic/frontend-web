@@ -26,6 +26,19 @@ export function ArtistGalleryWavePlayer({ tracks, fallbackCoverUrl }: ArtistGall
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(0.9);
   const [waveformReady, setWaveformReady] = useState(false);
+  const [compactPlayer, setCompactPlayer] = useState(() =>
+    typeof window !== 'undefined' ? window.matchMedia('(max-width:639px)').matches : false,
+  );
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width:639px)');
+    const onChange = () => setCompactPlayer(mq.matches);
+    onChange();
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+
+  const waveHeight = compactPlayer ? 36 : 54;
 
   const safeIndex = tracks.length ? Math.min(index, tracks.length - 1) : 0;
   const track = tracks[safeIndex];
@@ -75,7 +88,7 @@ export function ArtistGalleryWavePlayer({ tracks, fallbackCoverUrl }: ArtistGall
       try {
         const ws = WaveSurfer.create({
           container: waveContainerRef.current,
-          height: 54,
+          height: waveHeight,
           waveColor: 'rgba(255,255,255,0.38)',
           progressColor: 'rgba(255,255,255,0.95)',
           cursorColor: 'rgba(255,255,255,0.85)',
@@ -136,7 +149,7 @@ export function ArtistGalleryWavePlayer({ tracks, fallbackCoverUrl }: ArtistGall
       fallbackAudio.removeEventListener('ended', onEnded);
       audioFallbackRef.current = null;
     };
-  }, [cleanupAll, track?.streamUrl, volume]);
+  }, [cleanupAll, track?.streamUrl, volume, waveHeight]);
 
   const setPlaybackPosition = useCallback((nextSec: number) => {
     const safeDuration = duration > 0 ? duration : 0;
@@ -186,7 +199,7 @@ export function ArtistGalleryWavePlayer({ tracks, fallbackCoverUrl }: ArtistGall
 
   if (tracks.length === 0) {
     return (
-      <div className="w-full max-w-[500px] rounded-3xl border border-white/10 bg-white/4 px-4 py-6 text-center">
+      <div className="w-full max-w-[500px] rounded-2xl border border-white/10 bg-white/4 px-4 py-5 text-center sm:rounded-3xl sm:py-6">
         <p className="text-xs text-neutral-400 leading-relaxed">
           Este artista aún no tiene canciones publicadas en el perfil.
         </p>
@@ -195,19 +208,19 @@ export function ArtistGalleryWavePlayer({ tracks, fallbackCoverUrl }: ArtistGall
   }
 
   return (
-    <div className="w-full max-w-[520px] relative pt-20">
+    <div className="relative w-full max-w-[520px] pt-[4.25rem] sm:pt-20">
       {/* Waveform container */}
-      <div className="absolute inset-0 overflow-hidden rounded-4xl bg-[#2D2D2D] px-6 py-2 w-[90%] mx-auto">
-        <div className="flex items-center justify-between">
-          <div ref={waveContainerRef} className="w-[60%] mx-auto" aria-label="Forma de onda de audio" />
+      <div className="absolute inset-x-0 top-0 z-[1] mx-auto w-[min(100%,480px)] min-h-[2.75rem] overflow-hidden rounded-3xl bg-[#2D2D2D] px-3 py-2 sm:min-h-[3rem] sm:w-[90%] sm:rounded-4xl sm:px-6">
+        <div className="relative flex min-h-[2.25rem] items-center justify-center sm:min-h-[2.75rem]">
+          <div ref={waveContainerRef} className="mx-auto w-full max-w-[280px] sm:w-[60%]" aria-label="Forma de onda de audio" />
           {!waveformReady ? (
-            <div className="w-full h-10 mx-auto flex items-center justify-center gap-1.5">
+            <div className="pointer-events-none absolute inset-x-2 inset-y-1 flex items-center justify-center gap-0.5 sm:inset-x-5 sm:gap-1">
               {fallbackBars.map((barIndex) => {
                 const base = 0.35 + 0.65 * Math.abs(Math.sin((currentTime + barIndex * 0.17) * 2.3));
                 return (
                   <span
                     key={barIndex}
-                    className={`${playing ? 'bg-accent/90' : 'bg-white/35'} w-1.5 rounded-full transition-all duration-200`}
+                    className={`${playing ? 'bg-accent/90' : 'bg-white/35'} w-1 rounded-full transition-all duration-200 sm:w-1.5`}
                     style={{ height: `${10 + base * 68}%` }}
                     aria-hidden
                   />
@@ -219,63 +232,66 @@ export function ArtistGalleryWavePlayer({ tracks, fallbackCoverUrl }: ArtistGall
       </div>
 
       {/* Player container */}
-      <div className="relative mt-4 rounded-4xl bg-linear-to-r from-[#1652ff] via-[#1a81ff] to-[#28ebe3] px-6 pb-6 pt-16">
+      <div className="relative mt-3 rounded-3xl bg-linear-to-r from-[#1652ff] via-[#1a81ff] to-[#28ebe3] px-4 pb-5 pt-12 sm:mt-4 sm:rounded-4xl sm:px-6 sm:pb-6 sm:pt-16">
         {/* Play/Pause button */}
         <button
           type="button"
           onClick={togglePlay}
-          className="absolute left-1/2 top-0 flex h-20 w-20 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-[6px] border-[#2D2D2D] bg-linear-to-b from-[#30efe6] to-[#1d77ff] text-white shadow-[0_0_32px_rgba(10,228,223,0.55)] transition hover:brightness-110"
+          className={
+            'touch-manipulation absolute left-1/2 top-0 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full ' +
+            'border-[4px] border-[#2D2D2D] bg-linear-to-b from-[#30efe6] to-[#1d77ff] text-white shadow-[0_0_28px_rgba(10,228,223,0.55)] transition hover:brightness-110 ' +
+            'h-[3.25rem] w-[3.25rem] sm:h-20 sm:w-20 sm:border-[6px]'
+          }
           aria-label={playing ? 'Pausar' : 'Reproducir'}
           aria-pressed={playing}
         >
-          {playing ? <FiPause size={32} /> : <FiPlay size={34} className="translate-x-0.5" />}
+          {playing ? <FiPause className="h-6 w-6 sm:h-8 sm:w-8" /> : <FiPlay className="h-7 w-7 translate-x-0.5 sm:h-[34px] sm:w-[34px]" />}
         </button>
 
         {/* Player controls */}
-        <div className="absolute top-3 left-0 right-0 px-10 mb-5 flex items-center justify-between">
+        <div className="absolute left-0 right-0 top-2 flex items-center justify-between gap-1 px-2 sm:top-3 sm:gap-2 sm:px-8 md:px-10">
           <button
             type="button"
             onClick={() => seekBy(-10)}
-            className="rounded-full p-2 text-white transition hover:bg-white/15"
+            className="touch-manipulation shrink-0 rounded-full p-1.5 text-white transition hover:bg-white/15 sm:p-2"
             aria-label="Retroceder 10 segundos"
             title="Retroceder 10s"
           >
-            <FiSkipBack size={28} />
+            <FiSkipBack className="h-6 w-6 sm:h-7 sm:w-7" />
           </button>
 
-          <div className="flex items-center justify-between gap-32">
-            <span className="text-white/85">{formatTime(currentTime)}</span>
-
-            <span className="text-white/85">{formatTime(duration)}</span>
+          <div className="flex min-w-0 flex-1 items-center justify-center gap-4 tabular-nums text-white/85 sm:gap-10 md:gap-24 lg:gap-32">
+            <span className="text-xs sm:text-sm">{formatTime(currentTime)}</span>
+            <span className="text-xs sm:text-sm">{formatTime(duration)}</span>
           </div>
 
           <button
             type="button"
             onClick={() => seekBy(10)}
-            className="rounded-full p-2 text-white transition hover:bg-white/15"
+            className="touch-manipulation shrink-0 rounded-full p-1.5 text-white transition hover:bg-white/15 sm:p-2"
             aria-label="Adelantar 10 segundos"
             title="Adelantar 10s"
           >
-            <FiSkipForward size={28} />
+            <FiSkipForward className="h-6 w-6 sm:h-7 sm:w-7" />
           </button>
         </div>
 
-        <div className="mt-2 flex items-center gap-4">
-          <div className="h-16 w-16 shrink-0 overflow-hidden rounded-2xl border border-white/30 bg-white/10 shadow-inner">
+        <div className="mt-1 flex items-center gap-3 sm:mt-2 sm:gap-4">
+          <div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-white/30 bg-white/10 shadow-inner sm:h-16 sm:w-16 sm:rounded-2xl">
             {cover ? (
               <img src={cover} onError={() => setCover(null)} alt="" className="h-full w-full object-cover" />
             ) : (
-              <div className="flex h-full w-full items-center justify-center text-2xl text-white/40">♪</div>
+              <div className="flex h-full w-full items-center justify-center text-xl text-white/40 sm:text-2xl">♪</div>
             )}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-2xl font-semibold leading-none text-white">{track.title}</p>
-            <p className="mt-2 truncate text-lg leading-none text-white/75">{track.artistLabel}</p>
+            <p className="truncate text-lg font-semibold leading-tight text-white sm:text-2xl sm:leading-none">{track.title}</p>
+            <p className="mt-1 truncate text-sm leading-tight text-white/75 sm:mt-2 sm:text-lg sm:leading-none">{track.artistLabel}</p>
           </div>
         </div>
 
-        <div className="mt-5 grid grid-cols-[auto_1fr] items-center gap-3">
-          <FiVolume2 className="h-5 w-5 text-white/85" />
+        <div className="mt-4 grid grid-cols-[auto_1fr] items-center gap-2 sm:mt-5 sm:gap-3">
+          <FiVolume2 className="h-4 w-4 shrink-0 text-white/85 sm:h-5 sm:w-5" aria-hidden />
           <input
             type="range"
             min={0}
@@ -283,7 +299,7 @@ export function ArtistGalleryWavePlayer({ tracks, fallbackCoverUrl }: ArtistGall
             step={0.01}
             value={volume}
             onChange={(e) => changeVolume(Number(e.target.value))}
-            className="h-2 w-full cursor-pointer appearance-none rounded-full bg-white/30 accent-white"
+            className="h-2.5 w-full min-h-[44px] cursor-pointer appearance-none rounded-full bg-white/30 accent-white py-3 sm:min-h-0 sm:py-0"
             aria-label="Volumen"
           />
         </div>
