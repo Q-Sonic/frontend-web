@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getArtistProfileById, getArtistServicesByArtistId, getUser } from '../api';
+import { getArtistProfileById, getArtistServicesByArtistId, getUser, getArtistAvailabilityById, type ArtistAvailabilityResponse } from '../api';
 import { ApiError } from '../api/client';
 import type { ArtistProfile, ArtistServiceRecord } from '../types';
 import { withMinimumDelay } from '../helpers/withMinimumDelay';
@@ -31,6 +31,7 @@ export function useArtistProfileById(
 ) {
   const [profile, setProfile] = useState<(ArtistProfile & { uid: string }) | null>(null);
   const [services, setServices] = useState<ArtistServiceRecord[]>([]);
+  const [availability, setAvailability] = useState<ArtistAvailabilityResponse | null>(null);
   const [artistDisplayName, setArtistDisplayName] = useState<string>('Artista');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -79,15 +80,17 @@ export function useArtistProfileById(
             }
           }
 
-          const [servicesList, userData] = await Promise.all([
+          const [servicesList, userData, availabilityData] = await Promise.all([
             getArtistServicesByArtistId(safeId).catch(() => [] as ArtistServiceRecord[]),
             getUser(safeId).catch(() => null),
+            getArtistAvailabilityById(safeId).catch(() => null),
           ]);
 
           if (cancelled) return;
 
           setProfile(profileData);
           setServices(servicesList ?? []);
+          setAvailability(availabilityData);
           setArtistDisplayName(
             userData?.displayName?.trim() ||
               userData?.email?.trim() ||
@@ -100,6 +103,7 @@ export function useArtistProfileById(
         setError(err instanceof Error ? err.message : 'No se pudo cargar el perfil.');
         setProfile(null);
         setServices([]);
+        setAvailability(null);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -112,5 +116,5 @@ export function useArtistProfileById(
     };
   }, [artistUid, allowEmpty, fallbackName, version]);
 
-  return { profile, services, artistDisplayName, loading, error, refetch };
+  return { profile, services, availability, artistDisplayName, loading, error, refetch };
 }

@@ -369,23 +369,7 @@ function ContractCard({
           <span>{amount} USD</span>
           <FiChevronRight className="text-lg text-accent" aria-hidden />
         </div>
-        {hasUrl ? (
-          <a
-            href={c.contractUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex w-full items-center justify-center rounded-xl border border-accent/30 bg-accent py-2.5 text-center text-sm font-semibold text-white shadow-[0_0_14px_rgba(0,204,203,0.2)] transition hover:bg-accent/90 hover:text-white"
-          >
-            Ver contrato
-          </a>
-        ) : (
-          <span
-            className="inline-flex w-full cursor-not-allowed items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] py-2.5 text-center text-sm font-medium text-neutral-500"
-            title="El enlace al PDF aún no está disponible"
-          >
-            Ver contrato
-          </span>
-        )}
+
         {sourceHasUrl ? (
           <a
             href={c.sourceContractUrl}
@@ -393,7 +377,7 @@ function ContractCard({
             rel="noopener noreferrer"
             className="inline-flex w-full items-center justify-center rounded-xl border border-white/20 bg-white/5 py-2.5 text-center text-xs font-semibold text-white/90 transition hover:bg-white/10"
           >
-            Ver términos base
+            Ver Contrato
           </a>
         ) : null}
         {hasSignatureReceipt ? (

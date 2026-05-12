@@ -360,14 +360,14 @@ export function ArtistProfileMainPage() {
 
       <div className="relative grid lg:grid-cols-2 gap-4 lg:gap-5">
         <div className="flex flex-col gap-4">
-          <div
-            id="availability"
-            className="rounded-4xl bg-card/86 p-6 flex flex-col gap-4 min-h-[200px]"
-          >
-            <div className="flex items-center justify-between gap-2">
-              <h2 className="text-base font-bold text-white tracking-wide">Disponibilidad</h2>
-              <div className="flex items-center gap-3">
-                {isSelfArtist ? (
+          {isSelfArtist && (
+            <div
+              id="availability"
+              className="rounded-4xl bg-card/86 p-6 flex flex-col gap-4 min-h-[200px]"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <h2 className="text-base font-bold text-white tracking-wide">Disponibilidad</h2>
+                <div className="flex items-center gap-3">
                   <Button
                     variant="outline"
                     className="rounded-full border-white/25 px-3 py-1.5 text-xs"
@@ -375,50 +375,50 @@ export function ArtistProfileMainPage() {
                   >
                     Editar
                   </Button>
-                ) : null}
-                <Link
-                  className="text-sm font-normal text-white/90 hover:text-white transition"
-                  to={calendarMoreHref}
-                >
-                  Ver todo
-                </Link>
+                  <Link
+                    className="text-sm font-normal text-white/90 hover:text-white transition"
+                    to={calendarMoreHref}
+                  >
+                    Ver todo
+                  </Link>
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center gap-5 text-xs text-white">
+                <span className="inline-flex items-center gap-2">
+                  <span className="h-2 w-2 shrink-0 rounded-full bg-white" aria-hidden />
+                  Disponible
+                </span>
+                <span className="inline-flex items-center gap-2">
+                  <span
+                    className="h-2 w-2 shrink-0 rounded-full"
+                    style={{ backgroundColor: ARTIST_PROFILE_ACCENT }}
+                    aria-hidden
+                  />
+                  Reservado
+                </span>
+              </div>
+              <div className="flex gap-2 sm:gap-2.5 justify-between overflow-x-auto pb-2 pt-1 scrollbar-thin [scrollbar-color:rgba(255,255,255,0.15)_transparent]">
+                {availabilityDays.map((d) => {
+                  const key = localDateKey(d);
+                  const reserved = blockedSet.has(key);
+                  const dayShort = weekdayShortEs(d);
+                  const num = d.getDate();
+                  return (
+                    <ArtistProfileAvailabilityDay
+                      key={key}
+                      dayShort={dayShort}
+                      num={num}
+                      reserved={reserved}
+                      onClick={() => {
+                        setSelectedAvailabilityKey(key);
+                        if (!reserved) goToReservation(key);
+                      }}
+                    />
+                  );
+                })}
               </div>
             </div>
-            <div className="flex flex-wrap items-center gap-5 text-xs text-white">
-              <span className="inline-flex items-center gap-2">
-                <span className="h-2 w-2 shrink-0 rounded-full bg-white" aria-hidden />
-                Disponible
-              </span>
-              <span className="inline-flex items-center gap-2">
-                <span
-                  className="h-2 w-2 shrink-0 rounded-full"
-                  style={{ backgroundColor: ARTIST_PROFILE_ACCENT }}
-                  aria-hidden
-                />
-                Reservado
-              </span>
-            </div>
-            <div className="flex gap-2 sm:gap-2.5 justify-between overflow-x-auto pb-2 pt-1 scrollbar-thin [scrollbar-color:rgba(255,255,255,0.15)_transparent]">
-              {availabilityDays.map((d) => {
-                const key = localDateKey(d);
-                const reserved = blockedSet.has(key);
-                const dayShort = weekdayShortEs(d);
-                const num = d.getDate();
-                return (
-                  <ArtistProfileAvailabilityDay
-                    key={key}
-                    dayShort={dayShort}
-                    num={num}
-                    reserved={reserved}
-                    onClick={() => {
-                      setSelectedAvailabilityKey(key);
-                      if (!reserved) goToReservation(key);
-                    }}
-                  />
-                );
-              })}
-            </div>
-          </div>
+          )}
 
           <div className="rounded-4xl bg-card/86 p-8 flex flex-col min-h-[200px]">
             <div className="flex items-center justify-between gap-2 mb-4">
