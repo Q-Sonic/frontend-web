@@ -71,8 +71,8 @@ export function ArtistContractsPage() {
             </div>
           ) : (
             pending.map((c) => {
-              const unpaid = c.financials?.paymentStatus === 'UNPAID';
               const paid   = c.financials?.paymentStatus === 'PAID';
+              const unpaid = !paid;
               return (
                 <article key={c.id} className={`rounded-2xl border bg-[#121820] p-5 ${paid ? 'border-emerald-500/30' : 'border-white/10'}`}>
                   <div className="flex flex-wrap items-start justify-between gap-4">
@@ -120,19 +120,10 @@ export function ArtistContractsPage() {
                           rel="noopener noreferrer"
                           className="inline-flex items-center gap-1 rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-xs text-white hover:bg-white/10"
                         >
-                          <FiFileText /> Ver términos base
+                          <FiFileText /> Ver Contrato
                         </a>
                       ) : null}
-                      {c.contractUrl ? (
-                        <a
-                          href={c.contractUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-xs text-white hover:bg-white/10"
-                        >
-                          <FiFileText /> Contrato firmado
-                        </a>
-                      ) : null}
+
                       <button
                         type="button"
                         disabled={saving || unpaid}

@@ -51,7 +51,7 @@ export function ArtistProfileCalendarPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { exitHomePath, basePath } = useArtistProfileNav();
-  const { profile, services, artistDisplayName, loading, error } = useArtistProfileById(id);
+  const { profile, services, availability, artistDisplayName, loading, error } = useArtistProfileById(id);
 
   const isClientArtistCalendar =
     isBackendRoleCliente(user?.role) && basePath.startsWith('/client/artists');
@@ -62,7 +62,11 @@ export function ArtistProfileCalendarPage() {
   });
   const [selectedDateKey, setSelectedDateKey] = useState<string | null>(null);
 
-  const blockedSet = useMemo(() => new Set(profile?.blockedDates ?? []), [profile?.blockedDates]);
+  const availabilitySet = useMemo(() => {
+    const blocked = new Set([...(profile?.blockedDates ?? []), ...(availability?.blocked ?? [])]);
+    const occupied = new Set([...(availability?.reserved ?? []), ...(availability?.pending ?? [])]);
+    return { blocked, occupied };
+  }, [profile?.blockedDates, availability]);
   const availableServices = useMemo(
     () =>
       services.filter(
@@ -223,7 +227,10 @@ export function ArtistProfileCalendarPage() {
             ))}
             {cells.map((cell, idx) => {
               const key = localDateKey(cell.date);
-              const blocked = blockedSet.has(key);
+              const isBlocked = availabilitySet.blocked.has(key);
+              const isOccupied = availabilitySet.occupied.has(key);
+              const blockedOrOccupied = isBlocked || isOccupied;
+
               const dayNum = cell.date.getDate();
               const inMonth = cell.inMonth;
               const today = new Date();
@@ -234,7 +241,7 @@ export function ArtistProfileCalendarPage() {
                 cell.date.getDate(),
               ).getTime();
               const isPast = cellStart < todayStart;
-              const selectable = isClientArtistCalendar && inMonth && !blocked && !isPast;
+              const selectable = isClientArtistCalendar && inMonth && !blockedOrOccupied && !isPast;
 
               return (
                 <button
@@ -247,7 +254,7 @@ export function ArtistProfileCalendarPage() {
                   }}
                   className={`min-h-[88px] p-2 flex flex-col bg-[#0f141c] ${
                     inMonth ? '' : 'opacity-45'
-                  } ${blocked && inMonth ? 'bg-[#4A151B]/95' : ''} ${
+                  } ${blockedOrOccupied && inMonth ? (isBlocked ? 'bg-[#4A151B]/95' : 'bg-accent/10') : ''} ${
                     selectable ? 'cursor-pointer transition hover:bg-white/8' : ''
                   }`}
                 >
@@ -258,11 +265,19 @@ export function ArtistProfileCalendarPage() {
                   >
                     {dayNum}
                   </span>
-                  {blocked && inMonth ? (
-                    <span className="mt-auto text-[10px] md:text-[11px] font-medium text-[#FF4D4D] leading-tight">
-                      No Disponible
-                    </span>
-                  ) : null}
+                  {inMonth && (
+                    <div className="mt-auto">
+                      {isBlocked ? (
+                        <span className="text-[10px] md:text-[11px] font-medium text-[#FF4D4D] leading-tight block">
+                          No Disponible
+                        </span>
+                      ) : isOccupied ? (
+                        <span className="text-[10px] md:text-[11px] font-medium text-accent leading-tight block">
+                          Ocupado
+                        </span>
+                      ) : null}
+                    </div>
+                  )}
                 </button>
               );
             })}

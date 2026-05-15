@@ -23,6 +23,7 @@ export {
   addArtistProfileMedia,
   removeArtistProfileGalleryItem,
   ensureArtistProfileListedForDiscovery,
+  type ArtistAvailabilityResponse,
 } from './artistProfileService';
 export {
   normalizeArtistServiceRecord,

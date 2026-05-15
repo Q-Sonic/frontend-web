@@ -5,6 +5,7 @@ import type { PaymentCheckoutInstance, PaymentezResponse } from '../types/paymen
 const PAYMENTEZ_SDK_URL = 'https://cdn.paymentez.com/ccapi/sdk/payment_checkout_3.0.0.min.js';
 const NUVEI_ENV = (import.meta.env.VITE_NUVEI_ENV as string) || 'stg';
 
+
 interface GroupPaymentButtonProps {
   contractIds: string[];
   children?: React.ReactNode;
